@@ -55,13 +55,22 @@ Here a list of thinghs to implement in the code to fulfil the neads arised from 
 
 
 ## Monk know result
-The size of the value sets of the attributes are $x_1=3$ $x_2=3$ $x_3=2$ $x_4=3$ $x_5=4$ $x_6=2$.
-So we have 432 possible events(example).
-For example, 1 1 1 1 1 3 1 data_5 means that we have a label(to be sure) the first 4 variable are 1, the fifht is 3 and the last is 1, with data_5 like as expeted result
+The MONK's Problems dataset defines six attributes with the following value ranges: $x_1=3$ $x_2=3$ $x_3=2$ $x_4=3$ $x_5=4$ $x_6=2$.
+This results in 3×3×2×3×4×2=4323×3×2×3×4×2=432 possible combinations, which represent all potential instances (or examples) in the dataset.
+Each instance includes: A class label(0,1), Six attribute values corresponding to the six descriptive variables and an ID.
+For example, the instance (1, 1, 1, 1, 1, 3, 1) represents:
+
+    A class label of 1.
+    Attribute values: 1, 1, 1, 1, 3, 1 for a1 to a6.
+    The ID data_5, which may also indicate the expected output.
 We have 3 problem, each problem differ in the type of target concept to be learned and the noise
-Problem 1, we have 124 training example, and we use al the 432 data for testing(216 pos 216 neg), (head_shape=body_shape)o(jacket_color=red).
-Problem 2, we have 169 training example, and we use all the data(190 pos 142 neg), Esattamente due delle sei caratteristiche hanno il loro primo valore.
-Problem 3, we have 122 training example, and we use all the data(204 pos 228 neg), the 5% of the exmple were miscalssaified, (jacket_color=greene tiene una spada)o(jacket_color=blueebody_shape=octagon).
+
+Problem 1, we have 124 training example, and we use al the 432 data for testing(216 pos 216 neg), Target concept:head_shape=body_shape∨jacket_color=redhead_shape=body_shape∨jacket_color=red..
+
+Problem 2, we have 169 training example, and we use all the data(190 pos 142 neg),Target concept: Exactly two of the six attributes have a value of 1.
+
+Problem 3, we have 122 training example, and we use all the data(204 pos 228 neg), the 5% of the exmple were miscalssaified, Target concept:
+jacket_color=green and holding_a_sword∨(jacket_color≠blue∧body_shape≠octagon)jacket_color=green and holding_a_sword∨(jacket_color=blue∧body_shape=octagon).
 
 In the book, page 9, we can see the result of the first problem with AQ17-DCI, and the state of the art result are 100% with a
 rule based approach with data-driven constructive induction.
