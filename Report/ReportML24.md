@@ -47,6 +47,7 @@ Here a list of thinghs to implement in the code to fulfil the neads arised from 
 1. Ask if early stoppping is a valid regularization teqnique for regularization. (for 1.)
 2. 
 
+Ensemble Learning with boosting, if we have time
 
 
 [link for the dataset structure](https://archive.ics.uci.edu/dataset/70/monk+s+problems)
@@ -56,7 +57,7 @@ Here a list of thinghs to implement in the code to fulfil the neads arised from 
 
 ## Monk know result
 The MONK's Problems dataset defines six attributes with the following value ranges: $x_1=3$ $x_2=3$ $x_3=2$ $x_4=3$ $x_5=4$ $x_6=2$.
-This results in 3×3×2×3×4×2=4323×3×2×3×4×2=432 possible combinations, which represent all potential instances (or examples) in the dataset.
+This results in $3×3×2×3×4×2=432$ possible combinations, which represent all potential instances (or examples) in the dataset.
 Each instance includes: A class label(0,1), Six attribute values corresponding to the six descriptive variables and an ID.
 For example, the instance (1, 1, 1, 1, 1, 3, 1) represents:
 
@@ -109,8 +110,16 @@ In this way we can have a 3 layer Feed-Forward, but it can be expanded to add an
 
 # Implement Backpropagation.
 
-The backpropagation is a generalization of the $\delta$ rule with multi layer perceptron
+The backpropagation is a generalization of the $\delta$ rule with multi layer perceptron.
+Nice properties, is eazy because the compositional form of the model, it keep track only of quantities local to each unit(like errors(?)) and is efficient!
+![back](img/backprop.png)
 
+We want to minimize te total error, where total error is
+$$E_{tot}=\sum_{p=0}{(1/2)\sum_{k=1}^K{(d_k-o_k)}^2}$$
+
+p is the index of a training example, k is the index of the output unit.
+
+Then we compute the gradient and update al the weights W in the network, $\delta E_{tot}/ \delta w$
 # Encoding
 
 
