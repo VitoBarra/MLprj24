@@ -97,7 +97,7 @@ $$o_j=f_{\sigma}\left(\sum^n_{i=0} w_{i,j}o_i\right)$$
 
 
 Having multiple neurons means that we want to be able to calculate $o_i$ which is the output of the neurons in the previous layer.
-previes
+previes4
 We have to start from the input. For each input $x_i$ we will have a first layer where $$o_i=x_i \ \ \forall i=0,...,n_{in}$$ where $n_{in}$ is the dimensionality of the input $\mathbf{x}$.
 
 The second layer will be $$o_j=f_{\sigma}\left(\sum^n_{i=0} w_{i,j}o_i\right) \forall j=0...m_1$$ where $m_1$ is the number of neuron of that layer.
@@ -111,7 +111,15 @@ In this way we can have a 3 layer Feed-Forward, but it can be expanded to add an
 # Implement Backpropagation.
 
 The backpropagation is a generalization of the $\delta$ rule with multi layer perceptron.
+
+Its primary goal is to compute the gradient of the error function with respect to the network's weights efficiently, enabling optimization through gradient descent.
+
 Nice properties, is eazy because the compositional form of the model, it keep track only of quantities local to each unit(like errors(?)) and is efficient!
+
+It propagates the error from the output layer back to the input layer.
+
+It relies on the chain rule to calculate gradients across the layers of the network.
+
 ![back](img/backprop.png)
 
 We want to minimize te total error, where total error is
@@ -119,7 +127,13 @@ $$E_{tot}=\sum_{p=0}{(1/2)\sum_{k=1}^K{(d_k-o_k)}^2}$$
 
 p is the index of a training example, k is the index of the output unit.
 
-Then we compute the gradient and update al the weights W in the network, $\delta E_{tot}/ \delta w$
+Then compute the gradient and update all the weights W in the network, 
+$$\delta E_{tot}/ \delta w$$
+
+For each output unit, calculate the error:
+$e_k=d_k−o_k$ and then we do the Error Propagation using the cain rule, to calculate the error for each hidden neuron based on the output error,and we update the specific weight with a specific learning rate
+
+we have some problem with this formula, like the Vanishing Gradient Problem. 
 # Encoding
 
 
