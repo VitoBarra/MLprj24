@@ -1,7 +1,8 @@
 # TODO list
 ## Report
 this is a list of all the thing needed in the project report
-
+1. Write a README for the code base.
+   1. describing what we have done and what he have used to done it 
 5. Try the monk Database (Monk1, Monk2, Monk3)
    6. Needed data for each problem are: hyperparameter used, MSE result and accuracy ![Monk](img/ExampleMonkTable.png)
    7. Learning curve plot ![MonkCurve](img/ExampleMonkPlot.png)
@@ -11,12 +12,12 @@ this is a list of all the thing needed in the project report
    3. Try different heuristic 
       1. early stopping
    4. Validation and tests
-      1. Compere model selected with different validati on tecnique (old-out, k-fold CrossValidation) 
+      1. Compere model selected with different validation technique (old-out, k-fold CrossValidation) 
       2. Use an internal test set (portion of the CUP dataset) to asses performance
    5. Try different encoding (if applicable): plain-lable, 1-of-k
-1. Comparing the different regularization aproches, L1 vs L2 vs maybe early stoping (try weight elimination)
-2. Comparing convergenze time with different kinds of momentum
-3. Comparing different learning strategyes: barch, mini-batch, Online
+1. Comparing the different regularization approches, L1 vs L2 vs maybe early stoping (try weight elimination)
+2. Comparing convergence time with different kinds of momentum
+3. Comparing different learning strategies: barch, mini-batch, Online
 4. Comparing different architecture: 1 hidden layer, 2 hidden layer 3 hidden layer 
    1. Try layer with different unit number 
 
@@ -30,11 +31,11 @@ this is a list of all the thing needed in the project report
 
 
 ## Implementation
-Here a list of thinghs to implement in the code to fulfil the neads arised from the Report section, each entry refers to something int the report
+Here a list of things to implement in the code to fulfil the neads arised from the Report section, each entry refers to something int the report
 
 
 9. Start from different starting point
-1. implement a Multy Layer Perceptro (MLP) model
+1. implement a Multy Layer Perceptron (MLP) model
    2. Support arbitrary number of layer (for 4.,5. )
    1. backpropagation 
       2. Add support for Regularization L2 (for 1.)
@@ -55,16 +56,20 @@ Ensemble Learning with boosting, if we have time
 [link for other dataset](https://archive.ics.uci.edu/)
 
 
-## Monk know result
-The MONK's Problems dataset defines six attributes with the following value ranges: $x_1=3$ $x_2=3$ $x_3=2$ $x_4=3$ $x_5=4$ $x_6=2$.
-This results in $3×3×2×3×4×2=432$ possible combinations, which represent all potential instances (or examples) in the dataset.
-Each instance includes: A class label(0,1), Six attribute values corresponding to the six descriptive variables and an ID.
-For example, the instance (1, 1, 1, 1, 1, 3, 1) represents:
+## Monk Dataaset
+The MONK's dataset defines 3 __binary classification__ task
+each task defines six attributes with the following value ranges: 
+- $x_1\in [1-3]$
+- $x_2\in [1-3]$
+- $x_3\in [1-2]$
+- $x_4\in [1-3]$
+- $x_5\in [1-4]$
+- $x_6\in [1-3]$ 
 
-    A class label of 1.
-    Attribute values: 1, 1, 1, 1, 3, 1 for a1 to a6.
-    The ID data_5, which may also indicate the expected output.
-We have 3 problem, each problem differ in the type of target concept to be learned and the noise
+This results in $3×3×2×3×4×2=432$ possible combinations of input, which represent all potential instances (or examples) in the dataset.
+
+
+We have 3 problem , each problem differ in the type of target concept to be learned and the noise
 
 Problem 1, we have 124 training example, and we use al the 432 data for testing(216 pos 216 neg), Target concept:head_shape=body_shape∨jacket_color=redhead_shape=body_shape∨jacket_color=red..
 
@@ -90,6 +95,17 @@ rule based approach with hypothesis-driven constructive induction.
 
 
 
+## CUP dataset
+the CUP dataset is a multiple regression task .
+The Training set is composed of 500 example each of whitch have 12 variaible and 3 target, and a pattern id (why?)
+The test set is blind meaning that we do not have the correct lable, this is the set used for win the competition.
+this dataseet need 3 metrics: 
+1. __Mean Euclidian Error__: $$M_{MEE}\cfrac{1}{l}\sum^l_{p=1} \| \mathbf{o}_p - \mathbf{t}_p  \|$$
+2. __Mean squared Error__ : $$E_{MSE}= \cfrac{1}{l}\sum^l_{p=1}(\mathbf{o}_p -\mathbf{t}_p)^2$$
+3. __Root Mean squared Error__: $$E_{RMSE}= \sqrt{\cfrac{1}{l}\sum^l_{p=1}(\mathbf{o}_p -\mathbf{t}_p)^2}$$
+
+
+
 ## Implementation of MLP
 What is Multy Layer Perceptron? It is the simplest form of a feed-forward neural network. It is composed of multiple neurons.
 Each neuron is a computation unit and it is defined as:
@@ -107,33 +123,52 @@ The output layer will be $$o_j=f_{out}\left(\sum^n_{i=0} w_{i,j}o_i\right) \fora
 In this way we can have a 3 layer Feed-Forward, but it can be expanded to add an arbitrary number of layers.
 
 
-
-# Implement Backpropagation.
-
-The backpropagation is a generalization of the $\delta$ rule with multi layer perceptron.
-
-Its primary goal is to compute the gradient of the error function with respect to the network's weights efficiently, enabling optimization through gradient descent.
-
-Nice properties, is eazy because the compositional form of the model, it keep track only of quantities local to each unit(like errors(?)) and is efficient!
-
-It propagates the error from the output layer back to the input layer.
-
-It relies on the chain rule to calculate gradients across the layers of the network.
-
+# Implement Backpropagation.  
+  
+The backpropagation is a generalization of the $\delta$ rule with multi layer perceptron.  
+It's a fundamental algorithm for the training of the model that compute the gradient of the error function with respect to the network's weights.  
+  
+  
+It propagates the error from the output layer back to the input layer.  
+It relies on the chain rule to calculate gradients across the layers of the network.  
+  
 ![back](img/backprop.png)
 
-We want to minimize te total error, where total error is
-$$E_{tot}=\sum_{p=0}{(1/2)\sum_{k=1}^K{(d_k-o_k)}^2}$$
+---
+TODO:
+-> Backpropagation algorithm depended by the learning method :  
+- Batch :
+- Stochastic :
+- Online :
+---
 
-p is the index of a training example, k is the index of the output unit.
+We want to minimize the total error, that is:  
+$$E_{tot}=\sum_{p=0}^l{(1/2)\sum_{k=1}^K{(d_k-o_k)}^2}$$  
+  
+where $p$ is the index of a training example, $K$ is the index of the output unit.  
+  
+We know that the direction where the function is maximum is given by the gradient, and for our objective, we want to follow the opposite.   
+So compute the gradient for each $\mathbf w$ as:   
+$$\nabla E_{tot} = \frac{\partial E_{tot}}{\partial w}$$  
+And take the opposite direction $\Delta w=-\nabla E_{tot} = -\frac{\partial E_{tot}}{\partial w}$  . 
+At each step we want to update the weights using this new direction to minimize the error.
+The new $\mathbf{w}$ will be:$$\mathbf{w}_{new}=\Delta \mathbf{w}+\eta \mathbf{w}$$
+where $\eta$ is the learning rate.
 
-Then compute the gradient and update all the weights W in the network, 
-$$\delta E_{tot}/ \delta w$$
+---
+TODO:
+- espansione della derivata, 
+- calcolo del delta
+- update per ultimo layer, layer di mezzo e primo layer
+___
+???
+For each output unit, calculate the error:  
+$e_k=d_k−o_k$ and then we do the Error Propagation using the cain rule, to calculate the error for each hidden neuron based on the output error,and we update the specific weight with a specific learning rate  
+  
+we have some problem with this formula, like the Vanishing Gradient Problem.   
+___
 
-For each output unit, calculate the error:
-$e_k=d_k−o_k$ and then we do the Error Propagation using the cain rule, to calculate the error for each hidden neuron based on the output error,and we update the specific weight with a specific learning rate
 
-we have some problem with this formula, like the Vanishing Gradient Problem. 
 # Encoding
 
 
@@ -203,17 +238,21 @@ $$\mathbf{w}_{new}=\mathbf{w}+\eta\Delta\mathbf{w}+2\lambda\mathbf{w}$$
 
 ## Alternatives 
 For the control of the model complexity there are others methods that are explicit and implicit.
-- Implicit : L1, 
+- Implicit : L1, (like )
 - Explicit : Early stopping
+- Dropout
+- Batch normalization (??)
 
 ### Early stopping
 Besides the L2 is possible to use the early stopping.
 This method consists of stopping the training when are satisfy some criterias in the validation set, for example, if the error has few changes.
 If the model is well regularized with L2 could be not necessary doing the early stopping
 
-### L1
-
-
+## Bias-Variance implication
+- A model that is over regularized will have a high bias and a low variance. 
+  In this way the model is too rigid and it's possible to underfitting
+- A model with a low penalty term will have a low bias and a high variance.
+  This implies a great dependence on dataset and overfitting.
 
 # Hyperparameters search
 We need to do a grid search on 
