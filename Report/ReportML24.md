@@ -36,7 +36,6 @@ this is a list of all the thing needed in the project report
 ## Implementation
 Here a list of things to implement in the code to fulfil the neads arised from the Report section, each entry refers to something int the report
 
-
 1. implement a Multy Layer Perceptron (MLP) model
    2. Support arbitrary number of layer (for 4.,5. )
       3. Implement a modular structure  (layer)
@@ -48,14 +47,15 @@ Here a list of things to implement in the code to fulfil the neads arised from t
       2. Add support for Nesterov Momentum (for 2.)
 2. Implement some validation technique like Cross-validation or Old-Out
 3. Implement Early Stopping
-4. Implement Utility to plot results.
+7. implement Results for epoch Save.
+   4. Implement Utility to plot results.
 5. Implement Utility to Log HyperParameter results.
-6. Implement weight auto Save (maybe this could be useful but it is out of scope)
+6. Implement weight auto Save
    
 ## Question
 1. Ask if early stopping is a valid regularization technique for regularization. (for 1.)
 
-Ensemble Learning with boosting, if we have time
+Ensemble Learning with boosting if we have time
 
 
 [link for the dataset structure](https://archive.ics.uci.edu/dataset/70/monk+s+problems)
@@ -63,7 +63,7 @@ Ensemble Learning with boosting, if we have time
 [link for other dataset](https://archive.ics.uci.edu/)
 
 
-## Monk Dataaset
+## Monk Dataset
 The MONK's dataset defines 3 __binary classification__ task
 each task defines six attributes with the following value ranges: 
 - $x_1\in [1-3]$
@@ -78,12 +78,12 @@ This results in $3×3×2×3×4×2=432$ possible combinations of input, which rep
 
 We have 3 problem , each problem differ in the type of target concept to be learned and the noise
 
-Problem 1, we have 124 training example, and we use al the 432 data for testing(216 pos 216 neg), Target concept:head_shape=body_shape∨jacket_color=redhead_shape=body_shape∨jacket_color=red..
+Problem 1, we have 124 training example, and we use al the 432 data for testing(216 pos 216 neg), Target concept:$head_shape=body\_shape\lor jacket\_color=redhead\_shape=body\_shape\lor jacket\_color=red..$
 
 Problem 2, we have 169 training example, and we use all the data(190 pos 142 neg),Target concept: Exactly two of the six attributes have a value of 1.
 
 Problem 3, we have 122 training example, and we use all the data(204 pos 228 neg), the 5% of the exemple were misclassified, Target concept:
-jacket_color=green and holding_a_sword∨(jacket_color≠blue∧body_shape≠octagon)jacket_color=green and holding_a_sword∨(jacket_color=blue∧body_shape=octagon).
+$jacket_color=green$ and $holding\_a\_sword \lor (jacket\_color \not =blue\land body_shape\not=octagon)jacket\_color=green$ and $holding\_a\_sword\lor(jacket\_color=blue\land body\_shape=octagon)$.
 
 In the book, page 9, we can see the result of the first problem with AQ17-DCI, and the state of the art result are 100% with a
 rule based approach with data-driven constructive induction.
@@ -244,7 +244,7 @@ $$\mathbf{w}_{new}=\mathbf{w}+\eta\Delta\mathbf{w}+2\lambda\mathbf{w}$$
 
 
 ## Alternatives 
-For the control of the model complexity there are others methods that are explicit and implicit.
+For the control of the model complexity, there are other methods that are explicit and implicit.
 - Implicit : L1, (like )
 - Explicit : Early stopping
 - Dropout
@@ -257,11 +257,11 @@ If the model is well regularized with L2 could be not necessary doing the early 
 
 ## Bias-Variance implication
 - A model that is over regularized will have a high bias and a low variance. 
-  In this way the model is too rigid and it's possible to underfitting
+  In this way the model is too rigid, and it's possible to be underfitting
 - A model with a low penalty term will have a low bias and a high variance.
   This implies a great dependence on dataset and overfitting.
 
-# Regularization and momentum in the weights update 
+# Regularization and momentum in the weight update 
 
 # Hyperparameters search
 We need to do a grid search on 
@@ -284,7 +284,7 @@ The __FeedForwardModel__ class encapsulates the logic for a FeedForward model.
 - __MetricResult__ : a matrix to keep track of the result of each metric for each epoch 
 - __*Fit(epoch,batchSize)*__: start the Training loop, specify the number of epoch and the dimension of the batch (unset for Batch, set for mini-Batch, 1 for online)
 - __*AddLayer(newlayer)*__: Sequentially add a layer to the model (__layers[layer.size()]=newLayer__)
-- __*SaveModel(path)*__ : Save the model on file, layer weight and some medtadata.
+- __*SaveModel(path)*__ : Save the model on file, layer weight, and some medtadata.
 - __*LoadModel(path)*__ : Save the model from a file.
 - __*SetOptimizer(optimizer)*__: Set the optimizer algorithm
 - __*AddMetrics(metric)*__: add metric to __Metrics__.

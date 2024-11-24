@@ -1,3 +1,6 @@
+import numpy as np
+import Core.MiniBatchGenerator as mb
+
 class ModelFeedForward:
     def __init__(self):
         self.Layers = []
@@ -7,14 +10,12 @@ class ModelFeedForward:
         self.Metric = []
         self.MetricResults = []
 
-    def Fit(self, epoch, batchSize):
-        batch_generator = MiniBatchGenerator(self.InputLayer.LastOutputs, batchSize)
+    def Fit(self, Input, epoch, batchSize):
+        batch_generator = mb.MiniBatchGenerator(Input, batchSize)
         for e in range(epoch):
             batch_generator.Reset()
-            while True:
+            while not batch_generator.IsBatchGenerationFinished:
                 batch = batch_generator.NextBatch()
-                if batch is None:
-                    break
                 inputs, targets = batch
                 outputs = self._forward(inputs)
                 self.Optimizer.BackPropagation(outputs, targets)
@@ -22,7 +23,7 @@ class ModelFeedForward:
             self._compute_metrics(e)
 
     def AddLayer(self, newLayer):
-        if self.Layers:
+        if len(self.Layers) is not 0:
             self.Layers[-1].NextLayer = newLayer
             newLayer.LastLayer = self.Layers[-1]
         self.Layers.append(newLayer)
@@ -62,5 +63,5 @@ class ModelFeedForward:
             layer.Update(self.Optimizer)
 
     def _compute_metrics(self, epoch):
-        results = [metric.Error(self.OutputLayer.LastOutputs, self.OutputLayer.targets) for metric in self.Metric]
+        results = [metric.Error(self.OutputLayer.LayerOutput, self.OutputLayer.targets) for metric in self.Metric]
         self.MetricResults.append(results)

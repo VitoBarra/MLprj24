@@ -7,7 +7,7 @@ class BackPropagation:
         self.Velocity = None  # For momentum
 
     def ComputeUpdate(self, layer):
-        grad = self.LossFunction.Error(layer.LastOutputs, layer.NextLayer.LastOutputs)
+        grad = self.LossFunction.Error(layer.LayerOutput, layer.NextLayer.LayerOutput)
         if self.Velocity is None:
             self.Velocity = grad
         else:
