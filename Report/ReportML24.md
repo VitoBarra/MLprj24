@@ -104,7 +104,7 @@ rule based approach with hypothesis-driven constructive induction.
 
 ## CUP dataset
 the CUP dataset is a multiple regression task .
-The Training set is composed of 500 example each of which have 12 variable and 3 target, and a pattern id (why?)
+The Training set is composed of 250 example each of which have 12 variable and 3 target, and a pattern id (why?)
 The test set is blind meaning that we do not have the correct label, this is the set used for win the competition.
 this dataseet need 3 metrics: 
 1. __Mean Euclidian Error__: $$M_{MEE}\cfrac{1}{l}\sum^l_{p=1} \| \mathbf{o}_p - \mathbf{t}_p  \|$$
