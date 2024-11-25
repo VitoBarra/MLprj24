@@ -39,7 +39,7 @@ class Layer:
         self.Unit = unit
         self.ActivationFunction = activationFunction
         self.NextLayer = None
-        self.LastLayer: Layer | None = None
+        self.LastLayer = None
         self.WeightToNextLayer = None
         self.LayerOutput = None
 
