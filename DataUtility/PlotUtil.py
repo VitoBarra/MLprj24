@@ -176,7 +176,7 @@ def ReadAndPlot(data_path, plot_path, problem_name, test_name, classification):
 
 def ReadAndPlotAll(data_path, plot_path, problemName, classification):
     dataPath = f"{data_path}/{problemName}"
-    for dir in getDirectSubDir(dataPath):
+    for dir in GetDirectSubDir(dataPath):
         ReadAndPlot(data_path, plot_path, problemName, dir.name, classification)
 
 
@@ -198,7 +198,7 @@ def PrintAllData(path, classification):
 
 
 def PrintTestInFolder(path, metric_in_history):
-    for test_name in getDirectSubDir(f"{path}"):
+    for test_name in GetDirectSubDir(f"{path}"):
         history, result = ReadTrainingData(f"{path}/{test_name.name}")
         try:
             print(
@@ -212,7 +212,7 @@ def PrintTestInFolder(path, metric_in_history):
 
 def PrintAllDataAllSubProblem(data_path, problem_name, classification):
     print(f"---------------------{problem_name}---------------------")
-    for dir in getDirectSubDir(f"{data_path}/{problem_name}"):
+    for dir in GetDirectSubDir(f"{data_path}/{problem_name}"):
         print(f"---------------------{dir.name}---------------------")
         CleanData(f"{data_path}/{problem_name}/{dir.name}")
         PrintAllData(f"{data_path}/{problem_name}/{dir.name}", classification)
@@ -223,7 +223,7 @@ def RenameDicKey(mydict, oldName, new_name):
 
 
 def CleanData(path):
-    for test_name in getDirectSubDir(f"{path}"):
+    for test_name in GetDirectSubDir(f"{path}"):
         history, result = ReadTrainingData(f"{path}/{test_name.name}")
         modified = False
         if hasattr(history, "history"):

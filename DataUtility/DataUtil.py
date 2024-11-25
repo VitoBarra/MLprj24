@@ -1,12 +1,15 @@
 import numpy as np
 import numpy.random as rng
-import tensorflow as tf
-
-
+from numpy import ndarray
 
 
 class DataExamples(object):
-    def __init__(self, data, label):
+    Label: ndarray
+    Data: ndarray
+    isCategorical: bool
+    DataLength: int
+
+    def __init__(self, data: np.ndarray, label: np.ndarray):
         self.DataLength = data.shape[0]
         if self.DataLength != label.shape[0]:
             raise ValueError('Data and label must have the same length')
@@ -82,7 +85,12 @@ class DataExamples(object):
 
 class DataSet(object):
 
-    def __init__(self, data, label):
+    Data: DataExamples | None
+    Test: DataExamples | None
+    Validation: DataExamples | None
+    Training: DataExamples | None
+
+    def __init__(self, data: np.ndarray, label: np.ndarray):
         if data is not None and label is not None:
             self.Data = DataExamples(data, label)
         else:
