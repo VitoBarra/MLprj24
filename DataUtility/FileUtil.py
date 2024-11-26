@@ -1,6 +1,7 @@
 import os
 import numpy as np
-from DataUtility.DataUtil import DataExamples
+from DataUtility.DataExamples import DataExamples
+from DataUtility.DataSet import DataSet
 
 
 def GetDirectSubDir(path:str) -> list[os.DirEntry]:
@@ -32,7 +33,7 @@ def readMonk(file_path:str):
     labels = np.array(labels)
     ids = np.array(ids)
     # Crea un'istanza di DataExamples
-    examples:DataExamples = DataExamples(data, labels, id=ids)
+    examples:DataSet = DataSet(data, labels, ids)
 
     # Puoi assegnarla a un attributo globale o manipolarla ulteriormente
     return examples
@@ -69,7 +70,7 @@ def readCUP(file_path:str):
     labels = np.array(labels)
     ids = np.array(ids)
     # Crea un'istanza di DataExamples
-    examples:DataExamples = DataExamples(data, labels, id=ids)
+    examples:DataSet = DataSet(data, labels, ids)
 
     # Puoi assegnarla a un attributo globale o manipolarla ulteriormente
     return examples
