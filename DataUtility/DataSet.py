@@ -3,6 +3,7 @@ import numpy as np
 from DataUtility.DataExamples import DataExamples
 
 
+
 class DataSet(object):
     """
     Manages a complete dataset and its splits for machine learning tasks.
@@ -25,7 +26,7 @@ class DataSet(object):
     Validation: DataExamples | None
     Training:   DataExamples | None
 
-    def __init__(self, data: np.ndarray, label: np.ndarray):
+    def __init__(self, data: np.ndarray, label: np.ndarray, Id: np.ndarray):
         """
         Initializes the DataSet with data and labels.
 
@@ -36,7 +37,7 @@ class DataSet(object):
         if data is None or label is None:
             raise ValueError("Data and label must be provided.")
 
-        self.Data = DataExamples(data, label)
+        self.Data = DataExamples(data, label, Id)
 
         self.Training = None
         self.Validation = None
@@ -131,6 +132,60 @@ class DataSet(object):
             self.Validation.FlattenSeriesData()
         if self.Test is not None:
             self.Test.FlattenSeriesData()
+
+    def k_fold_cross_validation(self,k: int, seed: int = 0) ->[(DataExamples, DataExamples)]:
+        """
+        Take in input the data we have, and the k fold we want, then it return an array of couple (train_set, test_set)
+        :param seed: A dataset, a seed for the shuffle e k for the k-fold
+        :return: an array of couple (train_set, test_set) for the k-fold.
+        :raises ValueError: If k is too small or too big
+        """
+
+        if k <= 1:
+            raise ValueError("Fold should be greater than 1")
+        if len(self.Data) < k:
+            raise ValueError("Fold can't be greater than the number of examples")
+        self.Shuffle(seed=seed)
+
+        fold_size = len(self.Data) // k
+        remainder = len(self.Data) % k
+
+        folds = []
+        start_index = 0
+        for i in range(k):
+            current_fold_size = fold_size + (1 if i < remainder else 0)
+            end_index = start_index + current_fold_size
+
+            fold_data = DataExamples(
+                self.Data.Data[start_index:end_index],
+                self.Data.Label[start_index:end_index],
+                self.Data.Id[start_index:end_index] if self.Data.Id is not None else None
+            )
+            folds.append(fold_data)
+            start_index = end_index
+
+        results: [(DataExamples, DataExamples)] = []
+        for i in range(k):
+            test_set = folds[i]
+            train_set_data = []
+            train_set_label = []
+            train_set_ids = [] if folds[i].Id is not None else None
+
+            for j, fold in enumerate(folds):
+                if j != i:
+                    train_set_data.append(fold.Data)
+                    train_set_label.append(fold.Label)
+                    if fold.Id is not None:
+                        train_set_ids.append(fold.Id)
+
+            train_set_data = np.concatenate(train_set_data, axis=0)
+            train_set_label = np.concatenate(train_set_label, axis=0)
+            train_set_ids = np.concatenate(train_set_ids, axis=0)
+
+            train_set = DataExamples(train_set_data, train_set_label, train_set_ids)
+            results.append((train_set, test_set))
+
+        return results
 
     @classmethod
     def init(cls, training: DataExamples, Validation: DataExamples, Test: DataExamples) -> 'DataSet':

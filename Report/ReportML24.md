@@ -31,8 +31,6 @@ this is a list of all the thing needed in the project report
   
   
   
-  
-  
 ## Implementation  
 Here a list of things to implement in the code to fulfil the neads arised from the Report section, each entry refers to something int the report  
   
