@@ -1,11 +1,16 @@
 from typing import List, Any
 
 import numpy as np
+from talloc import Object
+
+from Core.LossFunction import LossFunction
+
 import DataUtility.MiniBatchGenerator as mb
 from Core.Layer import Layer
 from Core import Metric
 from Core.BackPropagation import BackPropagation
 from Core.WeightInitializer import WeightInitializer
+from DataUtility.DataExamples import DataExamples
 
 
 class ModelFeedForward:
@@ -18,18 +23,17 @@ using specified metrics, and save or load the model's parameters.
 
 Attributes:
     Optimizer (BackPropagation): The optimizer used for updating weights during training.
-    MetricResults (List[List[float]]): A list of computed metric results for each epoch, where each sublist
+    MetricResults (dict[str, list[float]]): A list of computed metric results for each epoch, where each sublist
         contains the results of all defined metrics for that epoch.
-    Metric (List[Metric]): A list of error functions (metrics) to evaluate model performance.
+    Metrics (List[Metric]): List of metrics value to evaluate model performance.
+    Loss: (LossFunction): The loss function used for training.
     Layers (List[Layer]): The sequence of layers in the model, from input to output.
     OutputLayer (Layer): The last layer in the network, which computes the final outputs.
     InputLayer (Layer): The first layer in the network, which processes the input data.
 """
 
-
-    Optimizer: BackPropagation | None
-    MetricResults: List[List[float]]
-    Metric: List[Metric]
+    MetricResults: dict[str, np.ndarray[float]]
+    Metrics: List[Metric]
     Layers: List[Layer]
     OutputLayer: Layer
     InputLayer: Layer
@@ -41,29 +45,55 @@ Attributes:
         self.Layers = []
         self.InputLayer = None
         self.OutputLayer = None
-        self.Optimizer = None
-        self.Metric = []
-        self.MetricResults = []
+        self.Metrics = []
+        self.MetricResults = {}
 
-    def Fit(self, Input: Any, epoch: int, batchSize: int) -> None:
+    def Fit(self, optimizer: BackPropagation, training: DataExamples, epoch: int, batchSize: int | None,
+            validation: DataExamples) -> None:
         """
         Trains the model using the provided input data.
 
-        :param Input: The training data.
+        :param validation: Validation Dataset
+        :param optimizer: the Optimizer to use for training.
+        :param training: The training data.
         :param epoch: The number of epochs to train.
         :param batchSize: The size of each mini-batch.
         :return: None
         """
-        batch_generator = mb.MiniBatchGenerator(Input, batchSize)
+        if batchSize is None:
+            batchSize = training.Data.shape[0]
+
+        metric = []
+        val_metric = []
+        batch_generator = mb.MiniBatchGenerator(training, batchSize)
         for e in range(epoch):
             batch_generator.Reset()
+            batch_accumulator =[]
             while not batch_generator.IsBatchGenerationFinished:
-                batch = batch_generator.NextBatch()
-                inputs, targets = batch
-                outputs = self.Forward(inputs)
-                self.Optimizer.BackPropagation(outputs, targets)
-                self._update_weights()
-            self._compute_metrics(e)
+                inputs_batch, targets_batch = batch_generator.NextBatch()
+
+                outputs_batch = self.Forward(inputs_batch)
+                batch_metrics = self._compute_metrics(outputs_batch, targets_batch, optimizer.LossFunction)
+                batch_accumulator.append(batch_metrics)
+
+                #TODO: bind for back prop
+                optimizer.LossFunction.CalculateLoss(outputs_batch, targets_batch)
+                self._update_weights(optimizer)
+
+            metric_epoch = np.mean(batch_accumulator, axis=0)
+
+            val_outputs = self.Forward(validation.Data)
+            val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.LossFunction)
+            metric.append(metric_epoch)
+            val_metric.append(val_metric_epoch)
+
+        metric = np.array(metric).reshape(-1, epoch)
+        val_metric = np.array(val_metric).reshape(-1, epoch)
+        self.MetricResults["loss"] = metric[0]
+        self.MetricResults["val_loss"] = val_metric[0]
+        for i, m in enumerate(self.Metrics):
+            self.MetricResults[f"{m.Name}"] = metric[i + 1]
+            self.MetricResults[f"val_{m.Name}"] = val_metric[i + 1]
 
     def AddLayer(self, newLayer: Any) -> None:
         """
@@ -105,32 +135,23 @@ Attributes:
         for layer, weights in zip(self.Layers, model_data["layers"]):
             layer.set_weights(weights)
 
-    def SetOptimizer(self, optimizer: Any) -> None:
-        """
-        Sets the optimizer for training the model.
-
-        :param optimizer: The optimizer instance to use.
-        :return: None
-        """
-        self.Optimizer = optimizer
-
-    def AddMetric(self, metric: Any) -> None:
+    def AddMetric(self, metric: Metric) -> None:
         """
         Adds a single metric for evaluation during training.
 
         :param metric: The metric instance to add.
         :return: None
         """
-        self.Metric.append(metric)
+        self.Metrics.append(metric)
 
-    def AddMetrics(self, metrics: List[Any]) -> None:
+    def AddMetrics(self, metrics: List[Metric]) -> None:
         """
         Adds multiple metrics for evaluation during training.
 
         :param metrics: A list of metric instances to add.
         :return: None
         """
-        self.Metric.extend(metrics)
+        self.Metrics.extend(metrics)
 
     def Forward(self, input: np.ndarray) -> np.ndarray:
         """
@@ -144,11 +165,11 @@ Attributes:
         self.Layers[0].Compute(input)
         # Forward to other Layers
         out = 0.0
-        for i in range(len(self.Layers)-1):
-            out = self.Layers[i+1].Compute(self.Layers[i].LayerOutput)
+        for i in range(len(self.Layers) - 1):
+            out = self.Layers[i + 1].Compute(self.Layers[i].LayerOutput)
         return out
 
-    def Build(self, weightInizialization:WeightInitializer) -> None:
+    def Build(self, weightInizialization: WeightInitializer) -> None:
         """
         build each layer of the model.
 
@@ -156,24 +177,29 @@ Attributes:
 
         """
         for layer in self.Layers:
-             layer.Build(weightInizialization)
+            layer.Build(weightInizialization)
 
-
-    def _update_weights(self) -> None:
+    def _update_weights(self, optimizer) -> None:
         """
         Updates the weights of the layers using the optimizer.
 
+        :type optimizer: optimizer to use
         :return: None
         """
         for layer in reversed(self.Layers):
-            layer.Update(self.Optimizer)
+            layer.Update(optimizer)
 
-    def _compute_metrics(self, epoch: int) -> None:
+    def _compute_metrics(self, output: np.ndarray, target: np.ndarray, lossFunction: LossFunction) -> np.ndarray:
         """
         Computes the metrics for the current epoch.
 
-        :param epoch: The current epoch number.
+        :param output: the predicted outputs.
+        :param target: the ground truth outputs.
         :return: None
         """
-        results = [metric.ComputeMetric(self.OutputLayer.LayerOutput, self.OutputLayer.targets) for metric in self.Metric]
-        self.MetricResults.append(results)
+
+        result = [lossFunction.CalculateLoss(output, target)]
+        for m in self.Metrics:
+            result.append(m.ComputeMetric(output, target))
+
+        return np.array(result)
