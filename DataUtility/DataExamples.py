@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import ndarray
-from numpy.random._examples.cffi.extending import rng
+#from numpy.random._examples.cffi.extending import rng
+from numpy.random import default_rng
 
 
 class DataExamples(object):
@@ -17,15 +18,17 @@ class DataExamples(object):
     Attributes:
         Label (ndarray): The labels corresponding to the data samples.
         Data (ndarray): The input data samples.
+        iD (ndarray): The indices of the data samples.
         DataLength (int): The number of data samples in the dataset.
         isCategorical (bool): Indicates if the labels are in categorical format.
     """
     Label: ndarray
     Data: ndarray
+    Id: ndarray
     DataLength: int
     isCategorical: bool
 
-    def __init__(self, data: np.ndarray, label: np.ndarray) -> 'DataExamples':
+    def __init__(self, data: np.ndarray, label: np.ndarray, Id: np.ndarray) -> 'DataExamples':
         """
         Initializes a DataExamples object with data and labels.
 
@@ -36,21 +39,26 @@ class DataExamples(object):
         self.DataLength = data.shape[0]
         if self.DataLength != label.shape[0]:
             raise ValueError('Data and label must have the same length')
+        if self.DataLength != Id.shape[0]:
+            raise ValueError('Data and id must have the same length')
         self.Data = data
         self.Label = label
+        self.Id = Id
         self.isCategorical = False
 
-    def Concatenate(self, dataLabel: 'DataExamples') -> None:
+
+    def Concatenate(self, dataExample: 'DataExamples') -> None:
         """
         Concatenates the current dataset with another dataset.
 
-        :param dataLabel: A DataExamples object to be concatenated.
+        :param dataExample: A DataExamples object to be concatenated.
         :raises ValueError: If the label types of the datasets do not match.
         """
-        if self.isCategorical != dataLabel.isCategorical:
+        if self.isCategorical != dataExample.isCategorical:
             raise ValueError("Each of the dataLabel class must have the same type of label.")
-        self.Data = np.concatenate((self.Data, dataLabel.Data), axis=0)
-        self.Label = np.concatenate((self.Label, dataLabel.Label), axis=0)
+        self.Data = np.concatenate((self.Data, dataExample.Data), axis=0)
+        self.Label = np.concatenate((self.Label, dataExample.Label), axis=0)
+        self.Id = np.concatenate((self.Id, dataExample.Id), axis=0)
 
     def Shuffle(self, seed: int = 0) -> None:
         """
@@ -58,12 +66,14 @@ class DataExamples(object):
 
         :param seed: An integer seed for reproducibility of shuffling. Default is 0.
         """
-        rng.seed(seed)
+        #rng.seed(seed)
+        rng = default_rng(seed)
         perm = rng.permutation(self.Data.shape[0])
         self.Data = self.Data[perm,]
         self.Label = self.Label[perm,]
+        self.Id = self.Id[perm,]
 
-    def SplitDataset(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> ('DataExamples'| None,'DataExamples'| None, 'DataExamples' | None):
+    def SplitDataset(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> ('DataExamples','DataExamples', 'DataExamples'):
         """
         Splits the dataset into training, validation, and test sets.
 
@@ -85,10 +95,10 @@ class DataExamples(object):
         dataLength = self.Data.shape[0]
         trainingBound = int(dataLength * (1 - validationPercent - testPercent))
         valBound = int(dataLength * validationPercent)
-        training = DataExamples(self.Data[:trainingBound], self.Label[:trainingBound])
+        training = DataExamples(self.Data[:trainingBound], self.Label[:trainingBound], self.Id[:trainingBound])
         validation = DataExamples(self.Data[trainingBound:trainingBound + valBound],
-                                  self.Label[trainingBound:trainingBound + valBound])
-        test = DataExamples(self.Data[trainingBound + valBound:], self.Label[trainingBound + valBound:])
+                                  self.Label[trainingBound:trainingBound + valBound], self.Id[:trainingBound + valBound])
+        test = DataExamples(self.Data[trainingBound + valBound:], self.Label[trainingBound + valBound:],self.Id[:trainingBound + valBound:])
         return training, validation, test
 
     def SplitIn2(self, rate: float = 0.15) -> ('DataExamples','DataExamples'):
@@ -103,8 +113,8 @@ class DataExamples(object):
 
         dataLength = self.Data.shape[0]
         splitIndex = int(dataLength * rate)
-        dataSplit = DataExamples(self.Data[:splitIndex], self.Label[:splitIndex])
-        Data = DataExamples(self.Data[splitIndex:], self.Label[splitIndex:])
+        dataSplit = DataExamples(self.Data[:splitIndex], self.Label[:splitIndex], self.Id[:splitIndex])
+        Data = DataExamples(self.Data[splitIndex:], self.Label[splitIndex:], self.Id[:splitIndex])
         return Data, dataSplit
 
     def Normalize(self, mean: float = None, std: float = None) -> None:
@@ -140,7 +150,8 @@ class DataExamples(object):
         """
         self.Data = self.Data[start:end]
         self.Label = self.Label[start:end]
-        assert self.Data.shape[0] == self.Label.shape[0]
+        self.Id= self.Id[start:end]
+        assert self.Data.shape[0] == self.Label.shape[0] == self.Id.shape[0]
 
     def FlattenSeriesData(self) -> None:
         """
