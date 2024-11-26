@@ -112,3 +112,32 @@ class Sign(ActivationFunction):
         :raises NotImplementedError: To indicate that the derivative is not defined.
         """
         raise NotImplementedError("Derivative does not make sense in this case")
+
+
+class Linear(ActivationFunction):
+    """
+    Linear activation function.
+
+    This activation function directly returns the input value (identity function).
+    It is typically used in the output layer for regression tasks or as a building block for other operations.
+    """
+
+    def Calculate(self, z: float) -> float:
+        """
+        Computes the Linear activation (identity function) for a given input.
+
+        :param z: The input value.
+        :return: The same value as the input (identity function).
+        """
+        return z
+
+    def CalculateDerivative(self, z: float) -> float:
+        """
+        Computes the derivative of the Linear activation function.
+
+        The derivative of the identity function is always 1.
+
+        :param z: The input value (not used in the calculation as the derivative is constant).
+        :return: The derivative value, which is 1.
+        """
+        return 1.0

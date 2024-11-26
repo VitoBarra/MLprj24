@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class ErrorFunction:
+class Metric:
     """
     Base class for error functions used in machine learning.
 
@@ -9,7 +9,11 @@ class ErrorFunction:
     and target values. Subclasses must override the `Error` method.
     """
 
-    def Error(self, val: np.ndarray, target: np.ndarray) -> np.ndarray:
+    def __init__(self):
+        pass
+
+
+    def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> np.ndarray:
         """
         Computes the error between predicted values and target values.
 
@@ -21,15 +25,20 @@ class ErrorFunction:
         raise NotImplementedError("Must override Error method")
 
 
-class MSE(ErrorFunction):
+class MSE(Metric):
     """
     Computes the Mean Squared Error (MSE) between predicted and target values.
 
     MSE is a commonly used error function that calculates the average of the
     squared differences between predicted and actual values.
     """
+    Name: str
 
-    def Error(self, val: np.ndarray, target: np.ndarray) -> float:
+    def __init__(self):
+        super().__init__()
+        self.Name = "MSE"
+
+    def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
         """
         Computes the Mean Squared Error.
 
@@ -40,7 +49,7 @@ class MSE(ErrorFunction):
         return np.mean((val - target) ** 2)
 
 
-class RMSE(ErrorFunction):
+class RMSE(Metric):
     """
     Computes the Root Mean Squared Error (RMSE) between predicted and target values.
 
@@ -48,7 +57,11 @@ class RMSE(ErrorFunction):
     in the same units as the predicted values.
     """
 
-    def Error(self, val: np.ndarray, target: np.ndarray) -> float:
+    def __init__(self):
+        super().__init__()
+        self.Name = "RMSE"
+
+    def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
         """
         Computes the Root Mean Squared Error.
 
@@ -59,14 +72,19 @@ class RMSE(ErrorFunction):
         return np.sqrt(np.mean((val - target) ** 2))
 
 
-class MEE(ErrorFunction):
+class MEE(Metric):
     """
     Computes the Mean Absolute Error (MAE) between predicted and target values.
 
     MAE measures the average magnitude of the errors without considering their direction.
     """
 
-    def Error(self, val: np.ndarray, target: np.ndarray) -> float:
+    def __init__(self):
+        super().__init__()
+        self.Name = "MEE"
+
+
+    def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
         """
         Computes the Mean Absolute Error.
 

@@ -1,6 +1,8 @@
 import numpy as np
+from numpy.ma.core import shape
 
 from Core import WeightInitializer, BackPropagation
+from Core.ActivationFunction import ActivationFunction
 
 
 class Layer:
@@ -16,20 +18,21 @@ class Layer:
     Attributes:
         LayerOutput (np.ndarray | None): The computed output of the layer after applying the activation function.
         WeightToNextLayer (np.ndarray | None): The weight matrix connecting this layer to the next layer.
-        NextLayer (Layer | None): A reference to the next layer in the network (if any).
-        LastLayer (Layer | None): A reference to the previous layer in the network (if any).
-        ActivationFunction (any): The activation function used to compute the output of the layer.
+        NextLayer (Layer): A reference to the next layer in the network (if any).
+        LastLayer (Layer): A reference to the previous layer in the network (if any).
+        ActivationFunction (ActivationFunction): The activation function used to compute the output of the layer.
         Unit (int): The number of units (neurons) in the layer.
     """
 
     LayerOutput: np.ndarray | None
+    LayerInputput: np.ndarray | None
     WeightToNextLayer: np.ndarray | None
-    NextLayer: 'Layer' | None
-    LastLayer: 'Layer' | None
-    ActivationFunction: any
+    NextLayer: 'Layer'
+    LastLayer: 'Layer'
+    ActivationFunction: ActivationFunction
     Unit: int
 
-    def __init__(self, unit: int, activationFunction: any):
+    def __init__(self, unit: int, activationFunction: ActivationFunction):
         """
         Initializes the layer with the specified number of units and an activation function.
 
@@ -42,6 +45,7 @@ class Layer:
         self.LastLayer = None
         self.WeightToNextLayer = None
         self.LayerOutput = None
+        self.LayerInputput = None
 
     def Build(self, weightInitializer: WeightInitializer) -> bool:
         """
@@ -54,10 +58,11 @@ class Layer:
         """
         if self.WeightToNextLayer is not None:
             return False
+
         if self.NextLayer is not None:
             self.WeightToNextLayer = weightInitializer.GenerateWeight(self.Unit, self.NextLayer.Unit)
         else:
-            self.WeightToNextLayer = np.random.uniform(-0.02, 0.02, (self.Unit, self.NextLayer.Unit))
+            self.WeightToNextLayer = np.random.uniform(-0.02, 0.02, (self.Unit, self.Unit))
         return True
 
     def Update(self, optimizer: BackPropagation) -> None:
@@ -75,9 +80,18 @@ class Layer:
 
         :param inputs: The input data to the layer.
         :return: The computed output of the layer.
+        :raises ValueError: If the input data is None.
         """
-        z = inputs @ self.WeightToNextLayer
-        self.LayerOutput = self.ActivationFunction.Calculate(z)
+        if inputs is None:
+            raise ValueError("input cant be none")
+
+        self.LayerInputput = inputs
+        if self.LastLayer is not None:
+            nets = self.LayerInputput @ self.LastLayer.WeightToNextLayer
+            self.LayerOutput = np.array([self.ActivationFunction.Calculate(feature) for feature in [data for data in nets]])
+        else:
+            self.LayerOutput = self.LayerInputput
+
         return self.LayerOutput
 
     def get_weights(self) -> np.ndarray:

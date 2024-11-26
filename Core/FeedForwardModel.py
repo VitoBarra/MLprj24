@@ -2,9 +2,10 @@ from typing import List, Any
 
 import numpy as np
 import DataUtility.MiniBatchGenerator as mb
-import Layer
-from Core import ErrorFunction
+from Core.Layer import Layer
+from Core import Metric
 from Core.BackPropagation import BackPropagation
+from Core.WeightInitializer import WeightInitializer
 
 
 class ModelFeedForward:
@@ -19,7 +20,7 @@ Attributes:
     Optimizer (BackPropagation): The optimizer used for updating weights during training.
     MetricResults (List[List[float]]): A list of computed metric results for each epoch, where each sublist
         contains the results of all defined metrics for that epoch.
-    Metric (List[ErrorFunction]): A list of error functions (metrics) to evaluate model performance.
+    Metric (List[Metric]): A list of error functions (metrics) to evaluate model performance.
     Layers (List[Layer]): The sequence of layers in the model, from input to output.
     OutputLayer (Layer): The last layer in the network, which computes the final outputs.
     InputLayer (Layer): The first layer in the network, which processes the input data.
@@ -28,7 +29,7 @@ Attributes:
 
     Optimizer: BackPropagation | None
     MetricResults: List[List[float]]
-    Metric: List[ErrorFunction]
+    Metric: List[Metric]
     Layers: List[Layer]
     OutputLayer: Layer
     InputLayer: Layer
@@ -59,7 +60,7 @@ Attributes:
             while not batch_generator.IsBatchGenerationFinished:
                 batch = batch_generator.NextBatch()
                 inputs, targets = batch
-                outputs = self._forward(inputs)
+                outputs = self.Forward(inputs)
                 self.Optimizer.BackPropagation(outputs, targets)
                 self._update_weights()
             self._compute_metrics(e)
@@ -131,16 +132,32 @@ Attributes:
         """
         self.Metric.extend(metrics)
 
-    def _forward(self, inputs: Any) -> Any:
+    def Forward(self, input: np.ndarray) -> np.ndarray:
         """
         Performs a forward pass through the model.
 
-        :param inputs: The input data.
+        :param input: The input data.
         :return: The final output after the forward pass.
         """
+
+        # Compute Input Layer
+        self.Layers[0].Compute(input)
+        # Forward to other Layers
+        out = 0.0
+        for i in range(len(self.Layers)-1):
+            out = self.Layers[i+1].Compute(self.Layers[i].LayerOutput)
+        return out
+
+    def Build(self, weightInizialization:WeightInitializer) -> None:
+        """
+        build each layer of the model.
+
+        :param weightInitialization:  the weights' initializer.
+
+        """
         for layer in self.Layers:
-            inputs = layer.Compute(inputs)
-        return inputs
+             layer.Build(weightInizialization)
+
 
     def _update_weights(self) -> None:
         """
@@ -158,5 +175,5 @@ Attributes:
         :param epoch: The current epoch number.
         :return: None
         """
-        results = [metric.Error(self.OutputLayer.LayerOutput, self.OutputLayer.targets) for metric in self.Metric]
+        results = [metric.ComputeMetric(self.OutputLayer.LayerOutput, self.OutputLayer.targets) for metric in self.Metric]
         self.MetricResults.append(results)
