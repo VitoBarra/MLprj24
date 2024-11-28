@@ -149,7 +149,7 @@ class Linear(ActivationFunction):
         :param z: The input value.
         :return: The same value as the input (identity function).
         """
-        return z
+        return np.array(z)
 
     def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):
         """
@@ -160,7 +160,7 @@ class Linear(ActivationFunction):
         :param z: The input value (not used in the calculation as the derivative is constant).
         :return: The derivative value, which is 1.
         """
-        return 1.0
+        return np.ones_like(z)
 
     def GetName(self):
         return "Linear"

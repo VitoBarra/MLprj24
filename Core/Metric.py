@@ -9,6 +9,8 @@ class Metric:
     and target values. Subclasses must override the `Error` method.
     """
 
+    Name: str
+
     def __init__(self):
         pass
 
@@ -46,7 +48,9 @@ class MSE(Metric):
         :param target: A numpy array of target (ground truth) values.
         :return: The Mean Squared Error as a float.
         """
-        return np.mean((val - target) ** 2)
+        mse = np.square(val - target).mean()
+        #mse = np.mean((val - target) ** 2)
+        return mse
 
 
 class RMSE(Metric):
@@ -69,7 +73,9 @@ class RMSE(Metric):
         :param target: A numpy array of target (ground truth) values.
         :return: The Root Mean Squared Error as a float.
         """
-        return np.sqrt(np.mean((val - target) ** 2))
+        rmse = np.sqrt(np.square(val - target).mean())
+        # np.sqrt(np.mean((val - target) ** 2, axis=0))
+        return rmse
 
 
 class MEE(Metric):
@@ -92,4 +98,7 @@ class MEE(Metric):
         :param target: A numpy array of target (ground truth) values.
         :return: The Mean Absolute Error as a float.
         """
-        return np.mean(np.abs(val - target))
+        differences = val - target
+        norms = np.linalg.norm(differences, axis=1)  # L2 norm for each sample
+        mee = np.mean(norms)
+        return mee # Return the mean of the L2 norms

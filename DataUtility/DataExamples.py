@@ -96,8 +96,9 @@ class DataExamples(object):
         valBound = int(dataLength * validationPercent)
         training = DataExamples(self.Data[:trainingBound], self.Label[:trainingBound], self.Id[:trainingBound])
         validation = DataExamples(self.Data[trainingBound:trainingBound + valBound],
-                                  self.Label[trainingBound:trainingBound + valBound], self.Id[:trainingBound + valBound])
-        test = DataExamples(self.Data[trainingBound + valBound:], self.Label[trainingBound + valBound:],self.Id[:trainingBound + valBound:])
+                                  self.Label[trainingBound:trainingBound + valBound],
+                                  self.Id[trainingBound:trainingBound + valBound])
+        test = DataExamples(self.Data[trainingBound + valBound:], self.Label[trainingBound + valBound:],self.Id[trainingBound + valBound:])
         return training, validation, test
 
     def SplitIn2(self, rate: float = 0.15) -> ('DataExamples','DataExamples'):

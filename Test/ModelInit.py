@@ -1,15 +1,15 @@
 from Core.FeedForwardModel import *
 from Core.ActivationFunction import *
-from Core.Layer import *
 from Core.LossFunction import MSELoss
 from Core.WeightInitializer import *
 from Core.Metric import *
 from DataUtility.DataExamples import *
 from Core.BackPropagation import *
-from DataUtility.DataSet import DataSet
+from DataUtility.ReadDatasetUtil import  *
+from DataUtility.PlotUtil import *
 
 
-def CreateFakeData(nData:int , xdim :int=1, ydim:int=1) ->(DataExamples,DataExamples):
+def CreateFakeData(nData:int , xdim :int=1, ydim:int=1):
     x = np.random.uniform(0, 1, (nData,xdim))
     y = np.random.choice([0, 1], (nData, ydim))
     id = np.array(range(x.shape[0]))
@@ -18,49 +18,74 @@ def CreateFakeData(nData:int , xdim :int=1, ydim:int=1) ->(DataExamples,DataExam
     val = DataExamples(x, y, id)
     return data, val
 
-def CreateFakeData_dataset(nData:int , xdim :int=1, ydim:int=1) ->(DataExamples,DataExamples):
-    x = np.random.uniform(0, 0.5, (nData,xdim))
-    y = np.random.choice([0, 1], (nData, ydim))
-    id = np.array(range(x.shape[0]))
-
-    data = DataSet(x,y, id)
-    return data
-
-
+file_path_cup = "../dataset/CUP/ML-CUP24-TR.csv"
+file_path_monk = "../dataset/monk+s+problems/monks-3.train"
 if __name__ == '__main__':
+    #MONK-1
+    alldata = readMonk(file_path_monk)
+    alldata.SplitDataset(0.15,0.5)
+    data , val = alldata.Training , alldata.Validation
 
     model1 = ModelFeedForward()
 
-    model1.AddLayer(Layer(2, Linear(),"input"))
-    model1.AddLayer(Layer(15, TanH(),"h1"))
-    model1.AddLayer(Layer(15, TanH(),"h2"))
-    model1.AddLayer(Layer(2, Linear(),"output"))
+    model1.AddLayer(Layer(6, Linear(),"input"))
+    model1.AddLayer(Layer(18, TanH(),"h1"))
+    model1.AddLayer(Layer(20, TanH(), "h2"))
+    model1.AddLayer(Layer(18, TanH(), "h3"))
+    model1.AddLayer(Layer(1, Sign(),"output"))
     model1.Build(GlorotInitializer())
 
-    data ,val = CreateFakeData(6, 2,2)
-    model1.AddMetrics([MSE(), RMSE(), MEE()])
+    model1.AddMetrics([RMSE(), MEE()])
+    model1.Fit(BackPropagation(MSELoss(),0.03, 0.01), data, 120, 450, val)
 
 
-    model1.Fit(BackPropagation(MSELoss()), data, 15, 4, val)
 
     for k,v in model1.MetricResults.items() :
-          print(f"The {k} is {v}")
+          #print(f"The {k} is {v}")
+        pass
     model1.SaveMetricsResults("Data/Results/model1.mres")
 
 
-    print("\n\n")
+    #print("\n\n")
     model1.SaveModel("Data/Models/Test1.vjf")
 
-    model2 = ModelFeedForward()
-    model2.LoadModel("Data/Models/Test1.vjf")
-    model2.AddMetrics([MSE(), RMSE(), MEE()])
+    metrics = model1.MetricResults
+    print(f"metrics:{metrics}")
+    # print(metrics["val_loss"])
+    # Filtra le metriche che iniziano con "val_"
+    val_metrics = {key: value for key, value in metrics.items() if key.startswith("loss")}
+    print(f"val_metric : {val_metrics.values()}")
+    # Creazione dinamica della matrice
+    loss_matrix = np.array(list(val_metrics.values()))  # Converte i valori in una matrice
+    labels = list(val_metrics.keys())  # Estrae i nomi delle metriche
 
-    model2.Fit(BackPropagation(MSELoss()), data, 15, 2, val)
+    # Chiamata alla funzione
+    plot_losses_accuracy(
+        loss_matrix=loss_matrix,
+        labels=labels,
+        title="Metriche di Validazione",
+        xlabel="Epoche",
+        ylabel="Valore"
+    )
 
-    for k,v in model2.MetricResults.items() :
-        print(f"The {k} is {v}")
 
 
+   #CUP
+    """
+    model_c = ModelFeedForward()
 
+    model_c.AddLayer(Layer(12, Linear(),"input"))
+    model_c.AddLayer(Layer(15, TanH(),"h1"))
+    model_c.AddLayer(Layer(15, TanH(),"h2"))
+    model_c.AddLayer(Layer(15, TanH(),"h3"))
+    model_c.AddLayer(Layer(3, Linear(),"output"))
+    model_c.Build(GlorotInitializer())
 
+    #CUP
+    alldata = readCUP(file_path_cup)
+    alldata.SplitDataset(0.15,0.5)
+    data , val = alldata.Training , alldata.Validation
 
+    model_c.AddMetrics([MSE(), RMSE(), MEE()])
+    model_c.Fit(BackPropagation(MSELoss(),0.2, 0.1), data, 50, 25, val)
+    """
