@@ -1,6 +1,7 @@
 import numpy as np
 
-from Core import WeightInitializer, BackPropagation
+
+from Core import WeightInitializer
 from Core.ActivationFunction import ActivationFunction
 
 
@@ -24,9 +25,10 @@ class Layer:
     """
 
     LayerOutput: np.ndarray | None
-    LayerInputput: np.ndarray | None
+    LayerInput: np.ndarray | None
     LayerNets: np.ndarray | None
     WeightToNextLayer: np.ndarray | None
+    Gradient: np.ndarray | None
     NextLayer: 'Layer'
     LastLayer: 'Layer'
     ActivationFunction: ActivationFunction
@@ -47,8 +49,11 @@ class Layer:
         self.NextLayer = None
         self.LastLayer = None
         self.WeightToNextLayer = None
+        self.Gradient = None
         self.LayerOutput = None
-        self.LayerInputput = None
+        self.LayerInput = None
+        self.LayerNets = None
+        self.Name = name
 
     def Build(self, weightInitializer: WeightInitializer) -> bool:
         """
@@ -80,12 +85,12 @@ class Layer:
         if inputs is None:
             raise ValueError("input cant be none")
 
-        self.LayerInputput = inputs
+        self.LayerInput = inputs
         if self.LastLayer is not None:
-            self.LayerNets=   self.LayerInputput @ self.LastLayer.WeightToNextLayer.T
+            self.LayerNets=   self.LayerInput @ self.LastLayer.WeightToNextLayer.T
             self.LayerOutput = self.ActivationFunction.Calculate(self.LayerNets)
         else:
-            self.LayerOutput = self.LayerInputput
+            self.LayerOutput = self.LayerInput
 
         return self.LayerOutput
 
@@ -104,3 +109,18 @@ class Layer:
         :param weights: The weight matrix to set for this layer.
         """
         self.WeightToNextLayer = weights
+
+
+    def get_gradients(self) -> np.ndarray:
+        """
+        Retrieves the last gradients of the layer.
+        :return: The matrix of last gradients of the layer.
+        """
+        return self.Gradient
+
+    def set_gradients(self, gradients: np.ndarray) -> None:
+        """
+        Sets the gradients of the layer.
+        :param gradients: New gradients of the layer.
+        """
+        self.Gradient = gradients

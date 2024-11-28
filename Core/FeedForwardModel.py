@@ -2,18 +2,16 @@ import json
 from typing import List, Any
 
 import numpy as np
-from pandas.core.interchange.from_dataframe import primitive_column_to_ndarray
-
-from Core.ActivationFunction import ActivationFunction
-from Core.LossFunction import LossFunction
 
 import DataUtility.MiniBatchGenerator as mb
 from Core.Layer import Layer
 from Core import Metric
-from Core.BackPropagation import BackPropagation
+from Core.BackPropagation import *
 from Core.WeightInitializer import WeightInitializer
 from DataUtility.DataExamples import DataExamples
 from DataUtility.FileUtil import CreateDir, convert_to_serializable
+
+
 
 
 class ModelFeedForward:
@@ -25,7 +23,7 @@ train it using backpropagation with a defined optimizer, evaluate performance
 using specified metrics, and save or load the model's parameters.
 
 Attributes:
-    Optimizer (BackPropagation): The optimizer used for updating weights during training.
+    BackPropagation (Optimizer): The optimizer used for updating weights during training.
     MetricResults (dict[str, list[float]]): A list of computed metric results for each epoch, where each sublist
         contains the results of all defined metrics for that epoch.
     Metrics (List[Metric]): List of metrics value to evaluate model performance.
@@ -51,7 +49,7 @@ Attributes:
         self.Metrics = []
         self.MetricResults = {}
 
-    def Fit(self, optimizer: BackPropagation, training: DataExamples, epoch: int, batchSize: int | None,
+    def Fit(self, optimizer: Optimizer, training: DataExamples, epoch: int, batchSize: int | None,
             validation: DataExamples, callbacks = None) -> None:
         """
         Trains the model using the provided input data.
@@ -78,24 +76,39 @@ Attributes:
                 inputs_batch, targets_batch = batch_generator.NextBatch()
 
                 outputs_batch = self.Forward(inputs_batch)
-                batch_metrics = self._compute_metrics(outputs_batch, targets_batch, optimizer.LossFunction)
+                batch_metrics = self._compute_metrics(outputs_batch, targets_batch, optimizer.loss_function)
                 batch_accumulator.append(batch_metrics)
 
-                #TODO: bind for back prop
-                self._update_weights(None)
+                # Back Propagation
+                optimizer.start_optimize(self, targets_batch)
 
             metric_epoch = np.mean(batch_accumulator, axis=0)
-
             metric.append(metric_epoch)
+            """
+            val_outputs = self.Forward(validation.Data)
+            val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.loss_function)
+            metric.append(metric_epoch)
+            val_metric.append(val_metric_epoch)
+
+        metric = np.array(metric)
+        metric = metric.T
+        val_metric = np.array(val_metric).T
+        self.MetricResults["loss"] = metric[0]
+        self.MetricResults["val_loss"] = val_metric[0]
+        for i, m in enumerate(self.Metrics):
+            self.MetricResults[f"{m.Name}"] = metric[i + 1]
+            self.MetricResults[f"val_{m.Name}"] = val_metric[i + 1]
+        """
 
             # Calcolo delle metriche sulla validazione
             val_outputs = self.Forward(validation.Data)
-            val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.LossFunction)
+            val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.loss_function)
             val_metric.append(val_metric_epoch)
 
+
             # Aggiorna MetricResults dopo ogni epoca
-            metric_array = np.array(metric).reshape(-1, len(metric))  # Assicurati che la dimensione sia corretta
-            val_metric_array = np.array(val_metric).reshape(-1, len(val_metric))
+            metric_array = np.array(metric).T
+            val_metric_array = np.array(val_metric).T
 
             self.MetricResults["loss"] = metric_array[0]  # La prima colonna è la loss
             self.MetricResults["val_loss"] = val_metric_array[0]
@@ -111,19 +124,6 @@ Attributes:
                     self.LoadModel("../MLprj24/Models/best_model.json")
                     break
 
-
-        """val_outputs = self.Forward(validation.Data)
-        val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.LossFunction)
-        metric.append(metric_epoch)
-        val_metric.append(val_metric_epoch)
-
-        metric = np.array(metric).reshape(-1, epoch)
-        val_metric = np.array(val_metric).reshape(-1, epoch)
-        self.MetricResults["loss"] = metric[0]
-        self.MetricResults["val_loss"] = val_metric[0]
-        for i, m in enumerate(self.Metrics):
-            self.MetricResults[f"{m.Name}"] = metric[i + 1]
-            self.MetricResults[f"val_{m.Name}"] = val_metric[i + 1]"""
 
     def AddLayer(self, newLayer: Any) -> None:
         """
@@ -233,15 +233,6 @@ Attributes:
         for layer in self.Layers:
             layer.Build(weightInizialization)
 
-    def _update_weights(self, optimizer) -> None:
-        """
-        Updates the weights of the layers using the optimizer.
-
-        :type optimizer: optimizer to use
-        :return: None
-        """
-        for layer in reversed(self.Layers):
-            layer.set_weights(layer.get_weights() + np.random.uniform(-0.1, 0.1, layer.get_weights().shape))
 
     def _compute_metrics(self, output: np.ndarray, target: np.ndarray, lossFunction: LossFunction) -> np.ndarray:
         """
@@ -251,8 +242,8 @@ Attributes:
         :param target: the ground truth outputs.
         :return: None
         """
-
-        result = [lossFunction.CalculateLoss(output, target)]
+        temp = output.reshape(-1)
+        result = [lossFunction.CalculateLoss(temp, target)]
         for m in self.Metrics:
             result.append(m.ComputeMetric(output, target))
 
