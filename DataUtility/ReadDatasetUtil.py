@@ -23,10 +23,15 @@ def readMonk(file_path:str):
     # Converti le liste in array NumPy
     data = np.array(data)
     labels = np.array(labels)
+    #substitue all 1 with -1 and all 2 with 1
+    f = np.vectorize(lambda x: -1 if x == 1 else 1)
+    labels = f(labels)
     ids = np.array(ids)
     # Crea un'istanza di DataExamples
     examples:DataSet = DataSet(data, labels, ids)
 
+    print(f"data : {data}")
+    print(f"labels : {labels}")
     # Puoi assegnarla a un attributo globale o manipolarla ulteriormente
     return examples
 
