@@ -89,6 +89,7 @@ def plot_losses_accuracy(loss_matrix: list[list[float]] | np.ndarray, labels: li
 
     plt.figure(figsize=(10, 6))
 
+    print(f"loss_matrix: {loss_matrix}")
     # Plot each loss function with different styles
     for i in range(num_losses):
         plt.plot(
