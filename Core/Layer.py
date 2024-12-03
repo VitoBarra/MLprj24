@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.ma.core import shape
 
 from Core import WeightInitializer, BackPropagation
 from Core.ActivationFunction import ActivationFunction

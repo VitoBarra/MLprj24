@@ -34,6 +34,18 @@ class ActivationFunction:
         """
         raise NotImplementedError("Must override CalculateDerivative method")
 
+    def GetName(self):
+        return "NONE"
+
+    @staticmethod
+    def GetInstances(functionName):
+        function = {
+            "TanH": TanH(),
+            "ReLU": ReLU(),
+            "Sign": Sign(),
+            "Linear":Linear(),
+        }
+        return function.get(functionName, "Invalid option")
 
 class TanH(ActivationFunction):
     """
@@ -60,6 +72,8 @@ class TanH(ActivationFunction):
         """
         return 1 - np.tanh(z) ** 2
 
+    def GetName(self):
+        return "TanH"
 
 class ReLU(ActivationFunction):
     """
@@ -85,6 +99,9 @@ class ReLU(ActivationFunction):
         :return: The derivative value, which is 1 for positive inputs and 0 otherwise.
         """
         return np.where(z > 0, 1, 0)
+
+    def GetName(self):
+        return "ReLU"
 
 
 class Sign(ActivationFunction):
@@ -112,6 +129,9 @@ class Sign(ActivationFunction):
         :raises NotImplementedError: To indicate that the derivative is not defined.
         """
         raise NotImplementedError("Derivative does not make sense in this case")
+
+    def GetName(self):
+        return "Sign"
 
 
 class Linear(ActivationFunction):
@@ -141,3 +161,6 @@ class Linear(ActivationFunction):
         :return: The derivative value, which is 1.
         """
         return 1.0
+
+    def GetName(self):
+        return "Linear"

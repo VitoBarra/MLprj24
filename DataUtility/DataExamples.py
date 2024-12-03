@@ -1,6 +1,5 @@
 import numpy as np
 from numpy import ndarray
-#from numpy.random._examples.cffi.extending import rng
 from numpy.random import default_rng
 
 

@@ -1,8 +1,9 @@
+import json
 from typing import List, Any
 
 import numpy as np
-from talloc import Object
 
+from Core.ActivationFunction import ActivationFunction
 from Core.LossFunction import LossFunction
 
 import DataUtility.MiniBatchGenerator as mb
@@ -11,6 +12,7 @@ from Core import Metric
 from Core.BackPropagation import BackPropagation
 from Core.WeightInitializer import WeightInitializer
 from DataUtility.DataExamples import DataExamples
+from DataUtility.FileUtil import CreateDir, convert_to_serializable
 
 
 class ModelFeedForward:
@@ -118,10 +120,15 @@ Attributes:
         :return: None
         """
         model_data = {
-            "layers": [layer.get_weights() for layer in self.Layers],
+            "Unit": [layer.Unit for layer in self.Layers],
+            "Activation": [layer.ActivationFunction.GetName() for layer in self.Layers],
+            "LayersWeight": [layer.get_weights() for layer in self.Layers],
         }
-        with open(path, 'wb') as f:
-            np.save(f, model_data)
+
+        CreateDir(path)
+        with open(path, "w") as file:
+            json.dump(model_data, file, default= convert_to_serializable)
+
 
     def LoadModel(self, path: str) -> None:
         """
@@ -130,10 +137,16 @@ Attributes:
         :param path: The file path to load the model from.
         :return: None
         """
-        with open(path, 'rb') as f:
-            model_data = np.load(f, allow_pickle=True).item()
-        for layer, weights in zip(self.Layers, model_data["layers"]):
-            layer.set_weights(weights)
+        self.Layers = []
+
+        with open(path, "r") as file:
+            model_data = json.load(file)
+
+        for unit, act in zip(model_data["Unit"], model_data["Activation"]):
+            self.AddLayer(Layer(unit, ActivationFunction.GetInstances(act)));
+
+        for layer, weights in zip(self.Layers, model_data["LayersWeight"]):
+            layer.set_weights(np.array(weights))
 
     def AddMetric(self, metric: Metric) -> None:
         """

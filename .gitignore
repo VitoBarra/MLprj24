@@ -2,3 +2,5 @@
 
 DataUtility/__pycache__/
 Core/__pycache__/
+models/
+Report/UML/*.vpp.*
