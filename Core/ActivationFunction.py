@@ -34,6 +34,18 @@ class ActivationFunction:
         """
         raise NotImplementedError("Must override CalculateDerivative method")
 
+    def GetName(self):
+        return "NONE"
+
+    @staticmethod
+    def GetInstances(functionName):
+        function = {
+            "TanH": TanH(),
+            "ReLU": ReLU(),
+            "Sign": Sign(),
+            "Linear":Linear(),
+        }
+        return function.get(functionName, "Invalid option")
 
 class TanH(ActivationFunction):
     """
@@ -60,6 +72,8 @@ class TanH(ActivationFunction):
         """
         return 1 - np.tanh(z) ** 2
 
+    def GetName(self):
+        return "TanH"
 
 class ReLU(ActivationFunction):
     """
@@ -85,6 +99,9 @@ class ReLU(ActivationFunction):
         :return: The derivative value, which is 1 for positive inputs and 0 otherwise.
         """
         return np.where(z > 0, 1, 0)
+
+    def GetName(self):
+        return "ReLU"
 
 
 class Sign(ActivationFunction):
@@ -112,3 +129,38 @@ class Sign(ActivationFunction):
         :raises NotImplementedError: To indicate that the derivative is not defined.
         """
         raise NotImplementedError("Derivative does not make sense in this case")
+
+    def GetName(self):
+        return "Sign"
+
+
+class Linear(ActivationFunction):
+    """
+    Linear activation function.
+
+    This activation function directly returns the input value (identity function).
+    It is typically used in the output layer for regression tasks or as a building block for other operations.
+    """
+
+    def Calculate(self, z: float) -> float:
+        """
+        Computes the Linear activation (identity function) for a given input.
+
+        :param z: The input value.
+        :return: The same value as the input (identity function).
+        """
+        return z
+
+    def CalculateDerivative(self, z: float) -> float:
+        """
+        Computes the derivative of the Linear activation function.
+
+        The derivative of the identity function is always 1.
+
+        :param z: The input value (not used in the calculation as the derivative is constant).
+        :return: The derivative value, which is 1.
+        """
+        return 1.0
+
+    def GetName(self):
+        return "Linear"
