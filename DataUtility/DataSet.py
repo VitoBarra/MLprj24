@@ -141,7 +141,7 @@ class DataSet(object):
         :raises ValueError: If k is too small or too big
         """
 
-        if k <= 1:
+        if k <= 0:
             raise ValueError("Fold should be greater than 1")
         if len(self.Data) < k:
             raise ValueError("Fold can't be greater than the number of examples")
@@ -177,10 +177,14 @@ class DataSet(object):
                     train_set_label.append(fold.Label)
                     if fold.Id is not None:
                         train_set_ids.append(fold.Id)
-
-            train_set_data = np.concatenate(train_set_data, axis=0)
-            train_set_label = np.concatenate(train_set_label, axis=0)
-            train_set_ids = np.concatenate(train_set_ids, axis=0)
+            if k > 1:
+                train_set_data = np.concatenate(train_set_data, axis=0)
+                train_set_label = np.concatenate(train_set_label, axis=0)
+                train_set_ids = np.concatenate(train_set_ids, axis=0)
+            else:
+                train_set_data = np.array(train_set_data)
+                train_set_label = np.array(train_set_label)
+                train_set_ids = np.array(train_set_ids)
 
             train_set = DataExamples(train_set_data, train_set_label, train_set_ids)
             results.append((train_set, test_set))
