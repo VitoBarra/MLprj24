@@ -30,11 +30,14 @@ class MiniBatchGenerator:
 
         if self.LastPosition >= len(self.Data) or self.IsBatchGenerationFinished:
             return None
-        batch = self.Data[self.LastPosition : self.LastPosition + self.BatchSize]
+
+        batch_data = self.Data.Data[self.LastPosition : self.LastPosition + self.BatchSize]
+        batch_target = self.Data.Label[self.LastPosition : self.LastPosition + self.BatchSize]
+
         self.LastPosition += self.BatchSize
         if self.LastPosition >= len(self.Data):
             self.IsBatchGenerationFinished = True
-        return batch
+        return batch_data , batch_target
 
     def Reset(self) -> None:
         """
