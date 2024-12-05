@@ -1,8 +1,11 @@
 import random
 
 import numpy as np
+
+from Core import FeedForwardModel
 from Core.Tuner import HyperBag
 from itertools import product
+from Core.FeedForwardModel import  ModelFeedForward
 
 class HyperParameterSearch:
     hp: HyperBag
@@ -10,7 +13,7 @@ class HyperParameterSearch:
     def __init__(self, hp: HyperBag):
         self.hp = hp
 
-    def search(self):
+    def search(self, hyperModel_fn):
         pass
 
 class GridSearch(HyperParameterSearch):
@@ -19,12 +22,13 @@ class GridSearch(HyperParameterSearch):
     def __init__(self, hp: HyperBag):
         super().__init__(hp)
 
-    def search(self):
+    def search(self, hyperModel_fn):
         keys = self.hp.Keys()
         values = self.hp.Values()
 
         for combination in product(*values):
-            yield dict(zip(keys, combination))
+            hpsel=dict(zip(keys, combination))
+            yield hyperModel_fn(hpsel), hpsel
 
 
 class RandomSearch(HyperParameterSearch):
@@ -34,11 +38,11 @@ class RandomSearch(HyperParameterSearch):
         super().__init__(hp)
         self.trials = trials
 
-    def search(self):
+    def search(self, hyperModel_fn) -> FeedForwardModel:
         keys = self.hp.Keys()
         values = self.hp.Values()
 
         for _ in range(self.trials):
             combination = [random.choice(value_list) for value_list in values]
-            yield dict(zip(keys, combination))
+            yield hyperModel_fn(dict(zip(keys, combination)))
 
