@@ -145,7 +145,10 @@ class DataSet(object):
             raise ValueError("Fold should be greater than 1")
         if len(self.Data) < k:
             raise ValueError("Fold can't be greater than the number of examples")
+        if k == 1:
+            return [(self.Data, self.Data)]
         self.Shuffle(seed=seed)
+
 
         fold_size = len(self.Data) // k
         remainder = len(self.Data) % k
@@ -177,14 +180,11 @@ class DataSet(object):
                     train_set_label.append(fold.Label)
                     if fold.Id is not None:
                         train_set_ids.append(fold.Id)
-            if k > 1:
-                train_set_data = np.concatenate(train_set_data, axis=0)
-                train_set_label = np.concatenate(train_set_label, axis=0)
-                train_set_ids = np.concatenate(train_set_ids, axis=0)
-            else:
-                train_set_data = np.array(train_set_data)
-                train_set_label = np.array(train_set_label)
-                train_set_ids = np.array(train_set_ids)
+
+            train_set_data = np.concatenate(train_set_data, axis=0)
+            train_set_label = np.concatenate(train_set_label, axis=0)
+            train_set_ids = np.concatenate(train_set_ids, axis=0)
+
 
             train_set = DataExamples(train_set_data, train_set_label, train_set_ids)
             results.append((train_set, test_set))
