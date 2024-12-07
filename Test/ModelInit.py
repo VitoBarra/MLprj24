@@ -7,6 +7,17 @@ from Core.Metric import *
 from DataUtility.DataExamples import *
 from Core.BackPropagation import *
 
+
+def CreateFakeData(nData:int):
+    x = np.random.uniform(0, 1, (nData,1))
+    y = np.random.choice([0, 1], (nData, 1))
+    id = np.array(range(x.shape[0]))
+
+    data = DataExamples(x,y, id)
+    val = DataExamples(x, y, id)
+    return data, val
+
+
 if __name__ == '__main__':
 
     model1 = ModelFeedForward()
@@ -17,13 +28,7 @@ if __name__ == '__main__':
     model1.AddLayer(Layer(1, Linear()))
     model1.Build(GlorotInitializer())
 
-    x = np.random.uniform(10, 5, (5,1))
-    y = np.random.uniform(0, 1, (5,1))
-    id = np.array(range(x.shape[0]))
-
-    data = DataExamples(x,y, id)
-    val = DataExamples(x, y, id)
-
+    data ,val = CreateFakeData(6)
     model1.AddMetrics([MSE(), RMSE(), MEE()])
 
 
