@@ -25,6 +25,7 @@ class Layer:
 
     LayerOutput: np.ndarray | None
     LayerInputput: np.ndarray | None
+    LayerNets: np.ndarray | None
     WeightToNextLayer: np.ndarray | None
     NextLayer: 'Layer'
     LastLayer: 'Layer'
@@ -38,6 +39,7 @@ class Layer:
         :param unit: The number of neurons in the layer.
         :param activationFunction: The activation function used for this layer.
         """
+        self.LayerNets = None
         self.Unit = unit
         self.ActivationFunction = activationFunction
         self.NextLayer = None
@@ -59,7 +61,7 @@ class Layer:
             return False
 
         if self.NextLayer is not None:
-            self.WeightToNextLayer = weightInitializer.GenerateWeight(self.Unit, self.NextLayer.Unit)
+            self.WeightToNextLayer = weightInitializer.GenerateWeight(self.NextLayer.Unit,self.Unit )
         else:
             self.WeightToNextLayer = np.random.uniform(-0.02, 0.02, (self.Unit, self.Unit))
         return True
@@ -86,8 +88,8 @@ class Layer:
 
         self.LayerInputput = inputs
         if self.LastLayer is not None:
-            nets = self.LayerInputput @ self.LastLayer.WeightToNextLayer
-            self.LayerOutput = np.array([self.ActivationFunction.Calculate(feature) for feature in [data for data in nets]])
+            self.LayerNets=   self.LayerInputput @ self.LastLayer.WeightToNextLayer.T
+            self.LayerOutput = np.array([self.ActivationFunction.Calculate(feature) for feature in self.LayerNets])
         else:
             self.LayerOutput = self.LayerInputput
 
