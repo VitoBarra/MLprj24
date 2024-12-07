@@ -45,7 +45,6 @@ if __name__ == '__main__':
     gs= GridSearch(hp)
     hyperModel: ModelFeedForward
     for hyperModel, hpSel in gs.search(HyperMode):
-
         hyperModel.Build(GlorotInitializer())
         hyperModel.AddMetrics([MSE(), RMSE(), MEE()])
         hyperModel.Fit(BackPropagation(MSELoss(),hpSel["labda"],hpSel["alpha"],hpSel["eta"]),data,5,2,val)
