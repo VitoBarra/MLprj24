@@ -44,17 +44,16 @@ def train_k_fold(data:DataSet, k:int, metric = 0) -> ModelFeedForward():
     best_fold_idx = -1
     for fold_idx, (train_set, test_set) in enumerate(folds):
         model = ModelFeedForward()
-        model.AddLayer(Layer(1, Linear()))
+        model.AddLayer(Layer(12, Linear()))
         model.AddLayer(Layer(15, TanH()))
         model.AddLayer(Layer(15, TanH()))
-        model.AddLayer(Layer(1, Linear()))
+        model.AddLayer(Layer(3, Linear()))
         model.Build(GlorotInitializer())
         model.AddMetrics([MSE(), RMSE(), MEE()])
 
-        model.Fit(BackPropagation(MSELoss()), train_set, 15, 2, test_set)
+        model.Fit(BackPropagation(MSELoss()), train_set, 50, 12, test_set)
 
         metrics = model.MetricResults
-        print(metrics.items())
         final_metric = metrics["MSE"][-1]  # Seleziona l'ultimo valore della metrica MSE.
         if final_metric > best_metric_value:
             best_metric_value = final_metric

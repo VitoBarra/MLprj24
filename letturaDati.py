@@ -41,19 +41,10 @@ plot_losses_accuracy(
     ylabel="Loss Value",
     path="output/loss_plot.png"
 )"""
-x = np.random.uniform(10, 5, (5,1))
-y = np.random.uniform(0, 1, (5,1))
-id = np.array(range(x.shape[0]))
 
-# Stampa di y
-print("y (etichetta):")
-print(y)
-
-print("Labels:")
-print(examples.Data.Label)  # Stampa le etichette (Y)
-
-data = DataSet(x,y, id)
 model = train_k_fold(examples, 2)#farlo con 1 non ha senso
+metrics = model.MetricResults
+print(metrics.items())
 
 
 

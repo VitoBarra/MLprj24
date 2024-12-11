@@ -74,8 +74,8 @@ class Layer:
 
         :param optimizer: The optimizer used to compute weight updates.
         """
-        gradient = optimizer.ComputeUpdate(self)
-        self.WeightToNextLayer -= optimizer.Eta * gradient
+        #gradient = optimizer.ComputeUpdate(self)
+        self.WeightToNextLayer -= optimizer.Eta# * gradient
 
     def Compute(self, inputs: np.ndarray) -> np.ndarray:
         """
