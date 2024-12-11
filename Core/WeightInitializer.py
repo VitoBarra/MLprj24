@@ -12,7 +12,7 @@ class WeightInitializer:
 
 class GlorotInitializer(WeightInitializer):
     def __init__(self):
-        pass
+        super().__init__()
 
     def GenerateWeight(self, input_unit: int, output_unit: int) -> np.ndarray:
         """

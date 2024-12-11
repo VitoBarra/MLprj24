@@ -20,5 +20,5 @@ class MSELoss(LossFunction):
 
 
     def CalculateLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
-        mse =MSE()
+        mse = MSE()
         return mse.ComputeMetric(prediction, target)

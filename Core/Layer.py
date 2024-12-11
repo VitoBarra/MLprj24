@@ -31,17 +31,19 @@ class Layer:
     LastLayer: 'Layer'
     ActivationFunction: ActivationFunction
     Unit: int
+    name: str
 
-    def __init__(self, unit: int, activationFunction: ActivationFunction):
+    def __init__(self, unit: int, activationFunction: ActivationFunction, name:str = "layer"):
         """
         Initializes the layer with the specified number of units and an activation function.
 
         :param unit: The number of neurons in the layer.
         :param activationFunction: The activation function used for this layer.
         """
-        self.LayerNets = None
         self.Unit = unit
+        self.name=name
         self.ActivationFunction = activationFunction
+        self.LayerNets = None
         self.NextLayer = None
         self.LastLayer = None
         self.WeightToNextLayer = None
@@ -89,7 +91,7 @@ class Layer:
         self.LayerInputput = inputs
         if self.LastLayer is not None:
             self.LayerNets=   self.LayerInputput @ self.LastLayer.WeightToNextLayer.T
-            self.LayerOutput = np.array([self.ActivationFunction.Calculate(feature) for feature in self.LayerNets])
+            self.LayerOutput = self.ActivationFunction.Calculate(self.LayerNets)
         else:
             self.LayerOutput = self.LayerInputput
 

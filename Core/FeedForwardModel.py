@@ -79,8 +79,7 @@ Attributes:
                 batch_accumulator.append(batch_metrics)
 
                 #TODO: bind for back prop
-                optimizer.LossFunction.CalculateLoss(outputs_batch, targets_batch)
-                self._update_weights(optimizer)
+
 
             metric_epoch = np.mean(batch_accumulator, axis=0)
 
@@ -120,9 +119,10 @@ Attributes:
         :return: None
         """
         model_data = {
-            "Unit": [layer.Unit for layer in self.Layers],
-            "Activation": [layer.ActivationFunction.GetName() for layer in self.Layers],
-            "LayersWeight": [layer.get_weights() for layer in self.Layers],
+            "Units": [layer.Unit for layer in self.Layers],
+            "Activations": [layer.ActivationFunction.GetName() for layer in self.Layers],
+            "LayersWeights": [layer.get_weights() for layer in self.Layers],
+            "Names": [layer.name for layer in self.Layers]
         }
 
         CreateDir(path)
@@ -142,10 +142,10 @@ Attributes:
         with open(path, "r") as file:
             model_data = json.load(file)
 
-        for unit, act in zip(model_data["Unit"], model_data["Activation"]):
-            self.AddLayer(Layer(unit, ActivationFunction.GetInstances(act)));
+        for unit, act ,name in zip(model_data["Units"], model_data["Activations"],model_data["Names"]):
+            self.AddLayer(Layer(unit, ActivationFunction.GetInstances(act),name))
 
-        for layer, weights in zip(self.Layers, model_data["LayersWeight"]):
+        for layer, weights in zip(self.Layers, model_data["LayersWeights"]):
             layer.set_weights(np.array(weights))
 
     def AddMetric(self, metric: Metric) -> None:
@@ -165,6 +165,18 @@ Attributes:
         :return: None
         """
         self.Metrics.extend(metrics)
+
+    def SaveMetricsResults(self, path: str) -> None:
+        """
+        Saves the model's metric results to a file.
+
+        :param path: The file path to save the metric results to.
+        :return: None
+        """
+
+        CreateDir(path)
+        with open(path, "w") as file:
+            json.dump(self.MetricResults, file, default= convert_to_serializable)
 
     def Forward(self, input: np.ndarray) -> np.ndarray:
         """

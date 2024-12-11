@@ -14,7 +14,7 @@ class ActivationFunction:
     def __init__(self):
         pass
 
-    def Calculate(self, z: float) -> float:
+    def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the activation value for a given input.
 
@@ -24,7 +24,7 @@ class ActivationFunction:
         """
         raise NotImplementedError("Must override Calculate method")
 
-    def CalculateDerivative(self, z: float) -> float:
+    def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the derivative of the activation function for a given input.
 
@@ -54,7 +54,7 @@ class TanH(ActivationFunction):
     This activation function squashes input values to the range [-1, 1].
     """
 
-    def Calculate(self, z: float) -> float:
+    def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the TanH activation for a given input.
 
@@ -63,7 +63,7 @@ class TanH(ActivationFunction):
         """
         return np.tanh(z)
 
-    def CalculateDerivative(self, z: float) -> float:
+    def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the derivative of the TanH activation function.
 
@@ -82,7 +82,7 @@ class ReLU(ActivationFunction):
     This activation function outputs the input value if it is positive; otherwise, it outputs 0.
     """
 
-    def Calculate(self, z: float) -> float:
+    def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the ReLU activation for a given input.
 
@@ -91,7 +91,7 @@ class ReLU(ActivationFunction):
         """
         return np.maximum(0, z)
 
-    def CalculateDerivative(self, z: float) -> float:
+    def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the derivative of the ReLU activation function.
 
@@ -111,7 +111,7 @@ class Sign(ActivationFunction):
     This activation function outputs -1 for negative inputs, 0 for zero, and 1 for positive inputs.
     """
 
-    def Calculate(self, z: float) -> float:
+    def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the Sign activation for a given input.
 
@@ -120,7 +120,7 @@ class Sign(ActivationFunction):
         """
         return np.sign(z)
 
-    def CalculateDerivative(self, z: float) -> float:
+    def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):
         """
         The derivative of the Sign function is not defined mathematically in most cases.
 
@@ -142,7 +142,7 @@ class Linear(ActivationFunction):
     It is typically used in the output layer for regression tasks or as a building block for other operations.
     """
 
-    def Calculate(self, z: float) -> float:
+    def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the Linear activation (identity function) for a given input.
 
@@ -151,7 +151,7 @@ class Linear(ActivationFunction):
         """
         return z
 
-    def CalculateDerivative(self, z: float) -> float:
+    def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the derivative of the Linear activation function.
 
