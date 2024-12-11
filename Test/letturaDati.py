@@ -1,8 +1,5 @@
-from hypothesis import example
-
-from DataUtility.FileUtil import readCUP
-from DataUtility.DataSet import DataSet
-
+from DataUtility.DataSet import *
+from DataUtility.ReadDatasetUtil import *
 
 file_path = "dataset/CUP/ML-CUP24-TR.csv"
 
