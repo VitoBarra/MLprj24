@@ -77,7 +77,7 @@ def plot_losses_accuracy(loss_matrix: list[list[float]] | np.ndarray, labels: li
         None
     """
     # Determine the number of loss functions based on the matrix shape
-    num_losses = loss_matrix.shape[1]
+    num_losses = loss_matrix.shape[0]
 
     # If no labels are provided, create generic ones
     if labels is None:
@@ -92,7 +92,7 @@ def plot_losses_accuracy(loss_matrix: list[list[float]] | np.ndarray, labels: li
     # Plot each loss function with different styles
     for i in range(num_losses):
         plt.plot(
-            loss_matrix[:, i],
+            loss_matrix[i,:],
             label=labels[i],
             linestyle=linestyles[i % len(linestyles)],  # Cycle through linestyles
             marker=markers[i % len(markers)],  # Cycle through markers

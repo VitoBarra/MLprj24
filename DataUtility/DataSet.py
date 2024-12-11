@@ -133,7 +133,7 @@ class DataSet(object):
         if self.Test is not None:
             self.Test.FlattenSeriesData()
 
-    def k_fold_cross_validation(self,k: int, seed: int = 0) ->[(DataExamples, DataExamples)]:
+    def k_fold_cross_validation_split(self, k: int, seed: int = 0) ->[(DataExamples, DataExamples)]:
         """
         Take in input the data we have, and the k fold we want, then it return an array of couple (train_set, test_set)
         :param seed: A dataset, a seed for the shuffle e k for the k-fold

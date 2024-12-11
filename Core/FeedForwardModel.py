@@ -79,7 +79,7 @@ Attributes:
                 batch_accumulator.append(batch_metrics)
 
                 #TODO: bind for back prop
-
+                self._update_weights(None)
 
             metric_epoch = np.mean(batch_accumulator, axis=0)
 
@@ -212,7 +212,7 @@ Attributes:
         :return: None
         """
         for layer in reversed(self.Layers):
-            layer.Update(optimizer)
+            layer.set_weights(layer.get_weights() + np.random.uniform(-0.1, 0.1, layer.get_weights().shape))
 
     def _compute_metrics(self, output: np.ndarray, target: np.ndarray, lossFunction: LossFunction) -> np.ndarray:
         """

@@ -14,7 +14,7 @@ from Core.FeedForwardModel import ModelFeedForward
 import os
 
 
-def train_k_fold(data:DataSet, k:int, metric = 0) -> ModelFeedForward():
+def train_k_fold(data:DataSet, k:int, fn_buindModel) -> ModelFeedForward():
     """
        Esegue la k-fold cross-validation su un dataset fornito.
 
@@ -23,38 +23,18 @@ def train_k_fold(data:DataSet, k:int, metric = 0) -> ModelFeedForward():
        :param metric: La metrica da utilizzare per la valutazione (default: accuracy_score).
        :return: Una tupla (media_metriche, varianza_metriche).
     """
-    os.chdir("..")
-    models_path = os.path.join(os.getcwd(), "Models")
 
-    folds = data.k_fold_cross_validation(k)
-    """for i, (train_set, test_set) in enumerate(folds):
-        print(f"Fold {i + 1}:")
-
-        # Dati del training set
-        print("Training Data:\n", train_set.Data)
-        print("Training Labels:\n", train_set.Label)
-        print("Training IDs:\n", train_set.Id)
-
-        # Dati del test set
-        print("Test Data:\n", test_set.Data)
-        print("Test Labels:\n", test_set.Label)
-        print("Test IDs:\n", test_set.Id)"""
+    folds = data.k_fold_cross_validation_split(k)
     best_model = None
     best_metric_value = -np.inf
     best_fold_idx = -1
     for fold_idx, (train_set, test_set) in enumerate(folds):
-        model = ModelFeedForward()
-        model.AddLayer(Layer(12, Linear()))
-        model.AddLayer(Layer(15, TanH()))
-        model.AddLayer(Layer(15, TanH()))
-        model.AddLayer(Layer(3, Linear()))
-        model.Build(GlorotInitializer())
-        model.AddMetrics([MSE(), RMSE(), MEE()])
+        model = fn_buindModel()
 
         model.Fit(BackPropagation(MSELoss()), train_set, 50, 12, test_set)
 
         metrics = model.MetricResults
-        final_metric = metrics["MSE"][-1]  # Seleziona l'ultimo valore della metrica MSE.
+        final_metric = metrics["val_loss"][-1]  # Seleziona l'ultimo valore della metrica MSE.
         if final_metric > best_metric_value:
             best_metric_value = final_metric
             best_model = model

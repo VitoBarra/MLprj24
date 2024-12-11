@@ -6,9 +6,10 @@ from Core.WeightInitializer import *
 from Core.Metric import *
 from DataUtility.DataExamples import *
 from Core.BackPropagation import *
+from DataUtility.DataSet import DataSet
 
 
-def CreateFakeData(nData:int , xdim :int=1, ydim:int=1):
+def CreateFakeData(nData:int , xdim :int=1, ydim:int=1) ->(DataExamples,DataExamples):
     x = np.random.uniform(0, 1, (nData,xdim))
     y = np.random.choice([0, 1], (nData, ydim))
     id = np.array(range(x.shape[0]))
@@ -16,6 +17,14 @@ def CreateFakeData(nData:int , xdim :int=1, ydim:int=1):
     data = DataExamples(x,y, id)
     val = DataExamples(x, y, id)
     return data, val
+
+def CreateFakeData_dataset(nData:int , xdim :int=1, ydim:int=1) ->(DataExamples,DataExamples):
+    x = np.random.uniform(0, 0.5, (nData,xdim))
+    y = np.random.choice([0, 1], (nData, ydim))
+    id = np.array(range(x.shape[0]))
+
+    data = DataSet(x,y, id)
+    return data
 
 
 if __name__ == '__main__':
