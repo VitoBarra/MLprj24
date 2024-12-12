@@ -2,6 +2,7 @@ import json
 from typing import List, Any
 
 import numpy as np
+from pandas.core.interchange.from_dataframe import primitive_column_to_ndarray
 
 from Core.ActivationFunction import ActivationFunction
 from Core.LossFunction import LossFunction
@@ -51,7 +52,7 @@ Attributes:
         self.MetricResults = {}
 
     def Fit(self, optimizer: BackPropagation, training: DataExamples, epoch: int, batchSize: int | None,
-            validation: DataExamples) -> None:
+            validation: DataExamples, callbacks = None) -> None:
         """
         Trains the model using the provided input data.
 
@@ -60,6 +61,7 @@ Attributes:
         :param training: The training data.
         :param epoch: The number of epochs to train.
         :param batchSize: The size of each mini-batch.
+        :param callbacks: List of function for the earlystopping
         :return: None
         """
         if batchSize is None:
@@ -67,6 +69,7 @@ Attributes:
 
         metric = []
         val_metric = []
+
         batch_generator = mb.MiniBatchGenerator(training, batchSize)
         for e in range(epoch):
             batch_generator.Reset()
@@ -83,10 +86,36 @@ Attributes:
 
             metric_epoch = np.mean(batch_accumulator, axis=0)
 
+            metric.append(metric_epoch)
+
+            # Calcolo delle metriche sulla validazione
             val_outputs = self.Forward(validation.Data)
             val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.LossFunction)
-            metric.append(metric_epoch)
             val_metric.append(val_metric_epoch)
+
+            # Aggiorna MetricResults dopo ogni epoca
+            metric_array = np.array(metric).reshape(-1, len(metric))  # Assicurati che la dimensione sia corretta
+            val_metric_array = np.array(val_metric).reshape(-1, len(val_metric))
+
+            self.MetricResults["loss"] = metric_array[0]  # La prima colonna è la loss
+            self.MetricResults["val_loss"] = val_metric_array[0]
+
+            for i, m in enumerate(self.Metrics):
+                self.MetricResults[f"{m.Name}"] = metric_array[i + 1]
+                self.MetricResults[f"val_{m.Name}"] = val_metric_array[i + 1]
+
+            if callbacks is not None and len(callbacks) >= 1:
+                stop = callbacks[0].Call()
+                if stop == 1:
+                    print("Hai usato la early stopping!")
+                    self.LoadModel("../MLprj24/Models/best_model.json")
+                    break
+
+
+        """val_outputs = self.Forward(validation.Data)
+        val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.LossFunction)
+        metric.append(metric_epoch)
+        val_metric.append(val_metric_epoch)
 
         metric = np.array(metric).reshape(-1, epoch)
         val_metric = np.array(val_metric).reshape(-1, epoch)
@@ -94,7 +123,7 @@ Attributes:
         self.MetricResults["val_loss"] = val_metric[0]
         for i, m in enumerate(self.Metrics):
             self.MetricResults[f"{m.Name}"] = metric[i + 1]
-            self.MetricResults[f"val_{m.Name}"] = val_metric[i + 1]
+            self.MetricResults[f"val_{m.Name}"] = val_metric[i + 1]"""
 
     def AddLayer(self, newLayer: Any) -> None:
         """
