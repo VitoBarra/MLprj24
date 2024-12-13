@@ -68,14 +68,6 @@ class Layer:
             self.WeightToNextLayer = np.random.uniform(-0.02, 0.02, (self.Unit, self.Unit))
         return True
 
-    def Update(self, optimizer: BackPropagation) -> None:
-        """
-        Updates the layer's weights using the provided optimizer during backpropagation.
-
-        :param optimizer: The optimizer used to compute weight updates.
-        """
-        gradient = optimizer.ComputeUpdate(self)
-        self.WeightToNextLayer -= optimizer.Eta * gradient
 
     def Compute(self, inputs: np.ndarray) -> np.ndarray:
         """

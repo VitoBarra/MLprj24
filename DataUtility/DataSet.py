@@ -133,7 +133,7 @@ class DataSet(object):
         if self.Test is not None:
             self.Test.FlattenSeriesData()
 
-    def k_fold_cross_validation(self,k: int, seed: int = 0) ->[(DataExamples, DataExamples)]:
+    def k_fold_cross_validation_split(self, k: int, seed: int = 0) ->[(DataExamples, DataExamples)]:
         """
         Take in input the data we have, and the k fold we want, then it return an array of couple (train_set, test_set)
         :param seed: A dataset, a seed for the shuffle e k for the k-fold
@@ -141,11 +141,14 @@ class DataSet(object):
         :raises ValueError: If k is too small or too big
         """
 
-        if k <= 1:
+        if k <= 0:
             raise ValueError("Fold should be greater than 1")
         if len(self.Data) < k:
             raise ValueError("Fold can't be greater than the number of examples")
+        if k == 1:
+            return [(self.Data, self.Data)]
         self.Shuffle(seed=seed)
+
 
         fold_size = len(self.Data) // k
         remainder = len(self.Data) % k
@@ -181,6 +184,7 @@ class DataSet(object):
             train_set_data = np.concatenate(train_set_data, axis=0)
             train_set_label = np.concatenate(train_set_label, axis=0)
             train_set_ids = np.concatenate(train_set_ids, axis=0)
+
 
             train_set = DataExamples(train_set_data, train_set_label, train_set_ids)
             results.append((train_set, test_set))
