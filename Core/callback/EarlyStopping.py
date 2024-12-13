@@ -1,6 +1,5 @@
 from Core.FeedForwardModel import ModelFeedForward
-
-
+from Core.callback.BestSave import BestSave
 
 
 class EarlyStopping:
@@ -22,18 +21,23 @@ class EarlyStopping:
         self.no_improvement_count = 0
         self.validation = validation
 
-    def Call(self) -> int:
+    def Call(self, bs:BestSave = None, e:int = 0) -> int:
         """
-           Checks if the validation metric has improved. If so, updates the best model.
-           If no improvement is seen for 'patience' epochs, stops the training.
+           Checks if the validation metric has improved. If so, updates the best model and resets the no-improvement counter.
+           If no improvement is seen for a number of consecutive epochs equal to 'patience', it signals to stop training.
 
-           :return: 1 if training should stop, 0 otherwise.
+           :param bs: (Optional) An instance of the BestSave class to save the current best model.
+                      If not provided, the model is only saved to a default path.
+           :param e: The current epoch number, used to uniquely identify the saved model if 'bs' is provided.
+           :return: 1 if training should stop due to no improvement for 'patience' epochs, 0 otherwise.
         """
         if self.model.MetricResults[self.validation][-1] < self.best_val_loss:
             print(
                 f"Confronto: ultimo val_loss = {self.model.MetricResults[self.validation][-1]}, best_val_loss = {self.best_val_loss}")
             self.best_val_loss = self.model.MetricResults[self.validation][-1]
             self.no_improvement_count = 0
+            if bs is not None:
+                bs.Call(self.model, e)
             self.model.SaveModel("../MLprj24/Models/best_model.json")
         else:
             self.no_improvement_count += 1

@@ -25,7 +25,7 @@ def f ():
 file_path = "dataset/CUP/ML-CUP24-TR.csv"
 examples = CreateFakeData_dataset(12,1,1)
 
-model = train_k_fold(examples, 3,f, 15, "val_loss")#farlo con 1 non ha senso
+model = train_k_fold(examples, 3,f, 15, "val_loss", "../MLprj24/Models/model_")#farlo con 1 non ha senso
 metrics = model.MetricResults
 #print(metrics["val_loss"])
 # Filtra le metriche che iniziano con "val_"

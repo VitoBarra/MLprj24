@@ -104,8 +104,11 @@ Attributes:
                 self.MetricResults[f"{m.Name}"] = metric_array[i + 1]
                 self.MetricResults[f"val_{m.Name}"] = val_metric_array[i + 1]
 
-            if callbacks is not None and len(callbacks) >= 1:
-                stop = callbacks[0].Call()
+            if callbacks is not None:
+                if len(callbacks) == 1:
+                    stop = callbacks[0].Call()
+                else:
+                    stop = callbacks[0].Call(callbacks[1], e)
                 if stop == 1:
                     print("Hai usato la early stopping!")
                     self.LoadModel("../MLprj24/Models/best_model.json")
