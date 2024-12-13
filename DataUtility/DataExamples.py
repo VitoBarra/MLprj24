@@ -27,7 +27,7 @@ class DataExamples(object):
     DataLength: int
     isCategorical: bool
 
-    def __init__(self, data: np.ndarray, label: np.ndarray, Id: np.ndarray) -> 'DataExamples':
+    def __init__(self, data: np.ndarray, label: np.ndarray, Id: np.ndarray) -> None:
         """
         Initializes a DataExamples object with data and labels.
 
