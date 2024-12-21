@@ -58,9 +58,9 @@ def printAUC(fpr: list[float], tpr: list[float], auc: float) -> None:
     plt.show()
 
 #si può usare anche oer l'accuracu, basta passargli il valore oer training e validation con i corretti label
-def plot_losses_accuracy(metricDic: dict[list[float]] | np.ndarray,
-                         title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value",
-                         path: str = None) -> None:
+def plot_metric(metricDic: dict[list[float]] | np.ndarray,
+                title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value",
+                path: str = None) -> None:
     """
     Plots loss curves over epochs using a given loss matrix, using different line styles for better distinction in black and white.
 

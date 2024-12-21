@@ -43,7 +43,20 @@ class DataSet(object):
         self.Validation = None
         self.Test = None
 
-    def SplitDataset(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> 'DataSet':
+
+    def __iter__(self):
+        # Return the instance itself as an iterator
+        self.current = 0
+        return self
+
+
+    def __next__(self):
+        self.current=self.current+1
+        if self.current >= self.Data.DataLength :
+            raise StopIteration  # Stop iteration when we've passed the end
+        return self.Data.Data[self.current], self.Data.Label[self.current], self.Data.Id[self.current]
+
+    def SplitDataset(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> (DataExamples,DataExamples,DataExamples):
         """
         Splits the dataset into training, validation, and test sets.
 
@@ -53,7 +66,7 @@ class DataSet(object):
         """
         self.Training, self.Validation, self.Test = self.Data.SplitDataset(validationPercent, testPercent)
         self.Data = None
-        return self
+        return self.Training, self.Validation, self.Test
 
     def Normalize(self, mean: float = None, std: float = None) -> 'DataSet':
         """

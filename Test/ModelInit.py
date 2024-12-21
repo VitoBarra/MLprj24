@@ -11,21 +11,6 @@ from DataUtility.ReadDatasetUtil import  *
 from DataUtility.PlotUtil import *
 
 
-def CreateFakeData(nData:int , xdim :int=1, ydim:int=1):
-    x = np.random.uniform(0, 1, (nData,xdim))
-    y = np.random.choice([0, 1], (nData, ydim))
-    id = np.array(range(x.shape[0]))
-
-    data = DataExamples(x,y, id)
-    val = DataExamples(x, y, id)
-    return data, val
-
-def CreateFakeData_Dataset(nData:int, xdim :int=1, ydim:int=1):
-    x = np.random.uniform(0, 1, (nData,xdim))
-    y = np.random.choice([0, 1], (nData, ydim))
-    id = np.array(range(x.shape[0]))
-
-    return DataSet(x,y, id)
 
 
 file_path_cup = "../dataset/CUP/ML-CUP24-TR.csv"
@@ -68,7 +53,7 @@ if __name__ == '__main__':
     labels = list(val_metrics.keys())  # Estrae i nomi delle metriche
 
     # Chiamata alla funzione
-    plot_losses_accuracy(
+    plot_metric(
         metricDic=loss_matrix,
         labels=labels,
         title="Metriche di Validazione",

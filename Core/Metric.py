@@ -120,7 +120,7 @@ class Accuracy(Metric):
         if len(val.shape) > 1 and val.shape[1] > 1:
             val = np.argmax(val, axis=1)
 
-            # Compare predictions with targets and compute the mean of correct predictions
+        # Compare predictions with targets and compute the mean of correct predictions
         correct_predictions = (val == target)
         accuracy = np.mean(correct_predictions.astype(float))
         return accuracy
