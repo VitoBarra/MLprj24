@@ -1,23 +1,17 @@
-import random
-
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.FeedForwardModel import *
 from Core.Metric import *
-from Core.Tuner.HpSearch import RandomSearch, GetBestSearch, GridSearch
+from Core.Tuner.HpSearch import RandomSearch, GetBestSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.WeightInitializer import GlorotInitializer
 from DataUtility.PlotUtil import *
 from DataUtility.ReadDatasetUtil import *
 
+
 file_path_cup = "dataset/CUP/ML-CUP24-TR.csv"
 file_path_monk1 = "dataset/monk+s+problems/monks-1.train"
 file_path_monk2 = "dataset/monk+s+problems/monks-2.train"
 file_path_monk3 = "dataset/monk+s+problems/monks-3.train"
-
-
-
-
-
 
 
 
@@ -28,9 +22,9 @@ def HyperModel_Monk(hp):
     for i in range(hp["hlayer"]):
         model.AddLayer(Layer(hp["unit"], ReLU(),True, f"h{i}"))
 
-    model.AddLayer(Layer(1, Sigmoid(), False,"output"))
+    model.AddLayer(Layer(1, Linear(), False,"output"))
 
-    optimizer = BackPropagation(BinaryCrossEntropyLoss(), hp["eta"], hp["labda"], hp["alpha"])
+    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
     return model, optimizer
 
 
@@ -42,8 +36,8 @@ def HyperBag_Monk():
     hp.AddRange("eta", 0.01, 0.4, 0.02)
 
 
-    hp.AddRange("unit",3,5,1)
-    hp.AddRange("hlayer",1,3,1)
+    hp.AddRange("unit",2,3,1)
+    hp.AddRange("hlayer",1,2,1)
     return hp
 
 def HyperBag_Cap():
@@ -54,8 +48,8 @@ def HyperBag_Cap():
     hp.AddRange("eta", 0.01, 0.4, 0.02)
 
 
-    hp.AddRange("unit",10,25,5)
-    hp.AddRange("hlayer",5,10,1)
+    hp.AddRange("unit",10,50,5)
+    hp.AddRange("hlayer",3,9,3)
     return hp
 
 def HyperModel_CAP(hp):
@@ -67,30 +61,33 @@ def HyperModel_CAP(hp):
 
     model.AddLayer(Layer(3, Linear(), False,"output"))
 
-    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
+    # optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
+    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], None)
     return model, optimizer
 
 if __name__ == '__main__':
 
     alldata = readCUP(file_path_cup)
+    #alldata = readMonk(file_path_monk1)
 
-    for d, l, id in alldata:
-        print(d,l, id)
+    # for d, l, id in alldata:
+    #     print(d,l, id)
+    alldata.SplitDataset(0.15,0.5)
 
-    training , val, test = alldata.SplitDataset(0.15,0.5)
+
 
 
     watched_metric = "val_loss"
-    bestSearch = GetBestSearch(HyperBag_Cap(), RandomSearch(50))
+    bestSearch = GetBestSearch(HyperBag_Cap(), RandomSearch(100))
     best_model,best_hpSel = bestSearch.GetBestModel(
         HyperModel_CAP,
         alldata,
         500,
-        None,
+        32,
         watched_metric,
-        [MEE()],
+        [MSE(),MAE()],
         GlorotInitializer(),
-        [EarlyStopping(watched_metric, 10)])
+        [EarlyStopping(watched_metric, 25)])
 
 
     # k = Binary()

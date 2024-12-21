@@ -1,11 +1,11 @@
 import pickle
-import matplotlib.pyplot as plt
-from DataUtility.FileUtil import *
 import time as t
 
-import numpy as np
+import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 
+from DataUtility.FileUtil import *
 
 # Funzione per calcolare TP, FP, TN, FN a ogni soglia
 """
@@ -102,6 +102,7 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray,
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    plt.ylim(0, 3)
     plt.legend()
 
     # Show grid and save the plot if a path is provided

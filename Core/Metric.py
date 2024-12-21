@@ -47,10 +47,9 @@ class MSE(Metric):
         :param target: A numpy array of target (ground truth) values.
         :return: The Mean Squared Error as a float.
         """
-        se = np.square(val - target)
-        mse = np.mean(se)
-        #mse = np.mean((val - target) ** 2)
-        return mse
+        if val.shape != target.shape:
+            raise ValueError("The size of val and target must be the same.")
+        return np.mean( np.square(val - target))
 
 
 class RMSE(Metric):
@@ -73,12 +72,12 @@ class RMSE(Metric):
         :param target: A numpy array of target (ground truth) values.
         :return: The Root Mean Squared Error as a float.
         """
-        rmse = np.sqrt(np.square(val - target).mean())
-        # np.sqrt(np.mean((val - target) ** 2, axis=0))
-        return rmse
+        if val.shape != target.shape:
+            raise ValueError("The size of val and target must be the same.")
+        return np.sqrt(np.square(val - target).mean())
 
 
-class MEE(Metric):
+class MAE(Metric):
     """
     Computes the Mean Absolute Error (MAE) between predicted and target values.
 
@@ -87,7 +86,7 @@ class MEE(Metric):
 
     def __init__(self):
         super().__init__()
-        self.Name = "MEE"
+        self.Name = "MAE"
 
     def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
         """
@@ -97,6 +96,8 @@ class MEE(Metric):
         :param target: A numpy array of target (ground truth) values.
         :return: The Mean Absolute Error as a float.
         """
+        if val.shape != target.shape:
+            raise ValueError("The size of val and target must be the same.")
         differences = val - target
         norms = np.linalg.norm(differences, axis=1)  # L2 norm for each sample
         mee = np.mean(norms)

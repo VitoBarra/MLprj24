@@ -1,17 +1,9 @@
-from Core.Callback.BestSave import BestSave
 from Core.FeedForwardModel import *
-from Core.ActivationFunction import *
-from Core.LossFunction import MSELoss
-from Core.WeightInitializer import *
+from Core.FeedForwardModel import *
 from Core.Metric import *
-from Core.Callback.EarlyStopping import EarlyStopping
-from DataUtility.DataExamples import *
-from Core.BackPropagation import *
-from DataUtility.ReadDatasetUtil import  *
+from Core.WeightInitializer import *
 from DataUtility.PlotUtil import *
-
-
-
+from DataUtility.ReadDatasetUtil import *
 
 file_path_cup = "../dataset/CUP/ML-CUP24-TR.csv"
 file_path_monk = "../dataset/monk+s+problems/monks-1.train"
@@ -28,7 +20,7 @@ if __name__ == '__main__':
     model1.AddLayer(Layer(1, Sign(),"output"))
     model1.Build(GlorotInitializer())
 
-    model1.AddMetrics([RMSE(), MEE()])
+    model1.AddMetrics([RMSE(), MAE()])
     model1.Fit(BackPropagation(MSELoss(),0.002, 0.001, 0.02), data, 120, 450, val)
 
 

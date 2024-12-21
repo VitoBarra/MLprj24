@@ -1,7 +1,7 @@
 from Core import FeedForwardModel
+from Core.ActivationFunction import *
 from Core.Layer import Layer
 from Core.LossFunction import *
-from Core.ActivationFunction import *
 
 
 class Optimizer:
@@ -157,6 +157,8 @@ class BackPropagation(Optimizer):
                 mom = self.alpha * layer.LastLayer.Gradient
                 layerGrad = layerGrad + mom
             layer.LastLayer.Gradient = layerGrad
+
+
 
         # Optimize the weights
         if self.regularization is True:

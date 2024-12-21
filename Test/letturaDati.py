@@ -1,10 +1,8 @@
-from DataUtility.PlotUtil import plot_metric
-from Core.Validation_Alg import *
-
-
 import numpy as np
 
-from Test.ModelInit import CreateFakeData, CreateFakeData
+from Core.Validation_Alg import *
+from DataUtility.PlotUtil import plot_metric
+from Test.ModelInit import CreateFakeData
 
 
 #Roba per testare
@@ -16,7 +14,7 @@ def f ():
     model.AddLayer(Layer(15, TanH()))
     model.AddLayer(Layer(1, Linear()))
     model.Build(GlorotInitializer())
-    model.AddMetrics([MSE(), RMSE(), MEE()])
+    model.AddMetrics([MSE(), RMSE(), MAE()])
     return model
 
 file_path = "dataset/CUP/ML-CUP24-TR.csv"
