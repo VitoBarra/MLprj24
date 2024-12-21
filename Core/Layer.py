@@ -27,6 +27,7 @@ class Layer:
     LayerOutput: np.ndarray | None
     LayerInput: np.ndarray | None
     LayerNets: np.ndarray | None
+    bias : float | None
     WeightToNextLayer: np.ndarray | None
     Gradient: np.ndarray | None
     NextLayer: 'Layer'
@@ -35,7 +36,7 @@ class Layer:
     Unit: int
     name: str
 
-    def __init__(self, unit: int, activationFunction: ActivationFunction, name:str = "layer"):
+    def __init__(self, unit: int, activationFunction: ActivationFunction, useBias:bool=False,name:str = "layer" ):
         """
         Initializes the layer with the specified number of units and an activation function.
 
@@ -54,6 +55,8 @@ class Layer:
         self.LayerInput = None
         self.LayerNets = None
         self.Name = name
+        self.bias = 1
+        self.UseBias = useBias
 
     def Build(self, weightInitializer: WeightInitializer) -> bool:
         """
@@ -68,9 +71,7 @@ class Layer:
             return False
 
         if self.NextLayer is not None:
-            self.WeightToNextLayer = weightInitializer.GenerateWeight(self.NextLayer.Unit,self.Unit )
-        else:
-            self.WeightToNextLayer = np.random.uniform(-0.02, 0.02, (self.Unit, self.Unit))
+            self.WeightToNextLayer = weightInitializer.GenerateWeight(self.NextLayer.Unit, self.Unit+(1 if self.UseBias else 0) )
         return True
 
 
@@ -91,6 +92,10 @@ class Layer:
             self.LayerOutput = self.ActivationFunction.Calculate(self.LayerNets)
         else:
             self.LayerOutput = self.LayerInput
+
+        if self.UseBias:
+            biasCol = np.full((self.LayerOutput.shape[0], 1), self.bias)
+            self.LayerOutput = np.hstack((self.LayerOutput,biasCol))
 
         return self.LayerOutput
 

@@ -23,15 +23,18 @@ def readMonk(file_path:str):
     # Converti le liste in array NumPy
     data = np.array(data)
     labels = np.array(labels)
-    #substitue all 1 with -1 and all 2 with 1
-    f = np.vectorize(lambda x: -1 if x == 1 else 1)
+    #substitue all 1 with 0 and all 2 with 1
+    f = np.vectorize(lambda x: x-1)
     labels = f(labels)
+    labels = labels.reshape(labels.shape[0], 1)
     ids = np.array(ids)
+    # for i,(d, l) in enumerate(zip(data,labels)):
+    #     labels[i]=d[0]
+    #     print(d,l)
     # Crea un'istanza di DataExamples
     examples:DataSet = DataSet(data, labels, ids)
 
-    print(f"data : {data}")
-    print(f"labels : {labels}")
+
     # Puoi assegnarla a un attributo globale o manipolarla ulteriormente
     return examples
 
@@ -72,3 +75,7 @@ def readCUP(file_path:str):
     # Puoi assegnarla a un attributo globale o manipolarla ulteriormente
     return examples
 
+
+
+def FakeDataset():
+    pass
