@@ -4,8 +4,6 @@ from DataUtility.FileUtil import *
 import time as t
 
 
-
-
 # Funzione per calcolare TP, FP, TN, FN a ogni soglia
 """
 Uso:
@@ -57,14 +55,14 @@ def printAUC(fpr: list[float], tpr: list[float], auc: float) -> None:
     plt.show()
 
 #si può usare anche oer l'accuracu, basta passargli il valore oer training e validation con i corretti label
-def plot_losses_accuracy(loss_matrix: list[list[float]] | np.ndarray, labels: list[str] = None,
+def plot_losses_accuracy(metricDic: dict[list[float]] | np.ndarray,
                          title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value",
                          path: str = None) -> None:
     """
     Plots loss curves over epochs using a given loss matrix, using different line styles for better distinction in black and white.
 
     Args:
-        loss_matrix (list of lists or numpy.ndarray): A matrix where each row represents an epoch
+        metricDic (list of lists or numpy.ndarray): A matrix where each row represents an epoch
                                                       and each column corresponds to a different loss function.
         labels (list of str, optional): Labels for each loss function. Should match the number of columns in the matrix.
                                         Default is None, in which case generic labels will be used.
@@ -76,12 +74,8 @@ def plot_losses_accuracy(loss_matrix: list[list[float]] | np.ndarray, labels: li
     Returns:
         None
     """
-    # Determine the number of loss functions based on the matrix shape
-    num_losses = loss_matrix.shape[0]
 
-    # If no labels are provided, create generic ones
-    if labels is None:
-        labels = [f"Loss {i + 1}" for i in range(num_losses)]
+    labels = metricDic.keys()
 
     # Define different line styles and markers for black-and-white readability
     linestyles = ['-', '--', '-.', ':']
@@ -89,12 +83,12 @@ def plot_losses_accuracy(loss_matrix: list[list[float]] | np.ndarray, labels: li
 
     plt.figure(figsize=(10, 6))
 
-    print(f"loss_matrix: {loss_matrix}")
+
     # Plot each loss function with different styles
-    for i in range(num_losses):
+    for i,label in enumerate(labels):
         plt.plot(
-            loss_matrix[i,:],
-            label=labels[i],
+            metricDic[label],
+            label=label,
             linestyle=linestyles[i % len(linestyles)],  # Cycle through linestyles
             marker=markers[i % len(markers)],  # Cycle through markers
             markersize=5,

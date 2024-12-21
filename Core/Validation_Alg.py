@@ -3,7 +3,7 @@ from Core.ActivationFunction import *
 from Core.Layer import *
 from Core.WeightInitializer import *
 from Core.Metric import *
-from Core.callback.EarlyStopping import EarlyStopping
+from Core.Callback.EarlyStopping import EarlyStopping
 from DataUtility.DataExamples import *
 from Core.BackPropagation import *
 

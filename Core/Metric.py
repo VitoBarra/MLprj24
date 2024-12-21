@@ -14,7 +14,6 @@ class Metric:
     def __init__(self):
         pass
 
-
     def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> np.ndarray:
         """
         Computes the error between predicted values and target values.
@@ -48,7 +47,8 @@ class MSE(Metric):
         :param target: A numpy array of target (ground truth) values.
         :return: The Mean Squared Error as a float.
         """
-        mse = np.square(val - target).mean()
+        se = np.square(val - target)
+        mse = np.mean(se)
         #mse = np.mean((val - target) ** 2)
         return mse
 
@@ -89,7 +89,6 @@ class MEE(Metric):
         super().__init__()
         self.Name = "MEE"
 
-
     def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
         """
         Computes the Mean Absolute Error.
@@ -101,4 +100,28 @@ class MEE(Metric):
         differences = val - target
         norms = np.linalg.norm(differences, axis=1)  # L2 norm for each sample
         mee = np.mean(norms)
-        return mee # Return the mean of the L2 norms
+        return mee  # Return the mean of the L2 norms
+
+
+class Accuracy(Metric):
+    """
+        Computes the Accuracy between predicted and target values.
+
+        Accuracy measures the percentage of correctly classified samples.
+        """
+
+    def __init__(self):
+        super().__init__()
+        self.Name = "Accuracy"
+
+
+    def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
+        # If predictions are probabilities, take the class with the highest probability
+        if len(val.shape) > 1 and val.shape[1] > 1:
+            val = np.argmax(val, axis=1)
+
+            # Compare predictions with targets and compute the mean of correct predictions
+        correct_predictions = (val == target)
+        accuracy = np.mean(correct_predictions.astype(float))
+        return accuracy
+

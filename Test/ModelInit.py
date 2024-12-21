@@ -1,8 +1,10 @@
+from Core.Callback.BestSave import BestSave
 from Core.FeedForwardModel import *
 from Core.ActivationFunction import *
 from Core.LossFunction import MSELoss
 from Core.WeightInitializer import *
 from Core.Metric import *
+from Core.Callback.EarlyStopping import EarlyStopping
 from DataUtility.DataExamples import *
 from Core.BackPropagation import *
 from DataUtility.ReadDatasetUtil import  *
@@ -18,8 +20,16 @@ def CreateFakeData(nData:int , xdim :int=1, ydim:int=1):
     val = DataExamples(x, y, id)
     return data, val
 
+def CreateFakeData_Dataset(nData:int, xdim :int=1, ydim:int=1):
+    x = np.random.uniform(0, 1, (nData,xdim))
+    y = np.random.choice([0, 1], (nData, ydim))
+    id = np.array(range(x.shape[0]))
+
+    return DataSet(x,y, id)
+
+
 file_path_cup = "../dataset/CUP/ML-CUP24-TR.csv"
-file_path_monk = "../dataset/monk+s+problems/monks-3.train"
+file_path_monk = "../dataset/monk+s+problems/monks-1.train"
 if __name__ == '__main__':
     #MONK-1
     alldata = readMonk(file_path_monk)
@@ -29,14 +39,12 @@ if __name__ == '__main__':
     model1 = ModelFeedForward()
 
     model1.AddLayer(Layer(6, Linear(),"input"))
-    model1.AddLayer(Layer(18, TanH(),"h1"))
-    model1.AddLayer(Layer(20, TanH(), "h2"))
-    model1.AddLayer(Layer(18, TanH(), "h3"))
+    model1.AddLayer(Layer(18, ReLU(),"h1"))
     model1.AddLayer(Layer(1, Sign(),"output"))
     model1.Build(GlorotInitializer())
 
     model1.AddMetrics([RMSE(), MEE()])
-    model1.Fit(BackPropagation(MSELoss(),0.03, 0.01), data, 120, 450, val)
+    model1.Fit(BackPropagation(MSELoss(),0.002, 0.001, 0.02), data, 120, 450, val)
 
 
 
@@ -61,7 +69,7 @@ if __name__ == '__main__':
 
     # Chiamata alla funzione
     plot_losses_accuracy(
-        loss_matrix=loss_matrix,
+        metricDic=loss_matrix,
         labels=labels,
         title="Metriche di Validazione",
         xlabel="Epoche",
