@@ -1,4 +1,5 @@
-from Core.BackPropagation import *
+import random
+
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.FeedForwardModel import *
 from Core.Metric import *
@@ -16,9 +17,8 @@ def HyperModel_Monk(hp):
     model = ModelFeedForward()
 
     model.AddLayer(Layer(6, Linear(),True, "input"))
-
     for i in range(hp["hlayer"]):
-        model.AddLayer(Layer(hp["unit"], ReLU(),False, f"h{i}"))
+        model.AddLayer(Layer(hp["unit"], ReLU(),True, f"h{i}"))
 
     model.AddLayer(Layer(1, Sigmoid(), False,"output"))
     return model
@@ -46,8 +46,8 @@ if __name__ == '__main__':
     hp.AddRange("alpha", 0.05, 0.5, 0.05)
     hp.AddRange("eta", 0.01, 0.4, 0.02)
 
-    hp.AddChosen("hlayer", [1])
-    hp.AddChosen("unit",[5,4,6])
+    hp.AddChosen("hlayer", [1,2,3,4])
+    hp.AddChosen("unit",[1,2,3])
 
     watched_metric = "val_loss"
     bestSearch = GetBestSearch(hp, RandomSearch(25))
@@ -70,9 +70,9 @@ if __name__ == '__main__':
     print(f"accuracy on test: {metric.ComputeMetric(out_test, training.Label)}%")
 
     print(f"Best hp : {best_hpSel}")
+    best_model.PlotModel()
 
     best_model.SaveMetricsResults("Data/Results/model1.mres")
-
 
     #print("\n\n")
     best_model.SaveModel("Data/Models/Test1.vjf")
@@ -80,9 +80,9 @@ if __name__ == '__main__':
     metrics = best_model.MetricResults
     val_metrics = {key: value for key, value in metrics.items() if key.startswith("")}
 
-    plot_losses_accuracy(
-        metricDic=val_metrics,
-        title="Metriche di Validazione",
-        xlabel="Epoche",
-        ylabel="Valore"
-    )
+    # plot_losses_accuracy(
+    #     metricDic=val_metrics,
+    #     title="Metriche di Validazione",
+    #     xlabel="Epoche",
+    #     ylabel="Valore"
+    # )

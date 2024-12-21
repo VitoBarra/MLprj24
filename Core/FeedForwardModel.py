@@ -8,6 +8,8 @@ from Core.Layer import Layer
 from Core.WeightInitializer import WeightInitializer, GlorotInitializer
 from DataUtility.DataExamples import DataExamples
 from DataUtility.FileUtil import CreateDir, convert_to_serializable
+from DataUtility.PlotUtil import plot_neural_network_with_transparency
+import numpy as np
 
 
 class ModelFeedForward:
@@ -221,6 +223,11 @@ Attributes:
         if post_processing is not None:
             return post_processing(out)
         return out
+
+    def PlotModel(self):
+        w = [np.array(l.get_weights()) for l in self.Layers if l.get_weights() is not None]
+        b = [l.UseBias for l in self.Layers]
+        plot_neural_network_with_transparency(w,b)
 
 
     def Build(self, weightInizialization: WeightInitializer|None = None) -> None:

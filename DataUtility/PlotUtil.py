@@ -1,7 +1,10 @@
 import pickle
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 from DataUtility.FileUtil import *
 import time as t
+
+import numpy as np
+import networkx as nx
 
 
 # Funzione per calcolare TP, FP, TN, FN a ogni soglia
@@ -312,3 +315,82 @@ def CleanData(path):
 
         if modified:
             SaveTrainingData(f"{path}/{test_name.name}", history, result)
+
+
+
+
+def plot_neural_network_with_transparency(weights , useBiases):
+    """
+    Plots a neural network visualization using transparency for edge weights.
+
+    Args:
+        weights: A list of 2D numpy arrays representing weight matrices between layers.
+    """
+    # Initialize graph
+    G = nx.DiGraph()
+
+    # First layer size + sizes from weight matrices
+    edges = []
+    edge_colors = []
+    edge_alphas = []
+
+    #reigster the intuput and internal Node
+    for i,weight_matrix in enumerate(weights):
+        src_dim=weight_matrix.shape[1]
+        for src_idx in range(src_dim):
+            G.add_node(f"L{i}_N{src_idx}", pos=(src_idx, i))
+
+    # register the output node
+    weight_matrix = weights[-1]
+    tgt_dim=weight_matrix.shape[0]
+    for tgt_idx in range(tgt_dim):
+        G.add_node(f"L{len(weights)}_N{tgt_idx}", pos=(tgt_idx, len(weights)))
+
+    # Add edges with weights
+    for i,weight_matrix in enumerate(weights):
+        tgt_dim=weight_matrix.shape[0]
+        src_dim=weight_matrix.shape[1]
+        for tgt_idx in range(tgt_dim):
+            for src_idx in range(src_dim):
+                src_node = f"L{i}_N{src_idx}"
+                tgt_node = f"L{i+1}_N{tgt_idx}"
+                weight = weight_matrix[tgt_idx,src_idx ]
+                G.add_edge(src_node, tgt_node, weight=weight)
+                edges.append((src_idx, tgt_idx))
+                # Calculate transparency and color based on weight magnitude
+                intensity = abs(weight) / max(1, np.abs(weight_matrix).max())
+                alpha = intensity  # Transparency (smaller weight = more transparent)
+                color = "red" if weight < 0 else "blue"
+                edge_colors.append(color)
+                edge_alphas.append(alpha)
+
+    # Draw the graph
+    plt.figure(figsize=(10, 8))
+
+    # Node positions
+    pos = {node: (data["pos"][0], data["pos"][1]) for node, data in G.nodes(data=True)}
+
+    # Draw nodes
+    nx.draw_networkx_nodes(G, pos, node_size=1000, node_color="lightgreen")
+
+    # Draw edges with transparency
+    for edge, color, alpha in zip(G.edges(), edge_colors, edge_alphas):
+        nx.draw_networkx_edges(
+            G, pos,
+            edgelist=[edge],
+            edge_color=color,
+            alpha=alpha,
+            width=2
+        )
+
+    # Draw node labels
+    nx.draw_networkx_labels(G, pos, labels={node: f"{node}" for node in G.nodes()}, font_size=8)
+
+    # Draw edge labels (weights)
+    edge_labels = {(src, tgt): f"{G.edges[src, tgt]['weight']:.2f}" for src, tgt in G.edges()}
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=6)
+
+    plt.title("Neural Network Diagram with Transparency", fontsize=16)
+    plt.axis("off")
+    plt.show()
+
