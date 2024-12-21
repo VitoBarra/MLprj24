@@ -6,7 +6,7 @@ import numpy as np
 import DataUtility.MiniBatchGenerator as mb
 from Core import Metric
 from Core.BackPropagation import *
-from Core.Layer import Layer
+from Core.Layer import Layer, DropoutLayer
 from Core.WeightInitializer import WeightInitializer, GlorotInitializer
 from DataUtility.DataExamples import DataExamples
 from DataUtility.FileUtil import CreateDir, convert_to_serializable
@@ -99,6 +99,9 @@ Attributes:
             metric_epoch = np.mean(batch_accumulator, axis=0)
             metric.append(metric_epoch)
 
+            for layer in self.Layers:
+                if isinstance(layer, DropoutLayer):
+                    layer.set_training(False)
             # compute metric on validation
             val_outputs = self.Forward(validation.Data)
             val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.loss_function)

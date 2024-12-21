@@ -129,3 +129,76 @@ class Layer:
         :param gradients: New gradients of the layer.
         """
         self.Gradient = gradients
+
+
+class DropoutLayer(Layer):
+    """
+    Represents a dropout layer in a feedforward neural network.
+
+    The DropoutLayer class extends the functionality of a standard Layer by introducing
+    dropout regularization. Dropout helps prevent overfitting by randomly deactivating
+    neurons during training.
+
+    Attributes:
+        dropout_rate (float): The probability of dropping a neuron during training.
+        mask (np.ndarray | None): The binary mask used to deactivate neurons during training.
+        training (bool): Flag to indicate whether the layer is in training or inference mode.
+    """
+
+    def __init__(self, unit: int, activationFunction: ActivationFunction, dropout_rate: float,
+                 name: str = "dropout_layer"):
+        """
+        Initializes the DropoutLayer with a specified number of units, activation function,
+        and dropout rate.
+
+        :param unit: The number of neurons in the layer.
+        :param activationFunction: The activation function used for this layer.
+        :param dropout_rate: The probability of deactivating a neuron during training (value between 0 and 1).
+        :param name: Optional name for the layer (default: "dropout_layer").
+        """
+        super().__init__(unit, activationFunction, name=name)
+        self.dropout_rate = dropout_rate
+        self.mask = None
+        self.training = True  # Flag to distinguish between training and inference modes.
+
+    def Build(self, weightInitializer: WeightInitializer) -> bool:
+        """
+        Initializes the weights for the layer and applies a connection mask during weight initialization.
+
+        :param weightInitializer: The initialization method for the layer's weights.
+        :return: True if the weights were successfully initialized, False otherwise.
+        """
+        success = super().Build(weightInitializer)
+        if self.NextLayer is not None:
+            # Generate a binary mask for the connections to the next layer
+            connection_mask = np.random.binomial(1, 1 - self.dropout_rate, size=self.WeightToNextLayer.shape)
+            self.WeightToNextLayer *= connection_mask  # Apply the mask to the weight matrix.
+
+        return success
+
+    def Compute(self, inputs: np.ndarray) -> np.ndarray:
+        """
+        Computes the output of the layer, applying dropout during training.
+
+        :param inputs: The input data to the layer.
+        :return: The computed output of the layer after applying dropout (if training).
+        """
+        output = super().Compute(inputs)
+
+        if self.training:
+            # Apply dropout mask during training
+            self.mask = np.random.binomial(1, 1 - self.dropout_rate, size=output.shape)
+            output *= self.mask
+        else:
+            # Scale output during inference to account for dropout rate
+            output *= (1 - self.dropout_rate)
+
+        return output
+
+    def set_training(self, training: bool):
+        """
+        Sets the training mode for the layer.
+
+        :param training: True to enable training mode, False for inference mode.
+        """
+        self.training = training
