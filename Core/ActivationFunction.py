@@ -118,6 +118,7 @@ class Sign(ActivationFunction):
         :param z: The input value.
         :return: The Sign activation value as a float (-1, 0, or 1).
         """
+        f = np.vectorize(lambda x: 1 if x == 0 else x)
         return np.sign(z)
 
     def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):
@@ -132,6 +133,32 @@ class Sign(ActivationFunction):
 
     def GetName(self):
         return "Sign"
+
+
+class Binary(ActivationFunction):
+    """
+    Binary activation function.
+
+    This activation function outputs 0 or 1.
+    """
+
+    def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
+
+        f = np.vectorize(lambda x: 1 if x>0 else 0)
+        return f(z)
+
+    def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):
+        """
+        The derivative of the Sign function is not defined mathematically in most cases.
+
+        :param z: The input value.
+        :return: NotImplementedError as the derivative does not apply to the Sign function.
+        :raises NotImplementedError: To indicate that the derivative is not defined.
+        """
+        raise NotImplementedError("Derivative does not make sense in this case")
+
+    def GetName(self):
+        return "Binary"
 
 
 class Linear(ActivationFunction):
@@ -164,3 +191,38 @@ class Linear(ActivationFunction):
 
     def GetName(self):
         return "Linear"
+
+
+class Sigmoid(ActivationFunction):
+    """
+    Sigmoid activation function.
+
+    This activation function outputs a value between 0 and 1.
+    """
+
+    def Calculate(self, z: float | np.ndarray) -> float | np.ndarray:
+        """
+        Compute the Sigmoid activation function.
+
+        :param z: The input value(s).
+        :return: The output of the Sigmoid function.
+        """
+        return 1 / (1 + np.exp(-z))
+
+    def CalculateDerivative(self, z: float | np.ndarray) -> float | np.ndarray:
+        """
+        Compute the derivative of the Sigmoid activation function.
+
+        :param z: The input value(s).
+        :return: The derivative of the Sigmoid function.
+        """
+        sigmoid = self.Calculate(z)
+        return sigmoid * (1 - sigmoid)
+
+    def GetName(self):
+        """
+        Return the name of the activation function.
+
+        :return: Name of the activation function.
+        """
+        return "Sigmoid"

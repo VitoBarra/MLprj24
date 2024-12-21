@@ -1,17 +1,13 @@
 import json
 from typing import List, Any
 
-import numpy as np
-
 import DataUtility.MiniBatchGenerator as mb
-from Core.Layer import Layer
 from Core import Metric
 from Core.BackPropagation import *
-from Core.WeightInitializer import WeightInitializer
+from Core.Layer import Layer
+from Core.WeightInitializer import WeightInitializer, GlorotInitializer
 from DataUtility.DataExamples import DataExamples
 from DataUtility.FileUtil import CreateDir, convert_to_serializable
-
-
 
 
 class ModelFeedForward:
@@ -43,6 +39,7 @@ Attributes:
         """
         Initializes an empty feedforward model.
         """
+        self.EarlyStop = None
         self.Layers = []
         self.InputLayer = None
         self.OutputLayer = None
@@ -50,7 +47,7 @@ Attributes:
         self.MetricResults = {}
 
     def Fit(self, optimizer: Optimizer, training: DataExamples, epoch: int, batchSize: int | None,
-            validation: DataExamples, callbacks = None) -> None:
+            validation: DataExamples, callbacks:List = []) -> None:
         """
         Trains the model using the provided input data.
 
@@ -59,11 +56,17 @@ Attributes:
         :param training: The training data.
         :param epoch: The number of epochs to train.
         :param batchSize: The size of each mini-batch.
-        :param callbacks: List of function for the earlystopping
+        :param callbacks: List of functions
         :return: None
         """
+
+        self.EarlyStop=False
         if batchSize is None:
             batchSize = training.Data.shape[0]
+
+        if callbacks is not None:
+            for callback in callbacks:
+                callback.Reset()
 
         metric = []
         val_metric = []
@@ -84,45 +87,34 @@ Attributes:
 
             metric_epoch = np.mean(batch_accumulator, axis=0)
             metric.append(metric_epoch)
-            """
-            val_outputs = self.Forward(validation.Data)
-            val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.loss_function)
-            metric.append(metric_epoch)
-            val_metric.append(val_metric_epoch)
 
-        metric = np.array(metric)
-        metric = metric.T
-        val_metric = np.array(val_metric).T
-        self.MetricResults["loss"] = metric[0]
-        self.MetricResults["val_loss"] = val_metric[0]
-        for i, m in enumerate(self.Metrics):
-            self.MetricResults[f"{m.Name}"] = metric[i + 1]
-            self.MetricResults[f"val_{m.Name}"] = val_metric[i + 1]
-        """
-
-            # Calcolo delle metriche sulla validazione
+            # compute metric on validation
             val_outputs = self.Forward(validation.Data)
             val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.loss_function)
             val_metric.append(val_metric_epoch)
 
+            # for l in self.Layers:
+            #     print(f"{l.name}: {l.Gradient=} \n {l.WeightToNextLayer=}")
+            # #input("Press Enter to continue...")
 
-            # Aggiorna MetricResults dopo ogni epoca
+
+
+            # update metric
             metric_array = np.array(metric).T
             val_metric_array = np.array(val_metric).T
 
-            self.MetricResults["loss"] = metric_array[0]  # La prima colonna è la loss
-            self.MetricResults["val_loss"] = val_metric_array[0]
+            #Save the metric at each epoch
+            metricNames = ["loss"] + [m.Name for m in self.Metrics]
+            for i, metricName in enumerate(metricNames):
+                self.MetricResults[f"{metricName}"] = metric_array[i]
+                self.MetricResults[f"val_{metricName}"] = val_metric_array[i]
 
-            for i, m in enumerate(self.Metrics):
-                self.MetricResults[f"{m.Name}"] = metric_array[i + 1]
-                self.MetricResults[f"val_{m.Name}"] = val_metric_array[i + 1]
+            if callbacks is not None:
+                for callback in callbacks:
+                    callback(self)
 
-            if callbacks is not None and len(callbacks) >= 1:
-                stop = callbacks[0].Call()
-                if stop == 1:
-                    print("Hai usato la early stopping!")
-                    self.LoadModel("../MLprj24/Models/best_model.json")
-                    break
+            if self.EarlyStop is True:
+                break
 
 
     def AddLayer(self, newLayer: Any) -> None:
@@ -223,13 +215,24 @@ Attributes:
             out = self.Layers[i + 1].Compute(self.Layers[i].LayerOutput)
         return out
 
-    def Build(self, weightInizialization: WeightInitializer) -> None:
+
+    def Predict(self, input: np.ndarray , post_processing = None) -> np.ndarray:
+        out = self.Forward(input)
+        if post_processing is not None:
+            return post_processing(out)
+        return out
+
+
+    def Build(self, weightInizialization: WeightInitializer|None = None) -> None:
         """
         build each layer of the model.
 
-        :param weightInitialization:  the weights' initializer.
+        :param weightInizialization: the weights' initializer.
 
         """
+        if weightInizialization is None:
+            weightInizialization=  GlorotInitializer()
+
         for layer in self.Layers:
             layer.Build(weightInizialization)
 
@@ -242,8 +245,8 @@ Attributes:
         :param target: the ground truth outputs.
         :return: None
         """
-        temp = output.reshape(-1)
-        result = [lossFunction.CalculateLoss(temp, target)]
+
+        result = [lossFunction.CalculateLoss(output, target)]
         for m in self.Metrics:
             result.append(m.ComputeMetric(output, target))
 
