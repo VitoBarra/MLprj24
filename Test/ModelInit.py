@@ -10,7 +10,7 @@ file_path_monk = "../dataset/monk+s+problems/monks-1.train"
 if __name__ == '__main__':
     #MONK-1
     alldata = readMonk(file_path_monk)
-    alldata.SplitDataset(0.15,0.5)
+    alldata.Split(0.15, 0.5)
     data , val = alldata.Training , alldata.Validation
 
     model1 = ModelFeedForward()

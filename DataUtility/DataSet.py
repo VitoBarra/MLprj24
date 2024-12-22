@@ -56,7 +56,7 @@ class DataSet(object):
             raise StopIteration  # Stop iteration when we've passed the end
         return self.Data.Data[self.current], self.Data.Label[self.current], self.Data.Id[self.current]
 
-    def SplitDataset(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> (DataExamples,DataExamples,DataExamples):
+    def Split(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> (DataExamples, DataExamples, DataExamples):
         """
         Splits the dataset into training, validation, and test sets.
 
@@ -68,7 +68,8 @@ class DataSet(object):
         self.Data = None
         return self.Training, self.Validation, self.Test
 
-    def Normalize(self, mean: float = None, std: float = None) -> 'DataSet':
+
+    def Normalize(self, normalizeLable :bool= False,mean: float = None, std: float = None) -> 'DataSet':
         """
         Normalizes the dataset by subtracting the mean and dividing by the standard deviation.
 
@@ -79,7 +80,7 @@ class DataSet(object):
         """
         if self.Data is None:
             raise ValueError('normalize function must be called before splitDataset')
-        self.Data.Normalize(mean, std)
+        self.Data.Normalize(normalizeLable, mean, std)
         return self
 
     def ToCategoricalLabel(self) -> 'DataSet':
@@ -132,6 +133,13 @@ class DataSet(object):
             string += f"Test:{self.Test.Data.shape}"
 
         print(string)
+
+    def PrintData(self) -> None:
+        """
+        Prints the sizes of the training, validation, and test splits.
+        """
+        for d, l, id in self:
+            print(d,l, id)
 
     def FlattenSeriesData(self) -> None:
         """

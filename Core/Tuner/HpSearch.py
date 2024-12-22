@@ -83,7 +83,7 @@ class GetBestSearch:
         best_hpSel = None
 
         for  hpSel , i in self.SearchObj.search(self.hp):
-            print(f"{self.SearchObj.GetName()}: Iteration {i} on {self.SearchObj.TrialNumber()}")
+            print(f"{self.SearchObj.GetName()}: Iteration {i} / {self.SearchObj.TrialNumber()}")
             hyperModel, optimizer= hyperModel_fn(hpSel)
             hyperModel.Build(weightInizializer)
             if metric is not None and len(metric) != 0:

@@ -29,7 +29,7 @@ def readMonk(file_path:str) -> DataSet:
     return DataSet(data, labels, ids)
 
 
-def readCUP(file_path:str):
+def readCUP(file_path:str) -> DataSet:
     data = []
     labels = []
     ids = []
@@ -53,17 +53,8 @@ def readCUP(file_path:str):
     # Converti le liste in array NumPy
     data = np.array(data)
     labels = np.array(labels)
-    data_mean = np.mean(data, axis=0)  # Mean for each feature (assuming data is multidimensional)
-    data_std = np.std(data, axis=0)    # Standard deviation for each feature
-    data_normalized = (data - data_mean) / data_std  # Standardization
-
-    # Normalize labels (if labels are continuous)
-    labels_mean = np.mean(labels)
-    labels_std = np.std(labels)
-    labels_normalized = (labels - labels_mean) / labels_std
     ids = np.array(ids)
-
-    return DataSet(data_normalized, labels_normalized, ids)
+    return DataSet(data, labels, ids)
 
 
 

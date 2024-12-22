@@ -58,8 +58,8 @@ def printAUC(fpr: list[float], tpr: list[float], auc: float) -> None:
     plt.show()
 
 #si può usare anche oer l'accuracu, basta passargli il valore oer training e validation con i corretti label
-def plot_metric(metricDic: dict[list[float]] | np.ndarray,
-                title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value",
+def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = None,
+                title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value", limityRange = None,
                 path: str = None) -> None:
     """
     Plots loss curves over epochs using a given loss matrix, using different line styles for better distinction in black and white.
@@ -98,11 +98,22 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray,
             linewidth=1.5
         )
 
+        # Plot the baseline
+    if baseline is not None:
+        plt.plot(
+            [baseline for _ in range(len(metricDic["loss"]))],
+            label="Baseline",
+            color="magenta",
+            linestyle="--",
+            linewidth=1,
+        )
+
     # Add title, labels, and legend
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.ylim(0, 3)
+    if limityRange is not None:
+        plt.ylim(*limityRange)
     plt.legend()
 
     # Show grid and save the plot if a path is provided
@@ -113,6 +124,11 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray,
             os.makedirs(directory)
         plt.savefig(path, format='png', dpi=300)
         print(f"Plot saved to {path}")
+
+
+
+
+
 
     plt.show()
 
