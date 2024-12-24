@@ -1,10 +1,8 @@
-from DataUtility.PlotUtil import plot_losses_accuracy
-from Core.Validation_Alg import *
-
-
 import numpy as np
 
-from Test.ModelInit import CreateFakeData, CreateFakeData_Dataset
+from Core.Validation_Alg import *
+from DataUtility.PlotUtil import plot_metric
+from Test.ModelInit import CreateFakeData
 
 
 #Roba per testare
@@ -16,11 +14,11 @@ def f ():
     model.AddLayer(Layer(15, TanH()))
     model.AddLayer(Layer(1, Linear()))
     model.Build(GlorotInitializer())
-    model.AddMetrics([MSE(), RMSE(), MEE()])
+    model.AddMetrics([MSE(), RMSE(), MAE()])
     return model
 
 file_path = "dataset/CUP/ML-CUP24-TR.csv"
-examples = CreateFakeData_Dataset(12, 1, 1)
+examples = CreateFakeData(12, 1, 1)
 
 model = train_k_fold(examples, 3,f, 15, "val_loss")#farlo con 1 non ha senso
 metrics = model.MetricResults
@@ -35,7 +33,7 @@ labels = list(val_metrics.keys())  # Estrae i nomi delle metriche
 
 
 # Chiamata alla funzione
-plot_losses_accuracy(
+plot_metric(
     metricDic=loss_matrix,
     labels=labels,
     title="Metriche di Validazione",
@@ -56,7 +54,7 @@ labels = list(val_metrics.keys())  # Estrae i nomi delle metriche
 
 
 # Chiamata alla funzione
-plot_losses_accuracy(
+plot_metric(
     metricDic=loss_matrix,
     labels=labels,
     title="Metriche di Validazione",
