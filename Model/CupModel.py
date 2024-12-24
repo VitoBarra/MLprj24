@@ -78,7 +78,7 @@ if __name__ == '__main__':
         metricDic=metric_to_plot,
         baseline=baseline,
         baselineName= f"Baseline ({m.Name})",
-        limityRange=None,
+        limitYRange=None,
         title="CUP",
         xlabel="Epoche",
         ylabel="")

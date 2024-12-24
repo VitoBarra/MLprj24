@@ -9,7 +9,7 @@ from DataUtility.FileUtil import *
 
 #si può usare anche oer l'accuracu, basta passargli il valore oer training e validation con i corretti label
 def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = None, baselineName : str = "Baseline",
-                title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value", limityRange = None,
+                title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value", limitYRange = None,
                 path: str = None) -> None:
     """
     Plots loss curves over epochs using a given loss matrix, using different line styles for better distinction in black and white.
@@ -62,8 +62,8 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = Non
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    if limityRange is not None:
-        plt.ylim(*limityRange)
+    if limitYRange is not None:
+        plt.ylim(*limitYRange)
     plt.legend()
 
     # Show grid and save the plot if a path is provided

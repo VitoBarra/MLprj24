@@ -23,7 +23,7 @@ def HyperModel_Monk(hp):
 
     model.AddLayer(Layer(1, TanH(), False,"output"))
 
-    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
+    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
     return model, optimizer
 
 
@@ -33,6 +33,7 @@ def HyperBag_Monk():
     hp.AddRange("eta", 0.01, 0.4, 0.02)
     hp.AddRange("labda", 0.01, 0.1, 0.01)
     hp.AddRange("alpha", 0.05, 0.5, 0.05)
+    hp.AddRange("decay", 0.001, 0.1, 0.005)
 
 
     hp.AddRange("unit",1,3,1)
@@ -86,7 +87,7 @@ if __name__ == '__main__':
         metricDic=metric_to_plot,
         baseline=baseline,
         baselineName= f"Baseline ({m.Name})" ,
-        limityRange=None,
+        limitYRange=None,
         title="MONK results",
         xlabel="Epoche",
         ylabel="")

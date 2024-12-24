@@ -51,7 +51,7 @@ class MSE(Metric):
         """
         if val.shape != target.shape:
             raise ValueError(f"The size of val and target must be the same but instead where {val.shape} and {target.shape}")
-        return np.mean( np.square(val - target))
+        return np.square(val - target).mean()
 
 
 class RMSE(Metric):
@@ -113,7 +113,7 @@ class Accuracy(Metric):
         Accuracy measures the percentage of correctly classified samples.
         """
 
-    def __init__(self, inter:ActivationFunction):
+    def __init__(self, inter:ActivationFunction = None):
         super().__init__()
         self.Name = "Accuracy"
         self.inter = inter
@@ -125,7 +125,11 @@ class Accuracy(Metric):
             val = np.argmax(val, axis=1)
 
         # Compare predictions with targets and compute the mean of correct predictions
-        out = self.inter.Calculate(val)
+        if self.inter is None:
+            out = val
+        else:
+            out = self.inter.Calculate(val)
+
         f = np.vectorize(lambda x,y: 1 if x == y else 0)
 
         correct_predictions = f(out,target)
