@@ -1,47 +1,64 @@
-from Core.BackPropagation import *
-from Core.FeedForwardModel import ModelFeedForward
-from Core.Layer import Layer
-from Core.LossFunction import MSELoss
-from Core.Metric import *
-from Core.Tuner.HpSearch import GridSearch
+import unittest
 from Core.Tuner.HyperBag import HyperBag
-from Core.WeightInitializer import GlorotInitializer
-from Test.ModelInit import CreateFakeData
+import numpy as np
 
+class TestHyperBag(unittest.TestCase):
 
-def HyperMode(hp):
-    model = ModelFeedForward()
+    def setUp(self):
+        """Setup a fresh instance of HyperBag for each test."""
+        self.hyperbag = HyperBag()
 
-    model.AddLayer(Layer(1, Linear(), "input"))
+    def test_add_range_valid(self):
+        """Test adding a valid range of hyperparameters."""
+        self.hyperbag.AddRange("lr", 0.1, 0.5, 0.1)
+        self.assertIn("lr", self.hyperbag.Keys())
+        np.testing.assert_array_equal(
+            self.hyperbag["lr"], [0.1, 0.2, 0.3, 0.4, 0.5]
+        )
 
-    for i in range(hp["hlayer"]):
-        model.AddLayer(Layer(15, TanH(), f"h{i}"))
+    def test_add_range_invalid_bounds(self):
+        """Test adding a range with invalid bounds."""
+        with self.assertRaises(ValueError) as context:
+            self.hyperbag.AddRange("lr", 0.5, 0.1, 0.1)
+        self.assertEqual(str(context.exception), "Lower bound must be smaller than upper bound")
 
-    model.AddLayer(Layer(1, Linear(), "output"))
-    return model
+    def test_add_chosen_valid(self):
+        """Test adding a chosen list of hyperparameters."""
+        chosen_values = [0.1, 0.2, 0.3]
+        self.hyperbag.AddChosen("lr", chosen_values)
+        self.assertIn("lr", self.hyperbag.Keys())
+        self.assertEqual(self.hyperbag["lr"], chosen_values)
 
+    def test_add_chosen_invalid_empty(self):
+        """Test adding an empty list as chosen hyperparameters."""
+        with self.assertRaises(ValueError) as context:
+            self.hyperbag.AddChosen("lr", [])
+        self.assertEqual(str(context.exception), "Chosen parameter must have at least length 1")
 
-if __name__ == '__main__':
-    hp = HyperBag()
-    hp.AddRange("labda", 0.1, 0.5, 0.05)
-    #hp.AddChosen("alpha", [0.3, 0.4, 0.5, 0.6])
-    hp.AddChosen("hlayer", [1, 2, 3, 4, 5, 6])
-    hp.AddRange("eta", 0.05, 0.3, 0.05)
+    def test_check_hp_duplicate(self):
+        """Test that duplicate hyperparameters raise an error."""
+        self.hyperbag.AddRange("lr", 0.1, 0.5, 0.1)
+        with self.assertRaises(ValueError) as context:
+            self.hyperbag.AddChosen("lr", [0.1, 0.2])
+        self.assertEqual(
+            str(context.exception),
+            "Hyper parameter 'lr' has already bean registered"
+        )
 
-    for key in hp.Keys():
-        print(f"{key}: {hp[key]}")
+    def test_keys_and_values(self):
+        """Test retrieving keys and values from the hyperbag."""
+        self.hyperbag.AddRange("lr", 0.1, 0.3, 0.1)
+        self.hyperbag.AddChosen("momentum", [0.9, 0.95])
+        self.assertEqual(set(self.hyperbag.Keys()), {"lr", "momentum"})
+        self.assertEqual(len(self.hyperbag.Values()), 2)
+        self.assertIn([0.1, 0.2, 0.3], self.hyperbag.Values())
+        self.assertIn([0.9, 0.95], self.hyperbag.Values())
 
-    try:
-        hp.AddChosen("hlayer", [1, 2, 3, 4, 5, 6])
-    except Exception as exc:
-        print(f"\n{exc}\n")
+    def test_remove_hyperparameter(self):
+        """Test deleting a hyperparameter."""
+        self.hyperbag.AddRange("lr", 0.1, 0.3, 0.1)
+        del self.hyperbag["lr"]
+        self.assertNotIn("lr", self.hyperbag.Keys())
 
-    data, val = CreateFakeData(10,)
-    gs = GridSearch()
-    for hpSel in gs.search(hp):
-        hyperModel = HyperMode(hpSel)
-        hyperModel.Build(GlorotInitializer())
-        hyperModel.AddMetrics([MSE(), RMSE(), MAE()])
-        hyperModel.Fit(BackPropagation(MSELoss(), hpSel["eta"], hpSel["labda"]), data, 5, 2, val)
-        #print(
-         #   f"number of layer selected: {len(hyperModel.Layers)} with labda: {hpSel['labda']}, alpha: {hpSel['alpha']}, eta: {hpSel['eta']}")
+if __name__ == "__main__":
+    unittest.main()
