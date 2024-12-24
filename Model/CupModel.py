@@ -8,20 +8,22 @@ from DataUtility.PlotUtil import *
 from DataUtility.ReadDatasetUtil import *
 from sklearn.linear_model import LogisticRegression, LinearRegression
 
-file_path_cup = "dataset/CUP/ML-CUP24-TR.csv"
-
+file_path_cup = "../dataset/CUP/ML-CUP24-TR.csv"
 
 def HyperBag_Cap():
     hp = HyperBag()
 
-    hp.AddRange("eta", 0.01, 0.4, 0.02)
-    hp.AddRange("labda", 0.005, 0.1, 0.005)
-    hp.AddRange("alpha", 0.05, 0.5, 0.05)
+    hp.AddRange("eta", 0.001, 0.1, 0.01)
+    hp.AddRange("labda", 0.0001, 0.5, 0.0005)
+    hp.AddRange("alpha", 0.1, 0.9, 0.1)
+    hp.AddRange("drop_out", 0.1, 0.5, 0.05)
+    hp.AddRange("decay", 0.001, 0.1, 0.005)
 
-    hp.AddRange("unit", 1, 10, 1)
-    hp.AddRange("hlayer", 1, 5, 1)
-    # hp.AddRange("drop_out", 0.01, 0.25, 0.01)
+    hp.AddRange("unit", 5, 15, 1)
+    hp.AddRange("hlayer", 1, 3, 1)
+
     return hp
+
 
 
 def HyperModel_CAP(hp):
@@ -34,7 +36,7 @@ def HyperModel_CAP(hp):
 
     model.AddLayer(Layer(3, Linear(), False, "output"))
 
-    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
+    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"], hp["decay"])
     # optimizer = BackPropagation(MSELoss(), hp["eta"], None, hp["alpha"])
     return model, optimizer
 

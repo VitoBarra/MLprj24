@@ -11,7 +11,7 @@ class Optimizer:
     regularization: bool
 
     def __init__(self, loss_function: LossFunction, eta: float, lambda_: float | None = None,
-                 alpha: float | None = None):
+                 alpha: float | None = None, decay_rate: float = 0.0):
         """
         Base class for optimization algorithms.
 
@@ -20,13 +20,20 @@ class Optimizer:
         """
         self.loss_function = loss_function
         self.eta = eta
+        self.initial_eta = eta
         self.lambda_ = lambda_
         self.alpha = alpha
+        self.decay_rate = decay_rate
+        self.iteration = 0
 
         self.deltas = []
         self.updates = []
 
     def start_optimize(self, model: FeedForwardModel, target: np.ndarray):
+        self.iteration += 1
+        if self.decay_rate is not None:
+            self.eta = self.initial_eta * np.exp(-self.decay_rate * self.iteration)
+
         for layer in reversed(model.Layers):
             self.optimize(layer, target)
 
@@ -61,7 +68,7 @@ class Optimizer:
 
 class BackPropagation(Optimizer):
     def __init__(self, loss_function: LossFunction, eta: float | None, lambda_: float | None = None,
-                 alpha: float | None = None):
+                 alpha: float | None = None, decay_rate: float | None = None):
         """
         Initializes the BackPropagation object with a specific loss function.
 
@@ -69,6 +76,9 @@ class BackPropagation(Optimizer):
         :param eta: The learning rate.
         """
         super().__init__(loss_function, eta, lambda_, alpha)
+        self.decay_rate = decay_rate
+        self.initial_eta = eta  # Save initial learning rate
+        self.iteration = 0
         if self.alpha is None:
             self.momentum = False
         else:
