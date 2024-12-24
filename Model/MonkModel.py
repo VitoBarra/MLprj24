@@ -21,7 +21,7 @@ def HyperModel_Monk(hp):
     for i in range(hp["hlayer"]):
         model.AddLayer(Layer(hp["unit"], ReLU(),True, f"h{i}"))
 
-    model.AddLayer(Layer(1, Linear(), False,"output"))
+    model.AddLayer(Layer(1, Sigmoid(), False,"output"))
 
     optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
     return model, optimizer
@@ -56,7 +56,7 @@ if __name__ == '__main__':
         500,
         128,
         watched_metric,
-        [MAE()],
+        [Accuracy(Binary())],
         GlorotInitializer(),
         [EarlyStopping(watched_metric, 12)])
 
@@ -75,10 +75,12 @@ if __name__ == '__main__':
     print(f"R2 on test: {lin_model.score(alldata.Validation.Data, alldata.Validation.Label)}%")
     predictions = lin_model.predict(alldata.Validation.Data)
 
-    m = MSE()
+    # m = Accuracy(Binary())
+    m= MSE()
     baseline= m.ComputeMetric(predictions.reshape(-1,1), alldata.Validation.Label)
 
-    metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items() if key.startswith("")}
+    metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items() if  key.endswith("")}
+
 
     plot_metric(
         metricDic=metric_to_plot,

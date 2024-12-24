@@ -18,37 +18,35 @@ def HyperBag_Cap():
     hp.AddRange("labda", 0.005, 0.1, 0.005)
     hp.AddRange("alpha", 0.05, 0.5, 0.05)
 
-
-    hp.AddRange("unit",1,10,1)
-    hp.AddRange("hlayer",0,1,1)
+    hp.AddRange("unit", 1, 10, 1)
+    hp.AddRange("hlayer", 1, 5, 1)
+    hp.AddRange("drop_out", 0.01, 0.25, 0.01)
     return hp
+
 
 def HyperModel_CAP(hp):
     model = ModelFeedForward()
 
-    model.AddLayer(Layer(12, Linear(),True, "input"))
+    model.AddLayer(Layer(12, Linear(), True, "input"))
     for i in range(hp["hlayer"]):
-        model.AddLayer(Layer(hp["unit"], TanH(),True, f"h{i}"))
-        model.AddLayer(DropoutLayer(hp["unit"],Linear(),0.1,f"drop_out{i}"))
+        model.AddLayer(DropoutLayer(hp["unit"], TanH(), hp["drop_out"], True, f"drop_out_h{i}"))
 
-    model.AddLayer(Layer(3, Linear(), False,"output"))
+    model.AddLayer(Layer(3, Linear(), False, "output"))
 
-    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
+    # optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
+    optimizer = BackPropagation(MSELoss(), hp["eta"], None, hp["alpha"])
     return model, optimizer
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     alldata = readCUP(file_path_cup)
     alldata.Normalize(True)
     alldata.PrintData()
     alldata.Split(0.15, 0.5)
 
-
-
-
     watched_metric = "val_loss"
-    bestSearch = GetBestSearch(HyperBag_Cap(), RandomSearch(25))
-    best_model,best_hpSel = bestSearch.GetBestModel(
+    bestSearch = GetBestSearch(HyperBag_Cap(), RandomSearch(250))
+    best_model, best_hpSel = bestSearch.GetBestModel(
         HyperModel_CAP,
         alldata,
         500,
@@ -58,21 +56,18 @@ if __name__ == '__main__':
         GlorotInitializer(),
         [EarlyStopping(watched_metric, 12)])
 
-
     print(f"Best hp : {best_hpSel}")
     best_model.PlotModel("CUP Model")
 
     best_model.SaveModel("Data/Models/BestCup.vjf")
     best_model.SaveMetricsResults("Data/Results/BestCup.mres")
 
-
-
     lin_model = LinearRegression()
     lin_model.fit(alldata.Training.Data, alldata.Training.Label)
     print(f"R2 on test: {lin_model.score(alldata.Validation.Data, alldata.Validation.Label)}%")
     predictions = lin_model.predict(alldata.Validation.Data)
     m = MSE()
-    baseline= m.ComputeMetric(predictions, alldata.Validation.Label)
+    baseline = m.ComputeMetric(predictions, alldata.Validation.Label)
 
     metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items() if key.startswith("")}
 
@@ -83,5 +78,3 @@ if __name__ == '__main__':
         title="CUP",
         xlabel="Epoche",
         ylabel="")
-
-

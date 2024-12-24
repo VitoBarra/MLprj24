@@ -91,7 +91,7 @@ class BackPropagation(Optimizer):
 
         deltas =[]
 
-        if not layer.Train:
+        if not layer.TrainMode:
             self.updates.append(np.zeros_like(layer.LastLayer.WeightToNextLayer))
 
         # Calculate delta

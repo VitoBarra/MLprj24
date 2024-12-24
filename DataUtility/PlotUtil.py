@@ -51,7 +51,7 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = Non
         # Plot the baseline
     if baseline is not None:
         plt.plot(
-            [baseline for _ in range(len(metricDic["loss"]))],
+            [baseline for _ in range(len(list(metricDic.values())[0]))],
             label="Baseline",
             color="magenta",
             linestyle="--",

@@ -62,6 +62,8 @@ Attributes:
         :param callbacks: List of functions
         :return: None
         """
+        for layer in self.Layers:
+            layer.TrainingMode()
 
         self.EarlyStop=False
         if batchSize is None:
@@ -218,12 +220,7 @@ Attributes:
     def Predict(self, input: np.ndarray , post_processing = None) -> np.ndarray:
         for layer in self.Layers:
             layer.InferenceMode()
-
         out = self.Forward(input)
-
-        for layer in self.Layers:
-            layer.TrainingMode()
-
         return post_processing(out) if post_processing is not None else out
 
 

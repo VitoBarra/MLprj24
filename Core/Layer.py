@@ -57,7 +57,7 @@ class Layer:
         self.Name = name
         self.bias = 1
         self.UseBias = useBias
-        self.Train = train
+        self.TrainMode = train
 
     def Build(self, weightInitializer: WeightInitializer) -> bool:
         """
@@ -162,14 +162,10 @@ class DropoutLayer(Layer):
         :param dropout_rate: The probability of deactivating a neuron during training (value between 0 and 1).
         :param name: Optional name for the layer (default: "dropout_layer").
         """
-        super().__init__(unit, activationFunction, name=name)
+        super().__init__(unit, activationFunction,  useBias,name, train)
         self.inferenceMode = False
         self.dropout_rate = dropout_rate
-        self.mask = np.ones_like(self.LayerInput)
-        self.Name = name
-        self.bias = 1
-        self.UseBias = useBias
-        self.Train = train
+        self.mask = None
 
     def Build(self, weightInitializer: WeightInitializer) -> bool:
         """
@@ -179,38 +175,22 @@ class DropoutLayer(Layer):
         :return: True if the weights were successfully initialized, False otherwise.
         """
         success = super().Build(weightInitializer)
-        """if self.NextLayer is not None:
-            # Generate a binary mask for the connections to the next layer
-            connection_mask = np.random.binomial(1, 1 - self.dropout_rate, size=self.WeightToNextLayer.shape)
-            self.WeightToNextLayer *= connection_mask  # Apply the mask to the weight matrix."""
-
         return success
 
     def Compute(self, inputs: np.ndarray) -> np.ndarray:
-        if inputs is None:
-            raise ValueError("input can't be none")
 
-        self.LayerInput = inputs
-        if self.LastLayer is not None:
-            self.LayerNets = self.LayerInput @ self.LastLayer.WeightToNextLayer.T
-            self.LayerOutput = self.ActivationFunction.Calculate(self.LayerNets)
-        else:
-            self.LayerOutput = self.LayerInput
+        if self.inferenceMode:
+            self.WeightToNextLayer *= (1-self.dropout_rate)
 
-        if not self.inferenceMode:  # Durante il training applica dropout
+        super().Compute(inputs)
+
+        if not self.inferenceMode:  # Durante il training applicable dropout
             self.mask = np.random.binomial(1, 1 - self.dropout_rate, size=self.LayerOutput.shape)
             self.LayerOutput *= self.mask
 
 
-        if self.UseBias:
-            biasCol = np.full((self.LayerOutput.shape[0], 1), self.bias)
-            self.LayerOutput = np.hstack((self.LayerOutput, biasCol))
-
         return self.LayerOutput
 
-    """if self.inferenceMode:
-        # Scale output during inference to account for dropout rate
-        output = inputs * self.mask"""
 
     def InferenceMode(self):
         self.inferenceMode = True
@@ -218,4 +198,3 @@ class DropoutLayer(Layer):
 
     def TrainingMode(self):
         self.inferenceMode = False  # In training
-        self.mask = np.random.binomial(1, 1 - self.dropout_rate, size=self.LayerOutput.shape)

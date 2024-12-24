@@ -1,5 +1,7 @@
 import numpy as np
 
+from Core.ActivationFunction import ActivationFunction
+
 
 class Metric:
     """
@@ -111,9 +113,10 @@ class Accuracy(Metric):
         Accuracy measures the percentage of correctly classified samples.
         """
 
-    def __init__(self):
+    def __init__(self, inter:ActivationFunction):
         super().__init__()
         self.Name = "Accuracy"
+        self.inter = inter
 
 
     def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
@@ -122,7 +125,7 @@ class Accuracy(Metric):
             val = np.argmax(val, axis=1)
 
         # Compare predictions with targets and compute the mean of correct predictions
-        correct_predictions = (val == target)
+        correct_predictions = (self.inter.Calculate(val) == target)
         accuracy = np.mean(correct_predictions.astype(float))
         return accuracy
 
