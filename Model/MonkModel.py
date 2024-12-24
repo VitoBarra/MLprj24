@@ -21,9 +21,9 @@ def HyperModel_Monk(hp):
     for i in range(hp["hlayer"]):
         model.AddLayer(Layer(hp["unit"], ReLU(),True, f"h{i}"))
 
-    model.AddLayer(Layer(1, Linear(), False,"output"))
+    model.AddLayer(Layer(1, Sigmoid(), False,"output"))
 
-    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
+    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
     return model, optimizer
 
 
@@ -33,9 +33,10 @@ def HyperBag_Monk():
     hp.AddRange("eta", 0.01, 0.4, 0.02)
     hp.AddRange("labda", 0.01, 0.1, 0.01)
     hp.AddRange("alpha", 0.05, 0.5, 0.05)
+    hp.AddRange("decay", 0.001, 0.1, 0.005)
 
 
-    hp.AddRange("unit",2,3,1)
+    hp.AddRange("unit",1,3,1)
     hp.AddRange("hlayer",0,2,1)
     return hp
 
@@ -56,13 +57,13 @@ if __name__ == '__main__':
         500,
         128,
         watched_metric,
-        [MAE()],
+        [Accuracy(Binary(0.5))],
         GlorotInitializer(),
         [EarlyStopping(watched_metric, 12)])
 
 
     print(f"Best hp : {best_hpSel}")
-    best_model.PlotModel()
+    best_model.PlotModel("MONK Model")
 
     best_model.SaveModel("Data/Models/Monk1.vjf")
     best_model.SaveMetricsResults("Data/Results/Monk1.mres")
@@ -75,15 +76,18 @@ if __name__ == '__main__':
     print(f"R2 on test: {lin_model.score(alldata.Validation.Data, alldata.Validation.Label)}%")
     predictions = lin_model.predict(alldata.Validation.Data)
 
-    m = MSE()
+    m = Accuracy(Binary())
+    # m= MSE()
     baseline= m.ComputeMetric(predictions.reshape(-1,1), alldata.Validation.Label)
 
-    metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items() if key.startswith("")}
+    metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items() if not key.endswith("loss")}
+
 
     plot_metric(
         metricDic=metric_to_plot,
         baseline=baseline,
-        limityRange=None,
+        baselineName= f"Baseline ({m.Name})" ,
+        limitYRange=None,
         title="MONK results",
         xlabel="Epoche",
         ylabel="")

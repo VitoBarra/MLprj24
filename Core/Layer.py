@@ -36,7 +36,7 @@ class Layer:
     Unit: int
     name: str
 
-    def __init__(self, unit: int, activationFunction: ActivationFunction, useBias:bool=False,name:str = "layer" ):
+    def __init__(self, unit: int, activationFunction: ActivationFunction, useBias:bool=False,name:str = "layer", train:bool  = True):
         """
         Initializes the layer with the specified number of units and an activation function.
 
@@ -57,6 +57,7 @@ class Layer:
         self.Name = name
         self.bias = 1
         self.UseBias = useBias
+        self.TrainMode = train
 
     def Build(self, weightInitializer: WeightInitializer) -> bool:
         """
@@ -129,3 +130,71 @@ class Layer:
         :param gradients: New gradients of the layer.
         """
         self.Gradient = gradients
+
+    def InferenceMode(self):
+        pass
+    def TrainingMode(self):
+        pass
+
+
+class DropoutLayer(Layer):
+    """
+    Represents a dropout layer in a feedforward neural network.
+
+    The DropoutLayer class extends the functionality of a standard Layer by introducing
+    dropout regularization. Dropout helps prevent overfitting by randomly deactivating
+    neurons during training.
+
+    Attributes:
+        dropout_rate (float): The probability of dropping a neuron during training.
+        mask (np.ndarray | None): The binary mask used to deactivate neurons during training.
+        inferenceMode (bool): Flag to indicate whether the layer is in training or inference mode.
+    """
+
+    def __init__(self, unit: int, activationFunction: ActivationFunction, dropout_rate: float,
+                useBias:bool=False,name:str = "layer", train:bool  = True):
+        """
+        Initializes the DropoutLayer with a specified number of units, activation function,
+        and dropout rate.
+
+        :param unit: The number of neurons in the layer.
+        :param activationFunction: The activation function used for this layer.
+        :param dropout_rate: The probability of deactivating a neuron during training (value between 0 and 1).
+        :param name: Optional name for the layer (default: "dropout_layer").
+        """
+        super().__init__(unit, activationFunction,  useBias,name, train)
+        self.inferenceMode = False
+        self.dropout_rate = dropout_rate
+        self.mask = None
+
+    def Build(self, weightInitializer: WeightInitializer) -> bool:
+        """
+        Initializes the weights for the layer and applies a connection mask during weight initialization.
+
+        :param weightInitializer: The initialization method for the layer's weights.
+        :return: True if the weights were successfully initialized, False otherwise.
+        """
+        success = super().Build(weightInitializer)
+        return success
+
+    def Compute(self, inputs: np.ndarray) -> np.ndarray:
+
+        if self.inferenceMode:
+            self.WeightToNextLayer *= (1-self.dropout_rate)
+
+        super().Compute(inputs)
+
+        if not self.inferenceMode:  # Durante il training applicable dropout
+            self.mask = np.random.binomial(1, 1 - self.dropout_rate, size=self.LayerOutput.shape)
+            self.LayerOutput *= self.mask
+
+
+        return self.LayerOutput
+
+
+    def InferenceMode(self):
+        self.inferenceMode = True
+        self.mask = np.ones_like(self.LayerOutput)  # Tutto 1 per non disattivare nulla in inferenza
+
+    def TrainingMode(self):
+        self.inferenceMode = False  # In training

@@ -1,65 +1,15 @@
-import pickle
-import time as t
 
 import matplotlib.pyplot as plt
 import networkx as nx
-import numpy as np
+
 
 from DataUtility.FileUtil import *
 
-# Funzione per calcolare TP, FP, TN, FN a ogni soglia
-"""
-Uso:
-fpr, tpr, thresholds = calculate_roc(y_scores, y_true)
-auc = calculate_auc(fpr, tpr)
-"""
-def calculate_roc(y_scores: list[float], y_true:list[int]) -> tuple[list[float], list[float], list[float]]:
-    thresholds = sorted(set(y_scores), reverse=True)
-    tpr_list = []
-    fpr_list = []
 
-    for threshold in thresholds:
-        tp = fp = tn = fn = 0
-        for score, true_label in zip(y_scores, y_true):
-            predicted = 1 if score >= threshold else 0
-            if predicted == 1 and true_label == 1:
-                tp += 1
-            elif predicted == 1 and true_label == 0:
-                fp += 1
-            elif predicted == 0 and true_label == 0:
-                tn += 1
-            elif predicted == 0 and true_label == 1:
-                fn += 1
-
-        tpr = tp / (tp + fn) if (tp + fn) > 0 else 0  # Sensibilità
-        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0  # 1 - Specificità
-        tpr_list.append(tpr)
-        fpr_list.append(fpr)
-
-    return fpr_list, tpr_list, thresholds
-
-
-# Funzione per calcolare l'AUC usando la formula del trapezio
-def calculate_auc(fpr: list[float], tpr: list[float]) -> float:
-    auc = 0.0
-    for i in range(1, len(fpr)):
-        auc += (fpr[i] - fpr[i - 1]) * (tpr[i] + tpr[i - 1]) / 2
-    return auc
-
-def printAUC(fpr: list[float], tpr: list[float], auc: float) -> None:
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, marker='o', linestyle='-', color='b', label=f'AUC = {auc:.2f}')
-    plt.plot([0, 1], [0, 1], 'k--', label='Classificatore casuale')  # Linea random
-    plt.xlabel('False Positive Rate (FPR)')
-    plt.ylabel('True Positive Rate (TPR)')
-    plt.title('ROC Curve (calcolata manualmente)')
-    plt.legend(loc='lower right')
-    plt.grid()
-    plt.show()
 
 #si può usare anche oer l'accuracu, basta passargli il valore oer training e validation con i corretti label
-def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = None,
-                title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value", limityRange = None,
+def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = None, baselineName : str = "Baseline",
+                title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value", limitYRange = None,
                 path: str = None) -> None:
     """
     Plots loss curves over epochs using a given loss matrix, using different line styles for better distinction in black and white.
@@ -101,8 +51,8 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = Non
         # Plot the baseline
     if baseline is not None:
         plt.plot(
-            [baseline for _ in range(len(metricDic["loss"]))],
-            label="Baseline",
+            [baseline for _ in range(len(list(metricDic.values())[0]))],
+            label=baselineName,
             color="magenta",
             linestyle="--",
             linewidth=1,
@@ -112,8 +62,8 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = Non
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    if limityRange is not None:
-        plt.ylim(*limityRange)
+    if limitYRange is not None:
+        plt.ylim(*limitYRange)
     plt.legend()
 
     # Show grid and save the plot if a path is provided
@@ -124,11 +74,6 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = Non
             os.makedirs(directory)
         plt.savefig(path, format='png', dpi=300)
         print(f"Plot saved to {path}")
-
-
-
-
-
 
     plt.show()
 
@@ -146,33 +91,6 @@ def ShowOrSavePlot(path=None, filename=None):
         plt.savefig(f"{path}/{filename}.png")
         plt.clf()
 
-
-def SaveTrainingDataByName(data_path, problem_name, test_name, history, result):
-    dir = f"{data_path}/{problem_name}/{test_name}"
-    SaveTrainingData(dir, history.history, result)
-
-
-def SaveTrainingData(path, history, result):
-    os.makedirs(path, exist_ok=True)
-    with open(f"{path}/history.bin", "wb") as outfile:
-        pickle.dump(history, outfile)
-    with open(f"{path}/result.bin", "wb") as outfile:
-        pickle.dump(result, outfile)
-
-
-def ReadTrainingDataByName(data_path, problem_name, test_name):
-    dir = f"{data_path}/{problem_name}/{test_name}"
-    # Writing to sample.json
-    history, result = ReadTrainingData(dir)
-    return history, result
-
-
-def ReadTrainingData(path):
-    with open(f"{path}/history.bin", "rb") as inputfile:
-        history = pickle.load(inputfile)
-    with open(f"{path}/result.bin", "rb") as inputfile:
-        result = pickle.load(inputfile)
-    return history, result
 
 
 def PrityPlot(loss, mse=None, accuracy=None, baseline=None):
@@ -246,97 +164,10 @@ def PrityPlot(loss, mse=None, accuracy=None, baseline=None):
 
 
 
-def ReadAndPlot(data_path, plot_path, problem_name, test_name, classification):
-    data_dir = f"{data_path}/{problem_name}"
-    plot_dir = f"{plot_path}/{problem_name}"
-    try:
-        history, result = ReadTrainingDataByName(data_path, problem_name, test_name)
-    except FileNotFoundError as e:
-        print(f"some file in  {data_dir}/{test_name} not found {e}")
-        return
-
-    if classification:
-        PlotModelAccuracy(history, test_name, plot_dir, test_name)
-    else:
-        PlotModelLossMSE(history, test_name, plot_dir, test_name)
-
-
-def ReadAndPlotAll(data_path, plot_path, problemName, classification):
-    dataPath = f"{data_path}/{problemName}"
-    for dir in GetDirectSubDir(dataPath):
-        ReadAndPlot(data_path, plot_path, problemName, dir.name, classification)
-
-
-def PrintAllDataByName(data_path, problem_name, classification):
-    print(f"------------------------{problem_name}------------------------")
-    PrintAllData(f"{data_path}/{problem_name}", classification)
-
-
-def PrintAllData(path, classification):
-    if classification:
-        metric_in_history = "val_accuracy"
-        metric_to_print = "acc"
-    else:
-        metric_in_history = "val_mae"
-        metric_to_print = "mae"
-
-    print(f"|---------model_name----------|-Val_{metric_to_print}-|-t_{metric_to_print}-|total_time-|")
-    PrintTestInFolder(path, metric_in_history)
-
-
-def PrintTestInFolder(path, metric_in_history):
-    for test_name in GetDirectSubDir(f"{path}"):
-        history, result = ReadTrainingData(f"{path}/{test_name.name}")
-        try:
-            print(
-                f"{test_name.name:30}  & {history[metric_in_history][-1]:5.5f} & {result[1]:5.5f} & {t.strftime('%H:%M:%S', t.gmtime(sum(history['time'])))}  \\\\")
-        except Exception as e:
-            # if len(history[metric_in_history]) == 0:
-            #     history[metric_in_history] = [history[metric_in_history]]
-            print(
-                f"{test_name.name:30}  & {history[metric_in_history]:5.5f} & {result[1]:5.5f} & {t.strftime('%H:%M:%S', t.gmtime(sum(history['time'])))} \\\\")
-
-
-def PrintAllDataAllSubProblem(data_path, problem_name, classification):
-    print(f"---------------------{problem_name}---------------------")
-    for dir in GetDirectSubDir(f"{data_path}/{problem_name}"):
-        print(f"---------------------{dir.name}---------------------")
-        CleanData(f"{data_path}/{problem_name}/{dir.name}")
-        PrintAllData(f"{data_path}/{problem_name}/{dir.name}", classification)
-
-
-def RenameDicKey(mydict, oldName, new_name):
-    mydict[new_name] = mydict.pop(oldName)
-
-
-def CleanData(path):
-    for test_name in GetDirectSubDir(f"{path}"):
-        history, result = ReadTrainingData(f"{path}/{test_name.name}")
-        modified = False
-        if hasattr(history, "history"):
-            history = history.history
-            modified = True
-
-        if 'mean_squared_error' in history:
-            RenameDicKey(history, 'mean_squared_error', 'loss')
-            modified = True
-        if 'val_mean_squared_error' in history:
-            RenameDicKey(history, 'val_mean_squared_error', 'val_loss')
-            modified = True
-        if 'mean_absolute_error' in history:
-            RenameDicKey(history, 'mean_absolute_error', 'mae')
-            modified = True
-        if 'val_mean_absolute_error' in history:
-            RenameDicKey(history, 'val_mean_absolute_error', 'val_mae')
-            modified = True
-
-        if modified:
-            SaveTrainingData(f"{path}/{test_name.name}", history, result)
 
 
 
-
-def plot_neural_network_with_transparency(weights , useBiases):
+def plot_neural_network_with_transparency(weights , plotName = "Neural Network Diagram"):
     """
     Plots a neural network visualization using transparency for edge weights.
 
@@ -351,22 +182,28 @@ def plot_neural_network_with_transparency(weights , useBiases):
     edge_colors = []
     edge_alphas = []
 
+    shapes = [w.shape for w in weights]
+    midlePoint= np.array(shapes).max()/2
+
     #reigster the intuput and internal Node
     for i,weight_matrix in enumerate(weights):
         src_dim=weight_matrix.shape[1]
+        rowStartPoint =midlePoint-(src_dim/2)
         for src_idx in range(src_dim):
-            G.add_node(f"L{i}_N{src_idx}", pos=(src_idx, i))
+            G.add_node(f"L{i}_N{src_idx}", pos=(rowStartPoint+ src_idx, i))
 
     # register the output node
     weight_matrix = weights[-1]
     tgt_dim=weight_matrix.shape[0]
+    rowStartPoint =midlePoint-(tgt_dim/2)
     for tgt_idx in range(tgt_dim):
-        G.add_node(f"L{len(weights)}_N{tgt_idx}", pos=(tgt_idx, len(weights)))
+        G.add_node(f"L{len(weights)}_N{tgt_idx}", pos=(rowStartPoint+tgt_idx, len(weights)))
 
     # Add edges with weights
     for i,weight_matrix in enumerate(weights):
         tgt_dim=weight_matrix.shape[0]
         src_dim=weight_matrix.shape[1]
+        max_weight_module = np.max(np.abs(weight_matrix))
         for tgt_idx in range(tgt_dim):
             for src_idx in range(src_dim):
                 src_node = f"L{i}_N{src_idx}"
@@ -375,7 +212,7 @@ def plot_neural_network_with_transparency(weights , useBiases):
                 G.add_edge(src_node, tgt_node, weight=weight)
                 edges.append((src_idx, tgt_idx))
                 # Calculate transparency and color based on weight magnitude
-                intensity = abs(weight) / max(1, np.abs(weight_matrix).max())
+                intensity = abs(weight) / max_weight_module
                 alpha = intensity  # Transparency (smaller weight = more transparent)
                 color = "red" if weight < 0 else "blue"
                 edge_colors.append(color)
@@ -407,7 +244,61 @@ def plot_neural_network_with_transparency(weights , useBiases):
     edge_labels = {(src, tgt): f"{G.edges[src, tgt]['weight']:.2f}" for src, tgt in G.edges()}
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=6)
 
-    plt.title("Neural Network Diagram with Transparency", fontsize=16)
+    plt.title(plotName, fontsize=16)
     plt.axis("off")
     plt.show()
 
+
+
+
+
+
+# Funzione per calcolare TP, FP, TN, FN a ogni soglia
+"""
+Uso:
+fpr, tpr, thresholds = calculate_roc(y_scores, y_true)
+auc = calculate_auc(fpr, tpr)
+"""
+def calculate_roc(y_scores: list[float], y_true:list[int]) -> tuple[list[float], list[float], list[float]]:
+    thresholds = sorted(set(y_scores), reverse=True)
+    tpr_list = []
+    fpr_list = []
+
+    for threshold in thresholds:
+        tp = fp = tn = fn = 0
+        for score, true_label in zip(y_scores, y_true):
+            predicted = 1 if score >= threshold else 0
+            if predicted == 1 and true_label == 1:
+                tp += 1
+            elif predicted == 1 and true_label == 0:
+                fp += 1
+            elif predicted == 0 and true_label == 0:
+                tn += 1
+            elif predicted == 0 and true_label == 1:
+                fn += 1
+
+        tpr = tp / (tp + fn) if (tp + fn) > 0 else 0  # Sensibilità
+        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0  # 1 - Specificità
+        tpr_list.append(tpr)
+        fpr_list.append(fpr)
+
+    return fpr_list, tpr_list, thresholds
+
+
+# Funzione per calcolare l'AUC usando la formula del trapezio
+def calculate_auc(fpr: list[float], tpr: list[float]) -> float:
+    auc = 0.0
+    for i in range(1, len(fpr)):
+        auc += (fpr[i] - fpr[i - 1]) * (tpr[i] + tpr[i - 1]) / 2
+    return auc
+
+def printAUC(fpr: list[float], tpr: list[float], auc: float) -> None:
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, marker='o', linestyle='-', color='b', label=f'AUC = {auc:.2f}')
+    plt.plot([0, 1], [0, 1], 'k--', label='Classificatore casuale')  # Linea random
+    plt.xlabel('False Positive Rate (FPR)')
+    plt.ylabel('True Positive Rate (TPR)')
+    plt.title('ROC Curve (calcolata manualmente)')
+    plt.legend(loc='lower right')
+    plt.grid()
+    plt.show()

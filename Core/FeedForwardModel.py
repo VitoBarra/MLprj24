@@ -6,9 +6,10 @@ import numpy as np
 import DataUtility.MiniBatchGenerator as mb
 from Core import Metric
 from Core.BackPropagation import *
-from Core.Layer import Layer
+from Core.Layer import Layer, DropoutLayer
 from Core.WeightInitializer import WeightInitializer, GlorotInitializer
 from DataUtility.DataExamples import DataExamples
+from DataUtility.DataSet import DataSet
 from DataUtility.FileUtil import CreateDir, convert_to_serializable
 from DataUtility.PlotUtil import plot_neural_network_with_transparency
 
@@ -49,23 +50,23 @@ Attributes:
         self.Metrics = []
         self.MetricResults = {}
 
-    def Fit(self, optimizer: Optimizer, training: DataExamples, epoch: int, batchSize: int | None,
-            validation: DataExamples, callbacks:List = []) -> None:
+    def Fit(self, optimizer: Optimizer, data: DataSet, epoch: int, batchSize: int | None, callbacks:List = []) -> None:
         """
         Trains the model using the provided input data.
 
-        :param validation: Validation Dataset
+        :param data: Data to use
         :param optimizer: the Optimizer to use for training.
-        :param training: The training data.
         :param epoch: The number of epochs to train.
         :param batchSize: The size of each mini-batch.
         :param callbacks: List of functions
         :return: None
         """
+        for layer in self.Layers:
+            layer.TrainingMode()
 
         self.EarlyStop=False
         if batchSize is None:
-            batchSize = training.DataLength
+            batchSize = data.Training.DataLength
 
         if callbacks is not None:
             for callback in callbacks:
@@ -73,8 +74,9 @@ Attributes:
 
         metric = []
         val_metric = []
+        test_metric= []
 
-        batch_generator = mb.MiniBatchGenerator(training, batchSize)
+        batch_generator = mb.MiniBatchGenerator(data.Training, batchSize)
         for e in range(epoch):
             batch_generator.Reset()
             batch_accumulator =[]
@@ -88,38 +90,32 @@ Attributes:
                 # Back Propagation
                 optimizer.start_optimize(self, targets_batch)
 
-                # for l in self.Layers:
-                #     print("-----------------")
-                #     print(l.get_weights())
-                #     print(l.get_gradients())
-
-
-
 
             metric_epoch = np.mean(batch_accumulator, axis=0)
             metric.append(metric_epoch)
 
             # compute metric on validation
-            val_outputs = self.Forward(validation.Data)
-            val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.loss_function)
+            val_outputs = self.Forward(data.Validation.Data)
+            val_metric_epoch = self._compute_metrics(val_outputs, data.Validation.Label, optimizer.loss_function)
             val_metric.append(val_metric_epoch)
 
-            # for l in self.Layers:
-            #     print(f"{l.name}: {l.Gradient=} \n {l.WeightToNextLayer=}")
-            # #input("Press Enter to continue...")
-
+            # compute metric on test
+            test_outputs = self.Forward(data.Test.Data)
+            test_metric_epoch = self._compute_metrics(test_outputs, data.Test.Label, optimizer.loss_function)
+            test_metric.append(test_metric_epoch)
 
 
             # update metric
             metric_array = np.array(metric).T
             val_metric_array = np.array(val_metric).T
+            test_metric_array = np.array(test_metric).T
 
-            #Save the metric at each epoch
+            #Save f metric at each epoch
             metricNames = ["loss"] + [m.Name for m in self.Metrics]
             for i, metricName in enumerate(metricNames):
                 self.MetricResults[f"{metricName}"] = metric_array[i]
                 self.MetricResults[f"val_{metricName}"] = val_metric_array[i]
-
+                self.MetricResults[f"test_{metricName}"] = test_metric_array[i]
             if callbacks is not None:
                 for callback in callbacks:
                     callback(self)
@@ -228,15 +224,15 @@ Attributes:
 
 
     def Predict(self, input: np.ndarray , post_processing = None) -> np.ndarray:
+        for layer in self.Layers:
+            layer.InferenceMode()
         out = self.Forward(input)
-        if post_processing is not None:
-            return post_processing(out)
-        return out
+        return post_processing(out) if post_processing is not None else out
 
-    def PlotModel(self):
+
+    def PlotModel(self, plotTitle:str = "Neural Network diagram"):
         w = [np.array(l.get_weights()) for l in self.Layers if l.get_weights() is not None]
-        b = [l.UseBias for l in self.Layers]
-        plot_neural_network_with_transparency(w,b)
+        plot_neural_network_with_transparency(w,plotTitle)
 
 
     def Build(self, weightInizialization: WeightInitializer|None = None) -> None:
