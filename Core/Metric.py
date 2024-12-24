@@ -101,6 +101,9 @@ class MAE(Metric):
         if val.shape != target.shape:
             raise ValueError(f"The size of val and target must be the same but instead where {val.shape} and {target.shape}")
         differences = val - target
+        if len(differences.shape) == 1:
+            differences  = differences.reshape(-1,1)
+
         norms = np.linalg.norm(differences, axis=1)  # L2 norm for each sample
         mee = np.mean(norms)
         return mee  # Return the mean of the L2 norms
