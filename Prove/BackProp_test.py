@@ -113,7 +113,7 @@ if __name__ == '__main__':
     plot_metric(
             metricDic=metric_to_plot,
             baseline=baseline,
-            limityRange=None,
+            limitYRange=None,
             title="Metriche di Validazione",
             xlabel="Epoche",
             ylabel="Valore")

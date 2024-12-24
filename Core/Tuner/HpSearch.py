@@ -89,7 +89,7 @@ class GetBestSearch:
             if metric is not None and len(metric) != 0:
                 hyperModel.AddMetrics(metric)
 
-            hyperModel.Fit(optimizer, Data.Training, epoch, miniBatchSize, Data.Validation, callBack)
+            hyperModel.Fit(optimizer, Data, epoch, miniBatchSize, callBack)
 
             last_watchMetric=hyperModel.MetricResults[watchMetric][-1]
             if  last_watchMetric < best_watchMetric:
