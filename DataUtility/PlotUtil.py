@@ -248,3 +248,57 @@ def plot_neural_network_with_transparency(weights , plotName = "Neural Network D
     plt.axis("off")
     plt.show()
 
+
+
+
+
+
+# Funzione per calcolare TP, FP, TN, FN a ogni soglia
+"""
+Uso:
+fpr, tpr, thresholds = calculate_roc(y_scores, y_true)
+auc = calculate_auc(fpr, tpr)
+"""
+def calculate_roc(y_scores: list[float], y_true:list[int]) -> tuple[list[float], list[float], list[float]]:
+    thresholds = sorted(set(y_scores), reverse=True)
+    tpr_list = []
+    fpr_list = []
+
+    for threshold in thresholds:
+        tp = fp = tn = fn = 0
+        for score, true_label in zip(y_scores, y_true):
+            predicted = 1 if score >= threshold else 0
+            if predicted == 1 and true_label == 1:
+                tp += 1
+            elif predicted == 1 and true_label == 0:
+                fp += 1
+            elif predicted == 0 and true_label == 0:
+                tn += 1
+            elif predicted == 0 and true_label == 1:
+                fn += 1
+
+        tpr = tp / (tp + fn) if (tp + fn) > 0 else 0  # Sensibilità
+        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0  # 1 - Specificità
+        tpr_list.append(tpr)
+        fpr_list.append(fpr)
+
+    return fpr_list, tpr_list, thresholds
+
+
+# Funzione per calcolare l'AUC usando la formula del trapezio
+def calculate_auc(fpr: list[float], tpr: list[float]) -> float:
+    auc = 0.0
+    for i in range(1, len(fpr)):
+        auc += (fpr[i] - fpr[i - 1]) * (tpr[i] + tpr[i - 1]) / 2
+    return auc
+
+def printAUC(fpr: list[float], tpr: list[float], auc: float) -> None:
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, marker='o', linestyle='-', color='b', label=f'AUC = {auc:.2f}')
+    plt.plot([0, 1], [0, 1], 'k--', label='Classificatore casuale')  # Linea random
+    plt.xlabel('False Positive Rate (FPR)')
+    plt.ylabel('True Positive Rate (TPR)')
+    plt.title('ROC Curve (calcolata manualmente)')
+    plt.legend(loc='lower right')
+    plt.grid()
+    plt.show()
