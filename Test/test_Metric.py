@@ -47,5 +47,3 @@ class TestMetrics(unittest.TestCase):
 
         # Test case 3: High-dimensional inputs
         self.assertEqual(m.ComputeMetric(self.high_dim_val, self.high_dim_target), 1.0)
-if __name__ == '__main__':
-    unittest.main()

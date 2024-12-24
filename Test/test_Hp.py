@@ -60,5 +60,4 @@ class TestHyperBag(unittest.TestCase):
         del self.hyperbag["lr"]
         self.assertNotIn("lr", self.hyperbag.Keys())
 
-if __name__ == "__main__":
-    unittest.main()
+
