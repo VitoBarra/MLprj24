@@ -117,18 +117,26 @@ class DataExamples(object):
         Data = DataExamples(self.Data[splitIndex:], self.Label[splitIndex:], self.Id[:splitIndex])
         return Data, dataSplit
 
-    def Normalize(self, mean: float = None, std: float = None) -> None:
+    def Normalize(self,normalizeLables:bool, mean: float = None, std: float = None) -> None:
         """
         Normalizes the data by subtracting the mean and dividing by the standard deviation.
 
+        :param normalizeLables:  normalize the lables or not.
         :param mean: An optional precomputed mean for normalization. Defaults to the mean of the dataset.
         :param std: An optional precomputed standard deviation for normalization. Defaults to the std of the dataset.
         """
+
+        self.Data = DataExamples._normalization(self.Data, mean, std)
+        if normalizeLables:
+            self.Label = DataExamples._normalization(self.Label, mean, std)
+
+    @staticmethod
+    def _normalization(data , mean=None, std=None):
         if mean is None:
-            mean = np.mean(self.Data, axis=0)
+            mean = np.mean(data, axis=0)
         if std is None:
-            std = np.std(self.Data, axis=0)
-        self.Data = (self.Data - mean) / std
+            std = np.std(data, axis=0)
+        return (data - mean) / std
 
     def ToCategoricalLabel(self) -> None:
         """

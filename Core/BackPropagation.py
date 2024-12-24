@@ -1,7 +1,7 @@
 from Core import FeedForwardModel
+from Core.ActivationFunction import *
 from Core.Layer import Layer
 from Core.LossFunction import *
-from Core.ActivationFunction import *
 
 
 class Optimizer:
@@ -151,14 +151,24 @@ class BackPropagation(Optimizer):
             layer_grad.append(grad_from_one_unit.T)
         layerGrad = np.mean(np.array(layer_grad), axis=0)
 
-        # TODO : momentum with mini-batch
+
+        # Calculte and applay the momentum
         if self.momentum is True:
             if layer.LastLayer.Gradient is not None:
+                if layer.LastLayer.Gradient.shape != layerGrad.shape:
+                    # Pad gradients to match shape (this is used expecialy in the last mini-batch that usualy have less data)
+                    pad_size = layer.LastLayer.Gradient.shape[0] - layerGrad.shape[0]
+                    layerGrad = np.pad(layerGrad, ((0, pad_size), (0, 0), (0, 0)), mode='constant')
                 mom = self.alpha * layer.LastLayer.Gradient
                 layerGrad = layerGrad + mom
             layer.LastLayer.Gradient = layerGrad
 
-        # Optimize the weights
+
+
+
+
+
+    # Optimize the weights
         if self.regularization is True:
             layerUpdate = layerGrad - ( 2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
         else:

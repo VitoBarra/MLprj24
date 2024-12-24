@@ -1,39 +1,16 @@
-from Core.Callback.BestSave import BestSave
 from Core.FeedForwardModel import *
-from Core.ActivationFunction import *
-from Core.LossFunction import MSELoss
-from Core.WeightInitializer import *
+from Core.FeedForwardModel import *
 from Core.Metric import *
-from Core.Callback.EarlyStopping import EarlyStopping
-from DataUtility.DataExamples import *
-from Core.BackPropagation import *
-from DataUtility.ReadDatasetUtil import  *
+from Core.WeightInitializer import *
 from DataUtility.PlotUtil import *
-
-
-def CreateFakeData(nData:int , xdim :int=1, ydim:int=1):
-    x = np.random.uniform(0, 1, (nData,xdim))
-    y = np.random.choice([0, 1], (nData, ydim))
-    id = np.array(range(x.shape[0]))
-
-    data = DataExamples(x,y, id)
-    val = DataExamples(x, y, id)
-    return data, val
-
-def CreateFakeData_Dataset(nData:int, xdim :int=1, ydim:int=1):
-    x = np.random.uniform(0, 1, (nData,xdim))
-    y = np.random.choice([0, 1], (nData, ydim))
-    id = np.array(range(x.shape[0]))
-
-    return DataSet(x,y, id)
-
+from DataUtility.ReadDatasetUtil import *
 
 file_path_cup = "../dataset/CUP/ML-CUP24-TR.csv"
 file_path_monk = "../dataset/monk+s+problems/monks-1.train"
 if __name__ == '__main__':
     #MONK-1
     alldata = readMonk(file_path_monk)
-    alldata.SplitDataset(0.15,0.5)
+    alldata.Split(0.15, 0.5)
     data , val = alldata.Training , alldata.Validation
 
     model1 = ModelFeedForward()
@@ -43,7 +20,7 @@ if __name__ == '__main__':
     model1.AddLayer(Layer(1, Sign(),"output"))
     model1.Build(GlorotInitializer())
 
-    model1.AddMetrics([RMSE(), MEE()])
+    model1.AddMetrics([RMSE(), MAE()])
     model1.Fit(BackPropagation(MSELoss(),0.002, 0.001, 0.02), data, 120, 450, val)
 
 
@@ -68,7 +45,7 @@ if __name__ == '__main__':
     labels = list(val_metrics.keys())  # Estrae i nomi delle metriche
 
     # Chiamata alla funzione
-    plot_losses_accuracy(
+    plot_metric(
         metricDic=loss_matrix,
         labels=labels,
         title="Metriche di Validazione",

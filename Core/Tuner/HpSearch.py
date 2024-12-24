@@ -19,26 +19,32 @@ class HyperParameterSearch:
 
     def GetName(self):
         return "BaseClass"
-
+    def TrialNumber(self):
+        return 0
 
 class GridSearch(HyperParameterSearch):
 
 
     def __init__(self):
         super().__init__()
+        self.trials = 0
 
 
     def search(self, hp:HyperBag):
         keys = hp.Keys()
         values = hp.Values()
-
-        for i,combination in enumerate(product(*values)):
+        prod = list(product(*values))
+        self.trials = len(prod)
+        for i,combination in enumerate(prod):
             hpsel=dict(zip(keys, combination))
             yield hpsel, i
 
     @staticmethod
     def GetName():
         return "GridSearch"
+    def TrialNumber(self):
+        return self.trials
+
 
 
 class RandomSearch(HyperParameterSearch):
@@ -61,6 +67,8 @@ class RandomSearch(HyperParameterSearch):
     @staticmethod
     def GetName():
         return "RandomSearch"
+    def TrialNumber(self):
+        return self.trials
 
 
 
@@ -75,7 +83,7 @@ class GetBestSearch:
         best_hpSel = None
 
         for  hpSel , i in self.SearchObj.search(self.hp):
-            print(f"{self.SearchObj.GetName()}: Iteration {i}")
+            print(f"{self.SearchObj.GetName()}: Iteration {i} / {self.SearchObj.TrialNumber()}")
             hyperModel, optimizer= hyperModel_fn(hpSel)
             hyperModel.Build(weightInizializer)
             if metric is not None and len(metric) != 0:

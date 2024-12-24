@@ -1,6 +1,8 @@
 import json
 from typing import List, Any
 
+import numpy as np
+
 import DataUtility.MiniBatchGenerator as mb
 from Core import Metric
 from Core.BackPropagation import *
@@ -8,6 +10,7 @@ from Core.Layer import Layer
 from Core.WeightInitializer import WeightInitializer, GlorotInitializer
 from DataUtility.DataExamples import DataExamples
 from DataUtility.FileUtil import CreateDir, convert_to_serializable
+from DataUtility.PlotUtil import plot_neural_network_with_transparency
 
 
 class ModelFeedForward:
@@ -62,7 +65,7 @@ Attributes:
 
         self.EarlyStop=False
         if batchSize is None:
-            batchSize = training.Data.shape[0]
+            batchSize = training.DataLength
 
         if callbacks is not None:
             for callback in callbacks:
@@ -84,6 +87,14 @@ Attributes:
 
                 # Back Propagation
                 optimizer.start_optimize(self, targets_batch)
+
+                # for l in self.Layers:
+                #     print("-----------------")
+                #     print(l.get_weights())
+                #     print(l.get_gradients())
+
+
+
 
             metric_epoch = np.mean(batch_accumulator, axis=0)
             metric.append(metric_epoch)
@@ -221,6 +232,11 @@ Attributes:
         if post_processing is not None:
             return post_processing(out)
         return out
+
+    def PlotModel(self):
+        w = [np.array(l.get_weights()) for l in self.Layers if l.get_weights() is not None]
+        b = [l.UseBias for l in self.Layers]
+        plot_neural_network_with_transparency(w,b)
 
 
     def Build(self, weightInizialization: WeightInitializer|None = None) -> None:

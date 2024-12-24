@@ -1,12 +1,10 @@
-from Core.ActivationFunction import *
 from Core.BackPropagation import *
 from Core.FeedForwardModel import ModelFeedForward
 from Core.Layer import Layer
 from Core.LossFunction import MSELoss
 from Core.Metric import *
+from Core.Tuner.HpSearch import GridSearch
 from Core.Tuner.HyperBag import HyperBag
-
-from Core.Tuner.HpSearch import GridSearch, RandomSearch
 from Core.WeightInitializer import GlorotInitializer
 from Test.ModelInit import CreateFakeData
 
@@ -43,7 +41,7 @@ if __name__ == '__main__':
     for hpSel in gs.search(hp):
         hyperModel = HyperMode(hpSel)
         hyperModel.Build(GlorotInitializer())
-        hyperModel.AddMetrics([MSE(), RMSE(), MEE()])
+        hyperModel.AddMetrics([MSE(), RMSE(), MAE()])
         hyperModel.Fit(BackPropagation(MSELoss(), hpSel["eta"], hpSel["labda"]), data, 5, 2, val)
         #print(
          #   f"number of layer selected: {len(hyperModel.Layers)} with labda: {hpSel['labda']}, alpha: {hpSel['alpha']}, eta: {hpSel['eta']}")
