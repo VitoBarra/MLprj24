@@ -141,10 +141,12 @@ class Binary(ActivationFunction):
 
     This activation function outputs 0 or 1.
     """
+    def __init__(self, trashold:float=0.0):
+        self.Thrashold   = trashold
 
     def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
 
-        f = np.vectorize(lambda x: 1 if x>0 else 0)
+        f = np.vectorize(lambda x: 1 if x>self.Thrashold else 0)
         return f(z)
 
     def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):

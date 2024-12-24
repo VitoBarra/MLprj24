@@ -21,7 +21,7 @@ def HyperModel_Monk(hp):
     for i in range(hp["hlayer"]):
         model.AddLayer(Layer(hp["unit"], ReLU(),True, f"h{i}"))
 
-    model.AddLayer(Layer(1, TanH(), False,"output"))
+    model.AddLayer(Layer(1, Sigmoid(), False,"output"))
 
     optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
     return model, optimizer
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         500,
         128,
         watched_metric,
-        [Accuracy(Binary())],
+        [Accuracy(Binary(0.5))],
         GlorotInitializer(),
         [EarlyStopping(watched_metric, 12)])
 
