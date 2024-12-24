@@ -35,9 +35,9 @@ def train_k_fold(data:DataSet, k:int, fn_buindModel, patience:int = None, valida
         model = fn_buindModel()
         if patience is not None:
             es = EarlyStopping(patience, model, validation)
-            model.Fit(BackPropagation(MSELoss()), train_set, 100, 12, test_set, [es])
+            model.Fit(BackPropagation(MSELoss(), 1), train_set, 100, 12, test_set, [es])
         else:
-            model.Fit(BackPropagation(MSELoss()), train_set, 100, 12, test_set)
+            model.Fit(BackPropagation(MSELoss(), 1), train_set, 100, 12, test_set)
 
 
 

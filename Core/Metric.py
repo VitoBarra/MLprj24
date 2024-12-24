@@ -1,5 +1,7 @@
 import numpy as np
 
+from Core.ActivationFunction import ActivationFunction
+
 
 class Metric:
     """
@@ -49,7 +51,7 @@ class MSE(Metric):
         """
         if val.shape != target.shape:
             raise ValueError(f"The size of val and target must be the same but instead where {val.shape} and {target.shape}")
-        return np.mean( np.square(val - target))
+        return np.square(val - target).mean()
 
 
 class RMSE(Metric):
@@ -99,6 +101,9 @@ class MAE(Metric):
         if val.shape != target.shape:
             raise ValueError(f"The size of val and target must be the same but instead where {val.shape} and {target.shape}")
         differences = val - target
+        if len(differences.shape) == 1:
+            differences  = differences.reshape(-1,1)
+
         norms = np.linalg.norm(differences, axis=1)  # L2 norm for each sample
         mee = np.mean(norms)
         return mee  # Return the mean of the L2 norms
@@ -111,9 +116,10 @@ class Accuracy(Metric):
         Accuracy measures the percentage of correctly classified samples.
         """
 
-    def __init__(self):
+    def __init__(self, inter:ActivationFunction = None):
         super().__init__()
         self.Name = "Accuracy"
+        self.inter = inter
 
 
     def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
@@ -122,7 +128,14 @@ class Accuracy(Metric):
             val = np.argmax(val, axis=1)
 
         # Compare predictions with targets and compute the mean of correct predictions
-        correct_predictions = (val == target)
-        accuracy = np.mean(correct_predictions.astype(float))
+        if self.inter is None:
+            out = val
+        else:
+            out = self.inter.Calculate(val)
+
+        f = np.vectorize(lambda x,y: 1 if x == y else 0)
+
+        correct_predictions = f(out,target)
+        accuracy = np.mean(correct_predictions)
         return accuracy
 
