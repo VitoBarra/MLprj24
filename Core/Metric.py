@@ -125,7 +125,10 @@ class Accuracy(Metric):
             val = np.argmax(val, axis=1)
 
         # Compare predictions with targets and compute the mean of correct predictions
-        correct_predictions = (self.inter.Calculate(val) == target)
-        accuracy = np.mean(correct_predictions.astype(float))
+        out = self.inter.Calculate(val)
+        f = np.vectorize(lambda x,y: 1 if x == y else 0)
+
+        correct_predictions = f(out,target)
+        accuracy = np.mean(correct_predictions)
         return accuracy
 

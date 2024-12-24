@@ -20,7 +20,7 @@ def HyperBag_Cap():
 
     hp.AddRange("unit", 1, 10, 1)
     hp.AddRange("hlayer", 1, 5, 1)
-    hp.AddRange("drop_out", 0.01, 0.25, 0.01)
+    # hp.AddRange("drop_out", 0.01, 0.25, 0.01)
     return hp
 
 
@@ -29,12 +29,13 @@ def HyperModel_CAP(hp):
 
     model.AddLayer(Layer(12, Linear(), True, "input"))
     for i in range(hp["hlayer"]):
-        model.AddLayer(DropoutLayer(hp["unit"], TanH(), hp["drop_out"], True, f"drop_out_h{i}"))
+        # model.AddLayer(DropoutLayer(hp["unit"], TanH(), hp["drop_out"], True, f"drop_out_h{i}"))
+        model.AddLayer(Layer(hp["unit"], TanH(), True, f"drop_out_h{i}"))
 
     model.AddLayer(Layer(3, Linear(), False, "output"))
 
-    # optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
-    optimizer = BackPropagation(MSELoss(), hp["eta"], None, hp["alpha"])
+    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
+    # optimizer = BackPropagation(MSELoss(), hp["eta"], None, hp["alpha"])
     return model, optimizer
 
 
@@ -52,7 +53,7 @@ if __name__ == '__main__':
         500,
         128,
         watched_metric,
-        [MAE()],
+        [],
         GlorotInitializer(),
         [EarlyStopping(watched_metric, 12)])
 
@@ -74,6 +75,7 @@ if __name__ == '__main__':
     plot_metric(
         metricDic=metric_to_plot,
         baseline=baseline,
+        baselineName= f"Baseline ({m.Name})",
         limityRange=None,
         title="CUP",
         xlabel="Epoche",

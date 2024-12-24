@@ -8,7 +8,7 @@ from DataUtility.FileUtil import *
 
 
 #si può usare anche oer l'accuracu, basta passargli il valore oer training e validation con i corretti label
-def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = None,
+def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = None, baselineName : str = "Baseline",
                 title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value", limityRange = None,
                 path: str = None) -> None:
     """
@@ -52,7 +52,7 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = Non
     if baseline is not None:
         plt.plot(
             [baseline for _ in range(len(list(metricDic.values())[0]))],
-            label="Baseline",
+            label=baselineName,
             color="magenta",
             linestyle="--",
             linewidth=1,

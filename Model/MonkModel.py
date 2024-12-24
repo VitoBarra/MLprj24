@@ -21,7 +21,7 @@ def HyperModel_Monk(hp):
     for i in range(hp["hlayer"]):
         model.AddLayer(Layer(hp["unit"], ReLU(),True, f"h{i}"))
 
-    model.AddLayer(Layer(1, Sigmoid(), False,"output"))
+    model.AddLayer(Layer(1, TanH(), False,"output"))
 
     optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"])
     return model, optimizer
@@ -75,16 +75,17 @@ if __name__ == '__main__':
     print(f"R2 on test: {lin_model.score(alldata.Validation.Data, alldata.Validation.Label)}%")
     predictions = lin_model.predict(alldata.Validation.Data)
 
-    # m = Accuracy(Binary())
-    m= MSE()
+    m = Accuracy(Binary())
+    # m= MSE()
     baseline= m.ComputeMetric(predictions.reshape(-1,1), alldata.Validation.Label)
 
-    metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items() if  key.endswith("")}
+    metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items() if not key.endswith("loss")}
 
 
     plot_metric(
         metricDic=metric_to_plot,
         baseline=baseline,
+        baselineName= f"Baseline ({m.Name})" ,
         limityRange=None,
         title="MONK results",
         xlabel="Epoche",
