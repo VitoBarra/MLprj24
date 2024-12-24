@@ -36,7 +36,7 @@ class Layer:
     Unit: int
     name: str
 
-    def __init__(self, unit: int, activationFunction: ActivationFunction, useBias:bool=False,name:str = "layer" ):
+    def __init__(self, unit: int, activationFunction: ActivationFunction, useBias:bool=False,name:str = "layer", train:bool  = True):
         """
         Initializes the layer with the specified number of units and an activation function.
 
@@ -57,6 +57,7 @@ class Layer:
         self.Name = name
         self.bias = 1
         self.UseBias = useBias
+        self.Train = train
 
     def Build(self, weightInitializer: WeightInitializer) -> bool:
         """
@@ -130,6 +131,11 @@ class Layer:
         """
         self.Gradient = gradients
 
+    def InferenceMode(self):
+        pass
+    def TrainingMode(self):
+        pass
+
 
 class DropoutLayer(Layer):
     """
@@ -142,7 +148,7 @@ class DropoutLayer(Layer):
     Attributes:
         dropout_rate (float): The probability of dropping a neuron during training.
         mask (np.ndarray | None): The binary mask used to deactivate neurons during training.
-        training (bool): Flag to indicate whether the layer is in training or inference mode.
+        inferenceMode (bool): Flag to indicate whether the layer is in training or inference mode.
     """
 
     def __init__(self, unit: int, activationFunction: ActivationFunction, dropout_rate: float,
@@ -157,9 +163,9 @@ class DropoutLayer(Layer):
         :param name: Optional name for the layer (default: "dropout_layer").
         """
         super().__init__(unit, activationFunction, name=name)
+        self.inferenceMode = False
         self.dropout_rate = dropout_rate
         self.mask = None
-        self.training = True  # Flag to distinguish between training and inference modes.
 
     def Build(self, weightInitializer: WeightInitializer) -> bool:
         """
@@ -168,6 +174,7 @@ class DropoutLayer(Layer):
         :param weightInitializer: The initialization method for the layer's weights.
         :return: True if the weights were successfully initialized, False otherwise.
         """
+        self.UseBias = self.LastLayer.UseBias
         success = super().Build(weightInitializer)
         if self.NextLayer is not None:
             # Generate a binary mask for the connections to the next layer
@@ -183,22 +190,23 @@ class DropoutLayer(Layer):
         :param inputs: The input data to the layer.
         :return: The computed output of the layer after applying dropout (if training).
         """
-        output = super().Compute(inputs)
 
-        if self.training:
-            # Apply dropout mask during training
-            self.mask = np.random.binomial(1, 1 - self.dropout_rate, size=output.shape)
-            output *= self.mask
-        else:
+        self.LayerInput = inputs
+
+        if self.inferenceMode:
             # Scale output during inference to account for dropout rate
-            output *= (1 - self.dropout_rate)
+            output = inputs * (1 - self.dropout_rate)
+        else:
+            # Apply dropout mask during training
+            self.mask = np.random.binomial(1, 1 - self.dropout_rate, size=inputs.shape)
+            output = inputs * self.mask
 
+        self.LayerNets = output
+        self.LayerOutput = output
         return output
 
-    def set_training(self, training: bool):
-        """
-        Sets the training mode for the layer.
+    def InferenceMode(self):
+        self.inferenceMode = False
+    def TrainingMode(self):
+        self.inferenceMode = True
 
-        :param training: True to enable training mode, False for inference mode.
-        """
-        self.training = training

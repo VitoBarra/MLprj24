@@ -91,8 +91,12 @@ class BackPropagation(Optimizer):
 
         deltas =[]
 
+        if not layer.Train:
+            self.updates.append(np.zeros_like(layer.LastLayer.WeightToNextLayer))
+
         # Calculate delta
         if layer.LastLayer is None: # Input layer
+            # Start the weight updates
             self.update_weights(layer)
             return
         elif layer.NextLayer is None:
@@ -103,8 +107,6 @@ class BackPropagation(Optimizer):
 
         else: # Hidden layer
             prev_delta = self.deltas
-
-
 
             # transpose weight metric to use a single unit's output weights
             all_weight_T = layer.WeightToNextLayer.T
@@ -162,10 +164,6 @@ class BackPropagation(Optimizer):
                 mom = self.alpha * layer.LastLayer.Gradient
                 layerGrad = layerGrad + mom
             layer.LastLayer.Gradient = layerGrad
-
-
-
-
 
 
     # Optimize the weights

@@ -20,7 +20,7 @@ def HyperBag_Cap():
 
 
     hp.AddRange("unit",1,10,1)
-    hp.AddRange("hlayer",1,4,1)
+    hp.AddRange("hlayer",0,1,1)
     return hp
 
 def HyperModel_CAP(hp):
@@ -29,6 +29,7 @@ def HyperModel_CAP(hp):
     model.AddLayer(Layer(12, Linear(),True, "input"))
     for i in range(hp["hlayer"]):
         model.AddLayer(Layer(hp["unit"], TanH(),True, f"h{i}"))
+        model.AddLayer(DropoutLayer(hp["unit"],Linear(),0.1,f"drop_out{i}"))
 
     model.AddLayer(Layer(3, Linear(), False,"output"))
 
@@ -46,7 +47,7 @@ if __name__ == '__main__':
 
 
     watched_metric = "val_loss"
-    bestSearch = GetBestSearch(HyperBag_Cap(), RandomSearch(250))
+    bestSearch = GetBestSearch(HyperBag_Cap(), RandomSearch(25))
     best_model,best_hpSel = bestSearch.GetBestModel(
         HyperModel_CAP,
         alldata,

@@ -88,29 +88,14 @@ Attributes:
                 # Back Propagation
                 optimizer.start_optimize(self, targets_batch)
 
-                # for l in self.Layers:
-                #     print("-----------------")
-                #     print(l.get_weights())
-                #     print(l.get_gradients())
-
-
-
 
             metric_epoch = np.mean(batch_accumulator, axis=0)
             metric.append(metric_epoch)
 
-            for layer in self.Layers:
-                if isinstance(layer, DropoutLayer):
-                    layer.set_training(False)
             # compute metric on validation
             val_outputs = self.Forward(validation.Data)
             val_metric_epoch = self._compute_metrics(val_outputs, validation.Label, optimizer.loss_function)
             val_metric.append(val_metric_epoch)
-
-            # for l in self.Layers:
-            #     print(f"{l.name}: {l.Gradient=} \n {l.WeightToNextLayer=}")
-            # #input("Press Enter to continue...")
-
 
 
             # update metric
@@ -231,10 +216,16 @@ Attributes:
 
 
     def Predict(self, input: np.ndarray , post_processing = None) -> np.ndarray:
+        for layer in self.Layers:
+            layer.InferenceMode()
+
         out = self.Forward(input)
-        if post_processing is not None:
-            return post_processing(out)
-        return out
+
+        for layer in self.Layers:
+            layer.TrainingMode()
+
+        return post_processing(out) if post_processing is not None else out
+
 
     def PlotModel(self, plotTitle:str = "Neural Network diagram"):
         w = [np.array(l.get_weights()) for l in self.Layers if l.get_weights() is not None]
