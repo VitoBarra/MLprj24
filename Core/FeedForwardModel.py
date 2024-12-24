@@ -236,10 +236,9 @@ Attributes:
             return post_processing(out)
         return out
 
-    def PlotModel(self):
+    def PlotModel(self, plotTitle:str = "Neural Network diagram"):
         w = [np.array(l.get_weights()) for l in self.Layers if l.get_weights() is not None]
-        b = [l.UseBias for l in self.Layers]
-        plot_neural_network_with_transparency(w,b)
+        plot_neural_network_with_transparency(w,plotTitle)
 
 
     def Build(self, weightInizialization: WeightInitializer|None = None) -> None:

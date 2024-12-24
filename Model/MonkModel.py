@@ -35,7 +35,7 @@ def HyperBag_Monk():
     hp.AddRange("alpha", 0.05, 0.5, 0.05)
 
 
-    hp.AddRange("unit",2,3,1)
+    hp.AddRange("unit",1,3,1)
     hp.AddRange("hlayer",0,2,1)
     return hp
 
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
 
     print(f"Best hp : {best_hpSel}")
-    best_model.PlotModel()
+    best_model.PlotModel("MONK Model")
 
     best_model.SaveModel("Data/Models/Monk1.vjf")
     best_model.SaveMetricsResults("Data/Results/Monk1.mres")

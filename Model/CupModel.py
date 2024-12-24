@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
 
     print(f"Best hp : {best_hpSel}")
-    best_model.PlotModel()
+    best_model.PlotModel("CUP Model")
 
     best_model.SaveModel("Data/Models/BestCup.vjf")
     best_model.SaveMetricsResults("Data/Results/BestCup.mres")
