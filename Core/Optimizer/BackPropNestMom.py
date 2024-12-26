@@ -7,8 +7,8 @@ from Optimizer import Optimizer
 class BackPropagationNesterovMomentum(Optimizer):
 
 
-    def __init__(self, loss_function: LossFunction, eta: float, alpha: float, lambda_: float | None = None):
-        super().__init__(loss_function, eta, lambda_, alpha)
+    def __init__(self, loss_function: LossFunction, eta: float, alpha: float, lambda_: float | None = None, decay_rate: float = 0.0):
+        super().__init__(loss_function, eta, lambda_, alpha, decay_rate)
         if self.alpha is None:
             self.momentum = False
         else:

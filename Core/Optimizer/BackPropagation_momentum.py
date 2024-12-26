@@ -7,15 +7,15 @@ class BackPropagation_momentum(Optimizer):
 
     velocity : np.ndarray | None
 
-    def __init__(self, loss_function: LossFunction, eta: float | None, lambda_: float | None = None,
-                 alpha: float | None = None):
+    def __init__(self, loss_function: LossFunction, eta: float, lambda_: float | None = None,
+                 alpha: float | None = None, decay_rate: float = 0.0):
         """
         Initializes the BackPropagation object with a specific loss function.
 
         :param loss_function: An instance of LossFunction used to compute the loss and its derivative.
         :param eta: The learning rate.
         """
-        super().__init__(loss_function, eta, lambda_, alpha)
+        super().__init__(loss_function, eta, lambda_, alpha, decay_rate)
         if self.alpha is None:
             self.momentum = False
         else:
