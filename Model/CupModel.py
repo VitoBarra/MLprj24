@@ -1,9 +1,10 @@
 from sklearn.linear_model import LinearRegression
 
-from Core.ActivationFunction import *
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.FeedForwardModel import *
+from Core.Layer import DropoutLayer
 from Core.Metric import *
+from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Tuner.HpSearch import RandomSearch, GetBestSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.WeightInitializer import GlorotInitializer
