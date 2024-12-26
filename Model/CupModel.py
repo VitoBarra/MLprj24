@@ -47,6 +47,7 @@ def HyperModel_CAP(hp :HyperBag ):
 
 if __name__ == '__main__':
     alldata = readCUP(file_path_cup)
+    alldata.ToCategoricalLabel()
     alldata.PrintData()
     alldata.Split(0.15, 0.5)
     alldata.Standardize(True)

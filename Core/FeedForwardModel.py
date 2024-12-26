@@ -1,14 +1,12 @@
 import json
 from typing import List, Any
 
-import numpy as np
-
 import DataUtility.MiniBatchGenerator as mb
 from Core import Metric
+from Core.ActivationFunction import ActivationFunction
 from Core.BackPropagation import *
-from Core.Layer import Layer, DropoutLayer
+from Core.Layer import Layer
 from Core.WeightInitializer import WeightInitializer, GlorotInitializer
-from DataUtility.DataExamples import DataExamples
 from DataUtility.DataSet import DataSet
 from DataUtility.FileUtil import CreateDir, convert_to_serializable
 from DataUtility.PlotUtil import plot_neural_network_with_transparency
@@ -92,30 +90,32 @@ Attributes:
 
 
             metric_epoch = np.mean(batch_accumulator, axis=0)
+
             metric.append(metric_epoch)
+            metric_array = np.array(metric).T
 
             # compute metric on validation
-            val_outputs = self.Forward(data.Validation.Data)
-            val_metric_epoch = self._compute_metrics(val_outputs, data.Validation.Label, optimizer.loss_function)
-            val_metric.append(val_metric_epoch)
+            if data.Validation is not None:
+                val_outputs = self.Forward(data.Validation.Data)
+                val_metric_epoch = self._compute_metrics(val_outputs, data.Validation.Label, optimizer.loss_function)
+                val_metric.append(val_metric_epoch)
+                val_metric_array = np.array(val_metric).T
 
             # compute metric on test
-            test_outputs = self.Forward(data.Test.Data)
-            test_metric_epoch = self._compute_metrics(test_outputs, data.Test.Label, optimizer.loss_function)
-            test_metric.append(test_metric_epoch)
-
-
-            # update metric
-            metric_array = np.array(metric).T
-            val_metric_array = np.array(val_metric).T
-            test_metric_array = np.array(test_metric).T
+            if data.Test is not None:
+                test_outputs = self.Forward(data.Test.Data)
+                test_metric_epoch = self._compute_metrics(test_outputs, data.Test.Label, optimizer.loss_function)
+                test_metric.append(test_metric_epoch)
+                test_metric_array = np.array(test_metric).T
 
             #Save f metric at each epoch
             metricNames = ["loss"] + [m.Name for m in self.Metrics]
             for i, metricName in enumerate(metricNames):
                 self.MetricResults[f"{metricName}"] = metric_array[i]
-                self.MetricResults[f"val_{metricName}"] = val_metric_array[i]
-                self.MetricResults[f"test_{metricName}"] = test_metric_array[i]
+                if data.Validation is not None:
+                    self.MetricResults[f"val_{metricName}"] = val_metric_array[i]
+                if data.Test is not None:
+                    self.MetricResults[f"test_{metricName}"] = test_metric_array[i]
             if callbacks is not None:
                 for callback in callbacks:
                     callback(self)
@@ -259,7 +259,9 @@ Attributes:
         """
 
         result = [lossFunction.CalculateLoss(output, target)]
+
+
         for m in self.Metrics:
-            result.append(m.ComputeMetric(output, target))
+            result.append(m(output, target))
 
         return np.array(result)
