@@ -1,3 +1,6 @@
+from sklearn.linear_model import LogisticRegression
+
+from Core.ActivationFunction import *
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.FeedForwardModel import *
 from Core.Metric import *
@@ -6,7 +9,6 @@ from Core.Tuner.HyperBag import HyperBag
 from Core.WeightInitializer import GlorotInitializer
 from DataUtility.PlotUtil import *
 from DataUtility.ReadDatasetUtil import *
-from sklearn.linear_model import LogisticRegression, LinearRegression
 
 file_path_monk1 = "dataset/monk+s+problems/monks-1.train"
 file_path_monk2 = "dataset/monk+s+problems/monks-2.train"
@@ -19,7 +21,10 @@ def HyperModel_Monk(hp):
 
     model.AddLayer(Layer(6, Linear(),True, "input"))
     for i in range(hp["hlayer"]):
-        model.AddLayer(Layer(hp["unit"], ReLU(),True, f"h{i}"))
+        if hp["drop_out"] is not None:
+            model.AddLayer(DropoutLayer(hp["unit"], TanH(), hp["drop_out"], True, f"drop_out_h{i}"))
+        else:
+            model.AddLayer(Layer(hp["unit"], TanH(), True, f"_h{i}"))
 
     model.AddLayer(Layer(1, Sigmoid(), False,"output"))
 
@@ -30,10 +35,12 @@ def HyperModel_Monk(hp):
 def HyperBag_Monk():
     hp = HyperBag()
 
-    hp.AddRange("eta", 0.01, 0.4, 0.02)
+    hp.AddRange("eta", 0.001, 0.1, 0.01)
     hp.AddRange("labda", 0.01, 0.1, 0.01)
-    hp.AddRange("alpha", 0.05, 0.5, 0.05)
-    hp.AddRange("decay", 0.001, 0.1, 0.005)
+    hp.AddRange("alpha", 0.1, 0.9, 0.1)
+    hp.AddRange("decay", 0.001, 0.1, 0.001)
+
+    #hp.AddRange("drop_out", 0.1, 0.5, 0.05)
 
 
     hp.AddRange("unit",1,3,1)
@@ -43,14 +50,14 @@ def HyperBag_Monk():
 
 if __name__ == '__main__':
 
-    alldata = readMonk(file_path_monk1)
+    alldata = readMonk(file_path_monk3)
     alldata.PrintData()
     alldata.Split(0.15, 0.5)
 
 
 
     watched_metric = "val_loss"
-    bestSearch = GetBestSearch(HyperBag_Monk(), RandomSearch(25))
+    bestSearch = GetBestSearch(HyperBag_Monk(), RandomSearch(250))
     best_model,best_hpSel = bestSearch.GetBestModel(
         HyperModel_Monk,
         alldata,
@@ -80,8 +87,8 @@ if __name__ == '__main__':
     # m= MSE()
     baseline= m.ComputeMetric(predictions.reshape(-1,1), alldata.Validation.Label)
 
-    metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items() if not key.endswith("loss")}
-
+    # metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items() if not key.endswith("loss")}
+    metric_to_plot = {key: value[:] for key, value in best_model.MetricResults.items() }
 
     plot_metric(
         metricDic=metric_to_plot,

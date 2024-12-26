@@ -3,7 +3,6 @@ import numpy as np
 from DataUtility.DataExamples import DataExamples
 
 
-
 class DataSet(object):
     """
     Manages a complete dataset and its splits for machine learning tasks.
@@ -21,7 +20,7 @@ class DataSet(object):
        Validation (DataExamples | None): The validation subset of the dataset.
        Training (DataExamples | None): The training subset of the dataset.
     """
-    Data:       DataExamples | None
+    _Data: DataExamples | None
     Test:       DataExamples | None
     Validation: DataExamples | None
     Training:   DataExamples | None
@@ -37,7 +36,7 @@ class DataSet(object):
         if data is None or label is None:
             raise ValueError("Data and label must be provided.")
 
-        self.Data = DataExamples(data, label, Id)
+        self._Data = DataExamples(data, label, Id)
 
         self.Training = None
         self.Validation = None
@@ -52,9 +51,9 @@ class DataSet(object):
 
     def __next__(self):
         self.current=self.current+1
-        if self.current >= self.Data.DataLength :
+        if self.current >= self._Data.DataLength :
             raise StopIteration  # Stop iteration when we've passed the end
-        return self.Data.Data[self.current], self.Data.Label[self.current], self.Data.Id[self.current]
+        return self._Data.Data[self.current], self._Data.Label[self.current], self._Data.Id[self.current]
 
     def Split(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> (DataExamples, DataExamples, DataExamples):
         """
@@ -64,23 +63,24 @@ class DataSet(object):
         :param testPercent: The fraction of the dataset to be used for testing.
         :return: The current DataSet object with split data.
         """
-        self.Training, self.Validation, self.Test = self.Data.SplitDataset(validationPercent, testPercent)
-        self.Data = None
+        self.Training, self.Validation, self.Test = self._Data.SplitDataset(validationPercent, testPercent)
+        self._Data = None
         return self.Training, self.Validation, self.Test
 
 
-    def Normalize(self, normalizeLable :bool= False,mean: float = None, std: float = None) -> 'DataSet':
+    def Standardize(self, normalizeLable :bool= False) -> 'DataSet':
         """
-        Normalizes the dataset by subtracting the mean and dividing by the standard deviation.
+        Standardize the dataset by subtracting the mean and dividing by the standard deviation.
 
-        :param mean: Optional precomputed mean for normalization. Defaults to the dataset mean.
-        :param std: Optional precomputed standard deviation for normalization. Defaults to the dataset std.
         :return: The current DataSet object with normalized data.
-        :raises ValueError: If normalization is attempted after splitting the dataset.
+        :raises ValueError: If normalization is attempted before splitting the dataset.
         """
-        if self.Data is None:
-            raise ValueError('normalize function must be called before splitDataset')
-        self.Data.Normalize(normalizeLable, mean, std)
+        if self._Data is not None:
+            raise ValueError('Standardize function must be called after splitDataset')
+
+        (statd,statl) = self.Training.Standardize(normalizeLable)
+        self.Validation.Standardize(normalizeLable,statd,statl)
+        self.Test.Standardize(normalizeLable,statd,statl)
         return self
 
     def ToCategoricalLabel(self) -> 'DataSet':
@@ -89,8 +89,8 @@ class DataSet(object):
 
         :return: The current DataSet object with categorical labels.
         """
-        if self.Data is not None:
-            self.Data.ToCategoricalLabel()
+        if self._Data is not None:
+            self._Data.ToCategoricalLabel()
         if self.Training is not None:
             self.Training.ToCategoricalLabel()
         if self.Validation is not None:
@@ -107,9 +107,9 @@ class DataSet(object):
         :return: The current DataSet object with shuffled data.
         :raises ValueError: If shuffling is attempted after splitting the dataset.
         """
-        if self.Data is None:
+        if self._Data is None:
             raise ValueError('shuffle function must be called before splitDataset')
-        self.Data.Shuffle(seed)
+        self._Data.Shuffle(seed)
         return self
 
     def Unpack(self) -> (DataExamples,DataExamples,DataExamples):
@@ -145,8 +145,8 @@ class DataSet(object):
         """
         Flattens series data for all splits into 2D format where each sample is a vector.
         """
-        if self.Data is not None:
-            self.Data.FlattenSeriesData()
+        if self._Data is not None:
+            self._Data.FlattenSeriesData()
         if self.Training is not None:
             self.Training.FlattenSeriesData()
         if self.Validation is not None:
@@ -164,15 +164,15 @@ class DataSet(object):
 
         if k <= 0:
             raise ValueError("Fold should be greater than 1")
-        if len(self.Data) < k:
+        if len(self._Data) < k:
             raise ValueError("Fold can't be greater than the number of examples")
         if k == 1:
-            return [(self.Data, self.Data)]
+            return [(self._Data, self._Data)]
         self.Shuffle(seed=seed)
 
 
-        fold_size = len(self.Data) // k
-        remainder = len(self.Data) % k
+        fold_size = len(self._Data) // k
+        remainder = len(self._Data) % k
 
         folds = []
         start_index = 0
@@ -181,9 +181,9 @@ class DataSet(object):
             end_index = start_index + current_fold_size
 
             fold_data = DataExamples(
-                self.Data.Data[start_index:end_index],
-                self.Data.Label[start_index:end_index],
-                self.Data.Id[start_index:end_index] if self.Data.Id is not None else None
+                self._Data.Data[start_index:end_index],
+                self._Data.Label[start_index:end_index],
+                self._Data.Id[start_index:end_index] if self._Data.Id is not None else None
             )
             folds.append(fold_data)
             start_index = end_index

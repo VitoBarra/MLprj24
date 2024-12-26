@@ -1,10 +1,9 @@
+import pickle
 
 import matplotlib.pyplot as plt
 import networkx as nx
 
-
 from DataUtility.FileUtil import *
-
 
 
 #si può usare anche oer l'accuracu, basta passargli il valore oer training e validation con i corretti label
@@ -75,6 +74,11 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = Non
         plt.savefig(path, format='png', dpi=300)
         print(f"Plot saved to {path}")
 
+
+
+
+
+
     plt.show()
 
 
@@ -91,6 +95,33 @@ def ShowOrSavePlot(path=None, filename=None):
         plt.savefig(f"{path}/{filename}.png")
         plt.clf()
 
+
+def SaveTrainingDataByName(data_path, problem_name, test_name, history, result):
+    dir = f"{data_path}/{problem_name}/{test_name}"
+    SaveTrainingData(dir, history.history, result)
+
+
+def SaveTrainingData(path, history, result):
+    os.makedirs(path, exist_ok=True)
+    with open(f"{path}/history.bin", "wb") as outfile:
+        pickle.dump(history, outfile)
+    with open(f"{path}/result.bin", "wb") as outfile:
+        pickle.dump(result, outfile)
+
+
+def ReadTrainingDataByName(data_path, problem_name, test_name):
+    dir = f"{data_path}/{problem_name}/{test_name}"
+    # Writing to sample.json
+    history, result = ReadTrainingData(dir)
+    return history, result
+
+
+def ReadTrainingData(path):
+    with open(f"{path}/history.bin", "rb") as inputfile:
+        history = pickle.load(inputfile)
+    with open(f"{path}/result.bin", "rb") as inputfile:
+        result = pickle.load(inputfile)
+    return history, result
 
 
 def PrityPlot(loss, mse=None, accuracy=None, baseline=None):
