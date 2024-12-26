@@ -72,37 +72,3 @@ class RandomSearch(HyperParameterSearch):
 
 
 
-class GetBestSearch:
-    SearchObj: HyperParameterSearch
-    hp: HyperBag
-
-    def __init__(self, hp: HyperBag, search: HyperParameterSearch):
-        self.hp = hp
-        self.SearchObj = search
-
-    def GetBestModel(self, hyperModel_fn, Data:DataSet, epoch:int, miniBatchSize: int | None=None, watchMetric ="val_loss", metric : list[Metric]= None, weightInizializer = GlorotInitializer(), callBack: list[CallBack] = None, ) -> (FeedForwardModel, dict[str, any]):
-        best_model: FeedForwardModel = None
-        best_watchMetric = float("inf")
-        best_hpSel = None
-        hyperParamWrapper = HyperBag()
-
-        for hpSel  , i in self.SearchObj.search(self.hp):
-            hyperParamWrapper.Set(hpSel)
-            print(f"{self.SearchObj.GetName()}: Iteration {i} / {self.SearchObj.TrialNumber()}")
-            hyperModel, optimizer= hyperModel_fn(hyperParamWrapper)
-            hyperModel.Build(weightInizializer)
-            if metric is not None and len(metric) != 0:
-                hyperModel.AddMetrics(metric)
-
-            hyperModel.Fit(optimizer, Data, epoch, miniBatchSize, callBack)
-
-            last_watchMetric=hyperModel.MetricResults[watchMetric][-1]
-            if  last_watchMetric < best_watchMetric:
-                best_watchMetric = last_watchMetric
-                best_hpSel = hpSel
-                best_model = hyperModel
-
-        return best_model, best_hpSel
-
-
-

@@ -36,14 +36,30 @@ class DataExamples(object):
         :raises ValueError: If the length of data and label do not match.
         """
         self.DataLength = data.shape[0]
+
         if self.DataLength != label.shape[0]:
             raise ValueError('Data and label must have the same length')
         if self.DataLength != Id.shape[0]:
             raise ValueError('Data and id must have the same length')
+
         self.Data = data
         self.Label = label
         self.Id = Id
         self.isCategorical = False
+
+
+
+    def __iter__(self):
+        # Return the instance itself as an iterator
+        self.current = 0
+        return self
+
+
+    def __next__(self):
+        self.current=self.current+1
+        if self.current >= self.DataLength :
+            raise StopIteration  # Stop iteration when we've passed the end
+        return self.Data[self.current], self.Label[self.current], self.Id[self.current]
 
 
     def Concatenate(self, dataExample: 'DataExamples') -> None:
@@ -114,7 +130,7 @@ class DataExamples(object):
         dataLength = self.Data.shape[0]
         splitIndex = int(dataLength * rate)
         dataSplit = DataExamples(self.Data[:splitIndex], self.Label[:splitIndex], self.Id[:splitIndex])
-        Data = DataExamples(self.Data[splitIndex:], self.Label[splitIndex:], self.Id[:splitIndex])
+        Data = DataExamples(self.Data[splitIndex:], self.Label[splitIndex:], self.Id[splitIndex:])
         return Data, dataSplit
 
     def Standardize(self, normalizeLables:bool, datastat: (float, float ) = None, lablestat: (float, float ) = None) -> ((float, float), (float, float)):
@@ -152,8 +168,11 @@ class DataExamples(object):
         :raises NotImplementedError: If the method for conversion is not implemented.
         """
         #TODO : transform to the categorical format
-        self.Label = self._ToCategorical(self.Label)
-        self.isCategorical = True
+        num_classes = np.max(self.Label) + 1
+        self.Label = np.eye(num_classes)[self.Label]
+        self.Label = self.Label.squeeze()
+
+
 
     def Slice(self, start: int, end: int) -> None:
         """
