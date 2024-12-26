@@ -25,7 +25,14 @@ class DataSet(object):
     Validation: DataExamples | None
     Training:   DataExamples | None
 
-    def __init__(self, data: np.ndarray, label: np.ndarray, Id: np.ndarray):
+    def __init__(self, ):
+        self._Data = None
+        self.Test = None
+        self.Validation = None
+        self.Training = None
+
+    @classmethod
+    def FromData(cls, data: np.ndarray, label: np.ndarray, Id: np.ndarray):
         """
         Initializes the DataSet with data and labels.
 
@@ -35,25 +42,21 @@ class DataSet(object):
 
         if data is None or label is None:
             raise ValueError("Data and label must be provided.")
+        dataset = DataSet()
+        dataset._Data = DataExamples(data, label, Id)
 
-        self._Data = DataExamples(data, label, Id)
+        dataset.Training = None
+        dataset.Validation = None
+        dataset.Test = None
+        return dataset
 
-        self.Training = None
-        self.Validation = None
-        self.Test = None
-
-
-    def __iter__(self):
-        # Return the instance itself as an iterator
-        self.current = 0
-        return self
-
-
-    def __next__(self):
-        self.current=self.current+1
-        if self.current >= self._Data.DataLength :
-            raise StopIteration  # Stop iteration when we've passed the end
-        return self._Data.Data[self.current], self._Data.Label[self.current], self._Data.Id[self.current]
+    @classmethod
+    def FromDataExample(cls, Training:DataExamples, Validation:DataExamples, Test:DataExamples):
+        dataset = DataSet()
+        dataset.Training = Training
+        dataset.Validation = Validation
+        dataset.Test = Test
+        return dataset
 
     def Split(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> (DataExamples, DataExamples, DataExamples):
         """
@@ -66,6 +69,8 @@ class DataSet(object):
         self.Training, self.Validation, self.Test = self._Data.SplitDataset(validationPercent, testPercent)
         self._Data = None
         return self.Training, self.Validation, self.Test
+
+
 
 
     def Standardize(self, normalizeLable :bool= False) -> 'DataSet':
@@ -138,8 +143,25 @@ class DataSet(object):
         """
         Prints the sizes of the training, validation, and test splits.
         """
-        for d, l, id in self:
-            print(d,l, id)
+
+
+        if self._Data is not None:
+            print("All Data:")
+            for d, l, id in self._Data:
+                print(d,l, id)
+
+        if self.Training is not None:
+            print("Training data:")
+            for d, l, id in self.Training:
+                print(d, l, id)
+        if self.Validation is not None:
+            print("Validation data:")
+            for d, l, id in self.Validation:
+                print(d, l, id)
+        if self.Test is not None:
+            print("Test data:")
+            for d, l, id in self.Test:
+                print(d, l, id)
 
     def FlattenSeriesData(self) -> None:
         """
@@ -154,63 +176,64 @@ class DataSet(object):
         if self.Test is not None:
             self.Test.FlattenSeriesData()
 
-    def k_fold_cross_validation_split(self, k: int, seed: int = 0) ->[(DataExamples, DataExamples)]:
+    def Kfold_TestHoldOut(self, k: int, testRate: float = 0.15) -> (DataExamples, [(DataExamples, DataExamples)]):
         """
-        Take in input the data we have, and the k fold we want, then it return an array of couple (train_set, test_set)
-        :param seed: A dataset, a seed for the shuffle e k for the k-fold
-        :return: an array of couple (train_set, test_set) for the k-fold.
-        :raises ValueError: If k is too small or too big
-        """
+        Perform k-fold cross-validation, returning a test set and an array of tuples (train_set, val_set).
 
-        if k <= 0:
-            raise ValueError("Fold should be greater than 1")
+        :param k: Number of folds (must be >= 2)
+        :param testRate: Proportion of data to set aside for the test set
+        :return: A tuple containing the test set and a list of k-fold results (train_set, val_set)
+        :raises ValueError: If k is less than 2 or greater than the number of remaining examples after test split.
+        """
+        if k < 2:
+            raise ValueError("Number of folds must be at least 2.")
         if len(self._Data) < k:
-            raise ValueError("Fold can't be greater than the number of examples")
-        if k == 1:
-            return [(self._Data, self._Data)]
-        self.Shuffle(seed=seed)
+            raise ValueError("Number of folds cannot exceed the number of examples.")
 
+        # Split into test set and remaining data
+        data, test_set = self._Data.SplitIn2(testRate)
 
-        fold_size = len(self._Data) // k
-        remainder = len(self._Data) % k
+        # Calculate fold sizes
+        fold_size = len(data)    // k
+        remainder = len(data) % k
 
+        # Create folds
         folds = []
         start_index = 0
         for i in range(k):
             current_fold_size = fold_size + (1 if i < remainder else 0)
             end_index = start_index + current_fold_size
-
-            fold_data = DataExamples(
-                self._Data.Data[start_index:end_index],
-                self._Data.Label[start_index:end_index],
-                self._Data.Id[start_index:end_index] if self._Data.Id is not None else None
-            )
-            folds.append(fold_data)
+            folds.append(DataExamples(
+                data.Data[start_index:end_index],
+                data.Label[start_index:end_index],
+                data.Id[start_index:end_index] if self._Data.Id is not None else None
+            ))
             start_index = end_index
 
-        results: [(DataExamples, DataExamples)] = []
+        # Generate k-fold cross-validation sets
+        foldsSplit = []
         for i in range(k):
-            test_set = folds[i]
+            val_set = folds[i]
             train_set_data = []
             train_set_label = []
-            train_set_ids = [] if folds[i].Id is not None else None
+            train_set_ids = [] if val_set.Id is not None else None
 
             for j, fold in enumerate(folds):
-                if j != i:
+                if j != i:  # Exclude the validation fold
                     train_set_data.append(fold.Data)
                     train_set_label.append(fold.Label)
                     if fold.Id is not None:
                         train_set_ids.append(fold.Id)
 
-            train_set_data = np.concatenate(train_set_data, axis=0)
-            train_set_label = np.concatenate(train_set_label, axis=0)
-            train_set_ids = np.concatenate(train_set_ids, axis=0)
+            train_set = DataExamples(
+                np.concatenate(train_set_data, axis=0),
+                np.concatenate(train_set_label, axis=0),
+                np.concatenate(train_set_ids, axis=0) if train_set_ids else None
+            )
+            foldsSplit.append((train_set, val_set))
 
+        return test_set, foldsSplit
 
-            train_set = DataExamples(train_set_data, train_set_label, train_set_ids)
-            results.append((train_set, test_set))
-
-        return results
 
     @classmethod
     def init(cls, training: DataExamples, Validation: DataExamples, Test: DataExamples) -> 'DataSet':
@@ -228,3 +251,5 @@ class DataSet(object):
         instance.Validation = Validation
         instance.Test = Test
         return instance
+
+
