@@ -1,4 +1,3 @@
-import numpy as np
 from DataUtility.npUtil import *
 
 class HyperBag:
@@ -9,9 +8,12 @@ class HyperBag:
         self.hpDic = {}
 
     def __getitem__(self, key:str):
-        return self.hpDic[key]
+        if self.hpDic.keys().__contains__(key):
+            return self.hpDic[key]
+        else:
+            return None
 
-    def __setitem__(self, key:str, value:float):
+    def __setitem__(self, key:str, value:list[float]):
         self.hpDic[key] = value
 
     def __delitem__(self, key:str):
@@ -41,4 +43,5 @@ class HyperBag:
     def Values(self):
         return self.hpDic.values()
 
-
+    def Set(self, hpDic:dict[str,list[float]]):
+        self.hpDic = hpDic
