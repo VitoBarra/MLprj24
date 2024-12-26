@@ -16,7 +16,10 @@ class Metric:
     def __init__(self):
         pass
 
-    def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> np.ndarray:
+    def __call__(self, val: np.ndarray, target: np.ndarray) -> float:
+        return self.ComputeMetric(val, target)
+
+    def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
         """
         Computes the error between predicted values and target values.
 
@@ -119,7 +122,7 @@ class Accuracy(Metric):
     def __init__(self, inter:ActivationFunction = None):
         super().__init__()
         self.Name = "Accuracy"
-        self.inter = inter
+        self.dataInterpretation = inter
 
 
     def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
@@ -127,11 +130,15 @@ class Accuracy(Metric):
         if len(val.shape) > 1 and val.shape[1] > 1:
             val = np.argmax(val, axis=1)
 
+        # If the target is in one-hot encoding, convert it to class labels
+        if len(target.shape) > 1 and target.shape[1] > 1:
+            target = np.argmax(target, axis=1)
+
         # Compare predictions with targets and compute the mean of correct predictions
-        if self.inter is None:
+        if self.dataInterpretation is None:
             out = val
         else:
-            out = self.inter.Calculate(val)
+            out = self.dataInterpretation(val)
 
         f = np.vectorize(lambda x,y: 1 if x == y else 0)
 

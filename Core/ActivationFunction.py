@@ -14,6 +14,9 @@ class ActivationFunction:
     def __init__(self):
         pass
 
+    def __call__(self, z: float|np.array(float)) -> float|np.array(float):
+        return self.Calculate(z)
+
     def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
         Computes the activation value for a given input.
@@ -228,3 +231,52 @@ class Sigmoid(ActivationFunction):
         :return: Name of the activation function.
         """
         return "Sigmoid"
+
+
+
+class SoftARGMax(ActivationFunction):
+    """
+    SoftMax activation function.
+
+    This activation function outputs a probability distribution over a set of inputs.
+    """
+
+    def Calculate(self, z: np.ndarray) -> np.ndarray:
+        """
+        Compute the SoftMax activation function.
+
+        :param z: The input array of values.
+        :return: The output array of the SoftMax function, where each element is a probability.
+        """
+        exp_values = np.exp(z - np.max(z, axis=-1, keepdims=True))  # Shift for numerical stability
+        return exp_values / np.sum(exp_values, axis=-1, keepdims=True)
+
+
+    def CalculateDerivative(self, z: np.ndarray) -> np.ndarray:
+        """
+        Compute the derivative of the SoftMax activation function.
+
+        :param z: The input array of values.
+        :return: The Jacobian matrix of the SoftMax function for each input sample.
+        """
+
+        # Compute the SoftMax output
+        softmax_output = self.Calculate(z)  # 1D array of probabilities
+
+        # Compute the outer product of the SoftMax output with itself
+        softmax_outer = np.outer(softmax_output, softmax_output)
+
+        # Create the Jacobian matrix (diagonal elements)
+        jacobian = np.diag(softmax_output) - softmax_outer
+
+        #TODO: This do not work, ih has to be reducted to a 1D array some how
+        return jacobian
+
+
+    def GetName(self):
+        """
+        Return the name of the activation function.
+
+        :return: Name of the activation function.
+        """
+        return "SoftMax"
