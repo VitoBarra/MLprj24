@@ -1,5 +1,4 @@
 from Core import FeedForwardModel
-from Core.ActivationFunction import *
 from Core.Layer import Layer
 from Core.LossFunction import *
 
@@ -51,7 +50,7 @@ class Optimizer:
         :param layer: The layer to update.
         """
         index = 1
-        max_norm = 1.0  # Define the maximum norm for gradient clipping
+        max_norm = 0.8  # Define the maximum norm for gradient clipping
         while layer.NextLayer is not None:
             # Clip the gradients before updating weights
             gradients = self.updates[-index]
@@ -168,7 +167,7 @@ class BackPropagation(Optimizer):
         if self.momentum is True:
             if layer.LastLayer.Gradient is not None:
                 if layer.LastLayer.Gradient.shape != layerGrad.shape:
-                    # Pad gradients to match shape (this is used expecialy in the last mini-batch that usualy have less data)
+                    # Pad gradients to match shape, this is used only in the last mini-batch that usually have fewer data
                     pad_size = layer.LastLayer.Gradient.shape[0] - layerGrad.shape[0]
                     layerGrad = np.pad(layerGrad, ((0, pad_size), (0, 0), (0, 0)), mode='constant')
                 mom = self.alpha * layer.LastLayer.Gradient
@@ -178,7 +177,7 @@ class BackPropagation(Optimizer):
 
     # Optimize the weights
         if self.regularization is True:
-            layerUpdate = layerGrad - ( 2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
+            layerUpdate = layerGrad + ( 2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
         else:
             layerUpdate = layerGrad
 
