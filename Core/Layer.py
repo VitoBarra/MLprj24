@@ -30,6 +30,8 @@ class Layer:
     bias : float | None
     WeightToNextLayer: np.ndarray | None
     Gradient: np.ndarray | None
+    Velocity: np.ndarray | None
+    Acceleration: np.ndarray | None
     NextLayer: 'Layer'
     LastLayer: 'Layer'
     ActivationFunction: ActivationFunction
@@ -51,6 +53,8 @@ class Layer:
         self.LastLayer = None
         self.WeightToNextLayer = None
         self.Gradient = None
+        self.Velocity = None
+        self.Acceleration = None
         self.LayerOutput = None
         self.LayerInput = None
         self.LayerNets = None

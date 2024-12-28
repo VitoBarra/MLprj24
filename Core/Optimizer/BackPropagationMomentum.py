@@ -1,14 +1,12 @@
 from Core.Layer import Layer
 from Core.LossFunction import *
-from Core.Optimizer import Optimizer
+from Core.Optimizer.Optimizer import Optimizer
 
 
-class BackPropagation_momentum(Optimizer):
-
-    velocity : np.ndarray | None
+class BackPropagationMomentum(Optimizer):
 
     def __init__(self, loss_function: LossFunction, eta: float, lambda_: float | None = None,
-                 alpha: float | None = None, decay_rate: float = 0.0):
+                 alpha: float | None = None, decay_rate: float | None = 0.0):
         """
         Initializes the BackPropagation object with a specific loss function.
 
@@ -36,7 +34,6 @@ class BackPropagation_momentum(Optimizer):
         :param target: The target values for the given inputs.
         """
 
-        act_fun = layer.ActivationFunction
 
         deltas =[]
 
@@ -46,7 +43,7 @@ class BackPropagation_momentum(Optimizer):
             return
         elif layer.NextLayer is None:
             for out, y, net in zip(layer.LayerOutput, target, layer.LayerNets):
-                out_delta_p = self.loss_function.CalculateDerivLoss(out, y) *act_fun.CalculateDerivative(net)
+                out_delta_p = self.loss_function.CalculateDerivLoss(out, y) * layer.ActivationFunction.CalculateDerivative(net)
                 deltas.append(out_delta_p)
             deltas = np.array(deltas)
 
@@ -59,7 +56,7 @@ class BackPropagation_momentum(Optimizer):
             all_weight_T = layer.WeightToNextLayer.T
 
             if layer.UseBias is True:
-                # get all weight exept the bias
+                # get all weight except the bias
                 unit_weight_T = all_weight_T[:-1]
                 # get only the bias weight
                 bias_weight_T = all_weight_T[-1]
@@ -72,7 +69,7 @@ class BackPropagation_momentum(Optimizer):
             for weightFrom1Neuron_toAll, net_one_unit in zip(unit_weight_T, layer.LayerNets.T):
                 # compute the internal sum for a single unit
                 delta_sum = (prev_delta @ weightFrom1Neuron_toAll)
-                delta = delta_sum * act_fun.CalculateDerivative(net_one_unit)
+                delta = delta_sum * layer.ActivationFunction.CalculateDerivative(net_one_unit)
                 deltas.append(delta)
 
             if layer.UseBias:
@@ -101,25 +98,19 @@ class BackPropagation_momentum(Optimizer):
         layerGrad = np.mean(np.array(layer_grad), axis=0)
 
 
-        # Calculte and applay the momentum
-        velocity = 0
-        if self.momentum is True:
-            if layer.LastLayer.Gradient is None:
-                velocity = velocity * self.alpha + layerGrad
-            else:
-                velocity = layer.LastLayer.Gradient * self.alpha + layerGrad
-            mom = self.alpha * velocity + layerGrad
-            layerGrad = mom
-        layer.LastLayer.Gradient = velocity
+        # Calculate and apply the momentum
+        if layer.LastLayer.Velocity is None:
+            first_velocity = 0
+            velocity = first_velocity * self.alpha + ((1-self.alpha) * layerGrad)
+        else:
+            velocity = layer.LastLayer.Velocity * self.alpha + ((1 - self.alpha) * layerGrad)
+        layer.LastLayer.Velocity = velocity
 
+        layerGrad = velocity + layerGrad
 
-
-
-
-
-    # Optimize the weights
+        # Optimize the weights
         if self.regularization is True:
-            layerUpdate = layerGrad - ( 2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
+            layerUpdate = layerGrad + ( 2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
         else:
             layerUpdate = layerGrad
 

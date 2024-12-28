@@ -1,7 +1,7 @@
 import numpy as np
 
 from Core import LossFunction, Layer
-from Optimizer import Optimizer
+from Core.Optimizer.Optimizer import Optimizer
 
 
 class BackPropagationNesterovMomentum(Optimizer):
@@ -98,7 +98,7 @@ class BackPropagationNesterovMomentum(Optimizer):
 
         # Optimize the weights
         if self.regularization is True:
-            layerUpdate = layerGrad - (2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
+            layerUpdate = layerGrad + (2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
         else:
             layerUpdate = layerGrad
 

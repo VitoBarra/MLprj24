@@ -63,3 +63,4 @@ class Optimizer:
             layer = layer.NextLayer
             index += 1
         self.updates = []
+
