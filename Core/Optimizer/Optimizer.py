@@ -28,6 +28,17 @@ class Optimizer:
         self.deltas = []
         self.updates = []
 
+        if self.alpha is None:
+            self.momentum = False
+        else:
+            self.momentum = True
+
+        if self.lambda_ is None:
+            self.regularization = False
+        else:
+            self.regularization = True
+
+
     def start_optimize(self, model: FeedForwardModel, target: np.ndarray):
         self.iteration += 1
         if self.decay_rate is not None:
@@ -42,6 +53,73 @@ class Optimizer:
         Abstract method to compute gradients for a given layer.
         """
         raise NotImplementedError("Must override Calculate method")
+
+    def calculate_delta(self, layer: Layer, target: np.ndarray, nesterov: bool = False):
+        deltas = []
+
+        #Output Layer
+        if layer.NextLayer is None:
+            for out, y, net in zip(layer.LayerOutput, target, layer.LayerNets):
+                out_delta_p = self.loss_function.CalculateDerivLoss(out,
+                                                                    y) * layer.ActivationFunction.CalculateDerivative(
+                    net)
+                deltas.append(out_delta_p)
+            deltas = np.array(deltas)
+
+        #Hidden Layer
+        else:
+            prev_delta = self.deltas
+
+            if nesterov is True:
+                if self.momentum and layer.LastLayer.Gradient is not None:
+                    weights = layer.WeightToNextLayer + self.alpha * layer.Gradient
+                else:
+                    weights = layer.WeightToNextLayer
+            else:
+                weights = layer.WeightToNextLayer
+
+            # transpose weight metric to use a single unit's output weights
+            all_weight_T = weights.T
+
+            if layer.UseBias is True:
+                # get all weight except the bias
+                unit_weight_T = all_weight_T[:-1]
+                # get only the bias weight
+                bias_weight_T = all_weight_T[-1]
+            else:
+                unit_weight_T = all_weight_T
+                bias_weight_T = None
+
+            for weightFrom1Neuron_toAll, net_one_unit in zip(unit_weight_T, layer.LayerNets.T):
+                # compute the internal sum for a single unit
+                delta_sum = (prev_delta @ weightFrom1Neuron_toAll)
+                delta = delta_sum * layer.ActivationFunction.CalculateDerivative(net_one_unit)
+                deltas.append(delta)
+
+            if layer.UseBias:
+                # Calcualte Bias delta
+                delta_sum = (prev_delta @ bias_weight_T)
+                deltas.append(delta_sum)
+
+            deltas = np.array(deltas).T
+
+        # Calculate Gradient
+        if layer.UseBias is True:
+            deltas = deltas[:, :-1]
+        # Save Delta for the next layer
+        self.deltas = deltas
+
+    def calculate_gradient(self, layer: Layer):
+        layer_grad = []
+
+        for prev_o_one_pattern, deltas_one_pattern in zip(layer.LayerInput, self.deltas):
+            b = np.expand_dims(prev_o_one_pattern, axis=1)
+            out_delta_p = np.expand_dims(deltas_one_pattern, axis=0)
+            grad_from_one_unit = self.eta * (b @ out_delta_p)
+            layer_grad.append(grad_from_one_unit.T)
+        layerGrad = np.mean(np.array(layer_grad), axis=0)
+
+        return layerGrad
 
     def update_weights(self, layer: Layer):
         """
@@ -64,3 +142,11 @@ class Optimizer:
             index += 1
         self.updates = []
 
+    def compute_optimization(self, layer: Layer, layerGrad: np.ndarray):
+        # Optimize the weights
+        if self.regularization is True:
+            layerUpdate = layerGrad + (2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
+        else:
+            layerUpdate = layerGrad
+
+        self.updates.append(layerUpdate)

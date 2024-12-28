@@ -8,10 +8,10 @@ from Core.FeedForwardModel import *
 from Core.Layer import DropoutLayer
 from Core.LossFunction import MSELoss
 from Core.Metric import *
-from Core.Optimizer.BackPropNestMom import BackPropagationNesterovMomentum
+from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
 from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Optimizer.BackPropagationMomentum import BackPropagationMomentum
-from Core.Optimizer.BackPropNestMom import BackPropagationNesterovMomentum
+from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
 from Core.Optimizer.Adam import Adam
 from Core.Tuner.HpSearch import RandomSearch, GetBestSearch, GridSearch
 from Core.Metric import Accuracy
