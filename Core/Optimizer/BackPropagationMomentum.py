@@ -26,6 +26,4 @@ class BackPropagationMomentum(Optimizer):
             velocity = layer.LastLayer.Velocity * self.alpha + ((1 - self.alpha) * layer_grad)
         layer.LastLayer.Velocity = velocity
 
-        layer_grad = velocity + layer_grad
-
-        return layer_grad
+        return velocity

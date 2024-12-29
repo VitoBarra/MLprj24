@@ -68,12 +68,13 @@ class Optimizer:
 
         # Calculte and applay the momentum
         if self.momentum is True:
-            layer_grad = self.ApplyMomentum(layer, layer_grad)
-
-        layer.LastLayer.Gradient = layer_grad
+            velocity = self.ApplyMomentum(layer, layer_grad)
+            layer_grad = layer_grad + velocity
+            layer.LastLayer.Gradient = layer_grad
 
         # Optimize the weights
         layer_update = self.ComputeRegularization(layer, layer_grad)
+
         self.updates.append(layer_update)
 
     def CalculateDelta(self, layer: Layer, target: np.ndarray):
@@ -175,7 +176,5 @@ class Optimizer:
                 # Pad gradients to match shape, this is used only in the last mini-batch that usually have fewer data
                 pad_size = layer.LastLayer.Gradient.shape[0] - layer_grad.shape[0]
                 layer_grad = np.pad(layer_grad, ((0, pad_size), (0, 0), (0, 0)), mode='constant')
-            mom = self.alpha * layer.LastLayer.Gradient
-            layer_grad = layer_grad + mom
-        layer.LastLayer.Gradient = layer_grad
-        return layer_grad
+            velocity = self.alpha * layer.LastLayer.Gradient
+        return velocity
