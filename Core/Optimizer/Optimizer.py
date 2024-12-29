@@ -64,7 +64,7 @@ class Optimizer:
             self.deltas = self.CalculateDelta(layer, target)
 
         # Calculate gradient
-        layer_grad = self.CalculateGradient(layer)
+        layer_grad = self.eta * self.CalculateGradient(layer)
 
         # Calculte and applay the momentum
         if self.momentum is True and layer.LastLayer.Gradient is not None:
@@ -130,7 +130,7 @@ class Optimizer:
         for prev_o_one_pattern, deltas_one_pattern in zip(layer.LayerInput, self.deltas):
             b = np.expand_dims(prev_o_one_pattern, axis=1)
             out_delta_p = np.expand_dims(deltas_one_pattern, axis=0)
-            grad_from_one_unit = self.eta * (b @ out_delta_p)
+            grad_from_one_unit = b @ out_delta_p
             layer_grad.append(grad_from_one_unit.T)
         layer_grad = np.mean(np.array(layer_grad), axis=0)
 

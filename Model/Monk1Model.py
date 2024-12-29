@@ -8,6 +8,8 @@ from Core.LossFunction import MSELoss
 from Core.Metric import *
 from Core.Optimizer.Adam import Adam
 from Core.Optimizer.BackPropagation import BackPropagation
+from Core.Optimizer.BackPropagationMomentum import BackPropagationMomentum
+from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
 from Core.Tuner.HpSearch import RandomSearch, GetBestSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.WeightInitializer import GlorotInitializer
@@ -21,17 +23,17 @@ def HyperModel_Monk_manual(hp):
 
     model.AddLayer(Layer(6, Linear(),True, "input"))
 
-    """
+
     #ADAM
     for i in range(1):
         #model.AddLayer(Layer(5, TanH(), True, f"_h{i}"))
         model.AddLayer(Layer(10, Sigmoid(), True, f"_h{i}"))
-    """
 
+    """
     #Back Prop
     for i in range(2):
         model.AddLayer(Layer(10, Sigmoid(), True, f"_h{i}"))
-
+    """
 
     model.AddLayer(Layer(1, Sigmoid(), False,"output"))
 
@@ -54,8 +56,10 @@ def HyperModel_Monk(hp :HyperBag ):
 
     model.AddLayer(Layer(1, Sigmoid(), False, "output"))
 
-    optimizer = BackPropagation(MSELoss(), 0.5, 0.015, 0.99, 0.02)
-    #optimizer = Adam(MSELoss(), hp["eta"], hp["labda"], hp["alpha"],hp["beta"] ,hp["epsilon"],hp["decay"])
+    #optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"], hp["decay"])
+    #optimizer = BackPropagationMomentum(MSELoss(), hp["eta"], None, hp["alpha"], hp["decay"])
+    optimizer = BackPropagationNesterovMomentum(MSELoss(), hp["eta"], hp["lambda"], hp["alpha"], hp["decay"])
+    #optimizer = Adam(MSELoss(), hp["eta"], None, hp["alpha"],hp["beta"] ,hp["epsilon"], None)
     return model, optimizer
 
 
@@ -64,15 +68,15 @@ def HyperBag_Monk():
 
     hp.AddRange("eta", 0.001, 0.1, 0.01)
     hp.AddRange("labda", 0.001, 0.1, 0.001)
-    hp.AddRange("alpha", 0.8, 0.99, 0.01)
-    hp.AddRange("beta", 0.9, 0.99, 0.01)
-    hp.AddRange("epsilon", 1e-13,1e-7, 1e-1)
-    hp.AddRange("decay", 0.005,0.05, 0.001)
+    hp.AddRange("alpha", 0.5, 0.9, 0.01)
+    #hp.AddRange("beta", 0.9, 0.99, 0.01)
+    #hp.AddRange("epsilon", 1e-13,1e-7, 1e-1)
+    hp.AddRange("decay", 0.003,0.005, 0.001)
 
     #hp.AddRange("drop_out", 0.1, 0.5, 0.05)
 
-    hp.AddRange("unit", 1, 15, 1)
-    hp.AddRange("hlayer", 0, 3, 1)
+    hp.AddRange("unit", 1, 5, 1)
+    hp.AddRange("hlayer", 0, 2, 1)
 
     return hp
 
@@ -87,7 +91,7 @@ if __name__ == '__main__':
 
 
     watched_metric = "val_loss"
-    bestSearch = GetBestSearch(HyperBag_Monk(), RandomSearch(100))
+    bestSearch = GetBestSearch(HyperBag_Monk(), RandomSearch(650))
     best_model,best_hpSel = bestSearch.GetBestModel(
         HyperModel_Monk,
         alldata,
