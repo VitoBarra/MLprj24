@@ -19,11 +19,10 @@ class BackPropagationMomentum(Optimizer):
 
     def ApplyMomentum (self, layer: Layer, layer_grad: np.ndarray):
         # Calculate and apply the momentum
-        if layer.LastLayer.Velocity is None:
+        if layer.LastLayer.Gradient is None:
             first_velocity = 0
             velocity = first_velocity * self.alpha + ((1 - self.alpha) * layer_grad)
         else:
-            velocity = layer.LastLayer.Velocity * self.alpha + ((1 - self.alpha) * layer_grad)
-        layer.LastLayer.Velocity = velocity
+            velocity = layer.LastLayer.Gradient * self.alpha + ((1 - self.alpha) * layer_grad)
 
         return velocity

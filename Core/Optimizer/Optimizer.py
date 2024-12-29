@@ -68,8 +68,7 @@ class Optimizer:
 
         # Calculte and applay the momentum
         if self.momentum is True:
-            velocity = self.ApplyMomentum(layer, layer_grad)
-            layer_grad = layer_grad + velocity
+            layer_grad = self.ApplyMomentum(layer, layer_grad)
             layer.LastLayer.Gradient = layer_grad
 
         # Optimize the weights
@@ -177,4 +176,5 @@ class Optimizer:
                 pad_size = layer.LastLayer.Gradient.shape[0] - layer_grad.shape[0]
                 layer_grad = np.pad(layer_grad, ((0, pad_size), (0, 0), (0, 0)), mode='constant')
             velocity = self.alpha * layer.LastLayer.Gradient
-        return velocity
+            layer_grad = layer_grad + velocity
+        return layer_grad
