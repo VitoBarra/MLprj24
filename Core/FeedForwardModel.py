@@ -1,11 +1,14 @@
 import json
 from typing import List, Any
 
+import numpy as np
+
 import DataUtility.MiniBatchGenerator as mb
 from Core import Metric
 from Core.ActivationFunction import ActivationFunction
-from Core.BackPropagation import *
 from Core.Layer import Layer
+from Core.LossFunction import LossFunction
+from Core.Optimizer.Optimizer import Optimizer
 from Core.WeightInitializer import WeightInitializer, GlorotInitializer
 from DataUtility.DataSet import DataSet
 from DataUtility.FileUtil import CreateDir, convert_to_serializable
@@ -86,7 +89,7 @@ Attributes:
                 batch_accumulator.append(batch_metrics)
 
                 # Back Propagation
-                optimizer.start_optimize(self, targets_batch)
+                optimizer.StartOptimize(self, targets_batch)
 
 
             metric_epoch = np.mean(batch_accumulator, axis=0)

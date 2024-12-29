@@ -3,31 +3,18 @@ from sklearn.linear_model import LinearRegression
 from Core.ActivationFunction import *
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.FeedForwardModel import *
+from Core.Layer import DropoutLayer
+from Core.LossFunction import MSELoss
 from Core.Metric import *
-from Core.Tuner.HpSearch import RandomSearch, GetBestSearch
+from Core.ModelSelection import BestSearch
+from Core.Optimizer.Adam import Adam
+from Core.Tuner.HpSearch import RandomSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.WeightInitializer import GlorotInitializer
 from DataUtility.PlotUtil import *
 from DataUtility.ReadDatasetUtil import *
 
 file_path_cup = "dataset/CUP/ML-CUP24-TR.csv"
-
-def HyperBag_Cap():
-    hp = HyperBag()
-
-    hp.AddRange("eta", 0.001, 0.1, 0.01)
-    hp.AddRange("labda", 0.001, 0.1, 0.001)
-    hp.AddRange("alpha", 0.1, 0.9, 0.1)
-    hp.AddRange("decay", 0.001, 0.1, 0.001)
-
-    #hp.AddRange("drop_out", 0.1, 0.5, 0.05)
-
-    hp.AddRange("unit", 1, 15, 1)
-    hp.AddRange("hlayer", 0, 3, 1)
-
-    return hp
-
-
 
 def HyperModel_CAP(hp :HyperBag ):
     model = ModelFeedForward()
@@ -41,19 +28,38 @@ def HyperModel_CAP(hp :HyperBag ):
 
     model.AddLayer(Layer(3, Linear(), False, "output"))
 
-    optimizer = BackPropagation(MSELoss(), hp["eta"], hp["labda"], hp["alpha"], hp["decay"])
+    optimizer = Adam(MSELoss(),hp["eta"], hp["labda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
     return model, optimizer
+
+
+
+def HyperBag_Cap():
+    hp = HyperBag()
+
+    hp.AddRange("eta", 0.001, 0.1, 0.01)
+    hp.AddRange("labda", 0.001, 0.1, 0.001)
+    hp.AddRange("alpha", 0.1, 0.9, 0.1)
+    hp.AddRange("decay", 0.001, 0.1, 0.001)
+    hp.AddRange("beta", 0.95, 0.99, 0.01)
+    hp.AddRange("epsilon", 1e-13, 1e-8, 1e-1)
+
+    #hp.AddRange("drop_out", 0.1, 0.5, 0.05)
+
+    hp.AddRange("unit", 1, 15, 1)
+    hp.AddRange("hlayer", 0, 3, 1)
+
+    return hp
+
 
 
 if __name__ == '__main__':
     alldata = readCUP(file_path_cup)
-    alldata.ToCategoricalLabel()
     alldata.PrintData()
     alldata.Split(0.15, 0.5)
     alldata.Standardize(True)
 
     watched_metric = "val_loss"
-    bestSearch = GetBestSearch(HyperBag_Cap(), RandomSearch(250))
+    bestSearch = BestSearch(HyperBag_Cap(), RandomSearch(250))
     best_model, best_hpSel = bestSearch.GetBestModel(
         HyperModel_CAP,
         alldata,
