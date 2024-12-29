@@ -10,26 +10,11 @@ class BackPropagationNesterovMomentum(Optimizer):
         super().__init__(loss_function, eta, lambda_, alpha, decay_rate)
 
 
-    def optimize(self, layer: Layer, target: np.ndarray):
-
-        # Calculate delta
-        if layer.LastLayer is None:  # Input layer
-            self.update_weights(layer)
-            return
+    def PreProcessigWeights(self, layer: Layer):
+        if self.momentum and layer.LastLayer.Gradient is not None:
+            weights = layer.WeightToNextLayer + self.alpha * layer.Gradient
         else:
-            self.calculate_delta(layer, target, True)
+            weights = layer.WeightToNextLayer
 
-        layer_grad = self.calculate_gradient(layer)
-        layer.LastLayer.Gradient = layer_grad
-
-        """ 
-          if layer.LastLayer.Gradient is None:
-               velocity = self.alpha * 0 + self.eta * layer_grad
-           else:
-               velocity = self.alpha * layer.LastLayer.Gradient + self.eta * layer_grad
-           layer.LastLayer.Gradient = velocity
-        """
-
-        # Optimize the weights
-        self.compute_optimization(layer, layer_grad)
+        return weights
 

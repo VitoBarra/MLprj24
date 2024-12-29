@@ -16,42 +16,13 @@ class BackPropagation(Optimizer):
         super().__init__(loss_function, eta, lambda_, alpha, decay_rate)
 
 
-    def optimize(self, layer: Layer, target: np.ndarray):
-        """
-        Computes the gradients of the weights for the given layer during backpropagation.
-
-        :param layer: The layer for which to compute the gradients.
-        :param target: The target values for the given inputs.
-        """
-
-
-        # Calculate delta
-        if layer.LastLayer is None: # Input layer
-            self.update_weights(layer)
-            return
-        else:
-            self.calculate_delta(layer, target)
-
-        # Calculate gradient
-        layerGrad = self.calculate_gradient(layer)
-
-
-        # Calculte and applay the momentum
-        if self.momentum is True:
-            layerGrad = self.compute_momentum(layer, layerGrad)
-
-
-        # Optimize the weights
-        self.compute_optimization(layer, layerGrad)
-
-
-    def compute_momentum(self, layer: Layer, layerGrad: np.ndarray):
+    def ApplyMomentum(self, layer: Layer, layer_grad: np.ndarray):
         if layer.LastLayer.Gradient is not None:
-            if layer.LastLayer.Gradient.shape != layerGrad.shape:
+            if layer.LastLayer.Gradient.shape != layer_grad.shape:
                 # Pad gradients to match shape, this is used only in the last mini-batch that usually have fewer data
-                pad_size = layer.LastLayer.Gradient.shape[0] - layerGrad.shape[0]
-                layerGrad = np.pad(layerGrad, ((0, pad_size), (0, 0), (0, 0)), mode='constant')
+                pad_size = layer.LastLayer.Gradient.shape[0] - layer_grad.shape[0]
+                layer_grad = np.pad(layer_grad, ((0, pad_size), (0, 0), (0, 0)), mode='constant')
             mom = self.alpha * layer.LastLayer.Gradient
-            layerGrad = layerGrad + mom
-        layer.LastLayer.Gradient = layerGrad
-        return layerGrad
+            layer_grad = layer_grad + mom
+        layer.LastLayer.Gradient = layer_grad
+        return layer_grad

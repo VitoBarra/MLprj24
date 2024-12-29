@@ -43,14 +43,14 @@ class Adam(Optimizer):
             self.update_weights(layer)
             return
         else:
-            self.calculate_delta(layer, target)
+            self.deltas = self.CalculateDelta(layer, target)
 
-        layer_grad = self.calculate_gradient(layer)
+        layer_grad = self.CalculateGradient(layer)
 
-        # Calculte and applay the momentum
+        # Calculate and apply the momentum
         if layer.LastLayer.Velocity is None:
             first_velocity = 0
-            velocity = velocity = self.alpha * first_velocity + ((1 - self.alpha) * layer_grad)
+            velocity = self.alpha * first_velocity + ((1 - self.alpha) * layer_grad)
         else:
             velocity = self.alpha * layer.LastLayer.Velocity + ((1 - self.alpha) * layer_grad)
 
@@ -73,6 +73,6 @@ class Adam(Optimizer):
 
 
         # Optimize the weights
-        self.compute_optimization(layer, layer_grad)
+        self.ComputeLayerUpdates(layer, layer_grad)
         self.timestep += 1
 

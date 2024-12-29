@@ -39,11 +39,9 @@ def HyperModel_Monk(hp):
     model.AddLayer(Layer(1, Sigmoid(), False,"output"))
 
     #optimizer = BackPropagationMomentum(MSELoss(), 0.5, 0.015, 0.99, 0.02)
-    optimizer = BackPropagationNesterovMomentum(MSELoss(), 0.5, 0.9, 0.03, 0.02)
+    #optimizer = BackPropagationNesterovMomentum(MSELoss(), 0.5, 0.9, 0.03, 0.02)
     #optimizer = BackPropagation(MSELoss(), 0.99, 0.003, 0.950, 0.0009)
-
-
-    #optimizer = Adam(MSELoss(), 0.1606, 0.002, 0.9, 0.99, 1e-8, 0.0059) # monk1
+    optimizer = Adam(MSELoss(), 0.1606, 0.002, 0.9, 0.99, 1e-8, 0.0059) # monk1
 
     return model, optimizer
 

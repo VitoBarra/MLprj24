@@ -50,11 +50,32 @@ class Optimizer:
 
     def optimize(self, layer: Layer, target: np.ndarray):
         """
-        Abstract method to compute gradients for a given layer.
-        """
-        raise NotImplementedError("Must override Calculate method")
+        Central optimization algorithm of the weights for the given layer during backpropagation.
 
-    def calculate_delta(self, layer: Layer, target: np.ndarray, nesterov: bool = False):
+        :param layer: The layer for which to compute the gradients.
+        :param target: The target values for the given inputs.
+        """
+
+        # Calculate delta
+        if layer.LastLayer is None: # Input layer
+            self.update_weights(layer)
+            return
+        else:
+            self.deltas = self.CalculateDelta(layer, target)
+
+        # Calculate gradient
+        layer_grad = self.CalculateGradient(layer)
+
+        # Calculte and applay the momentum
+        if self.momentum is True:
+            layer_grad = self.ApplyMomentum(layer, layer_grad)
+
+        layer.LastLayer.Gradient = layer_grad
+
+        # Optimize the weights
+        self.ComputeLayerUpdates(layer, layer_grad)
+
+    def CalculateDelta(self, layer: Layer, target: np.ndarray):
         deltas = []
 
         #Output Layer
@@ -69,14 +90,7 @@ class Optimizer:
         #Hidden Layer
         else:
             prev_delta = self.deltas
-
-            if nesterov is True:
-                if self.momentum and layer.LastLayer.Gradient is not None:
-                    weights = layer.WeightToNextLayer + self.alpha * layer.Gradient
-                else:
-                    weights = layer.WeightToNextLayer
-            else:
-                weights = layer.WeightToNextLayer
+            weights = self.PreProcessigWeights(layer)
 
             # transpose weight metric to use a single unit's output weights
             all_weight_T = weights.T
@@ -106,10 +120,10 @@ class Optimizer:
         # Calculate Gradient
         if layer.UseBias is True:
             deltas = deltas[:, :-1]
-        # Save Delta for the next layer
-        self.deltas = deltas
 
-    def calculate_gradient(self, layer: Layer):
+        return deltas
+
+    def CalculateGradient(self, layer: Layer):
         layer_grad = []
 
         for prev_o_one_pattern, deltas_one_pattern in zip(layer.LayerInput, self.deltas):
@@ -117,9 +131,9 @@ class Optimizer:
             out_delta_p = np.expand_dims(deltas_one_pattern, axis=0)
             grad_from_one_unit = self.eta * (b @ out_delta_p)
             layer_grad.append(grad_from_one_unit.T)
-        layerGrad = np.mean(np.array(layer_grad), axis=0)
+        layer_grad = np.mean(np.array(layer_grad), axis=0)
 
-        return layerGrad
+        return layer_grad
 
     def update_weights(self, layer: Layer):
         """
@@ -142,11 +156,25 @@ class Optimizer:
             index += 1
         self.updates = []
 
-    def compute_optimization(self, layer: Layer, layerGrad: np.ndarray):
+    def ComputeLayerUpdates(self, layer: Layer, layer_grad: np.ndarray):
         # Optimize the weights
         if self.regularization is True:
-            layerUpdate = layerGrad + (2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
+            layer_update = layer_grad + (2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
         else:
-            layerUpdate = layerGrad
+            layer_update = layer_grad
 
-        self.updates.append(layerUpdate)
+        self.updates.append(layer_update)
+
+    def PreProcessigWeights(self, layer: Layer):
+        return layer.WeightToNextLayer
+
+    def ApplyMomentum (self, layer: Layer, layer_grad: np.ndarray):
+        if layer.LastLayer.Gradient is not None:
+            if layer.LastLayer.Gradient.shape != layer_grad.shape:
+                # Pad gradients to match shape, this is used only in the last mini-batch that usually have fewer data
+                pad_size = layer.LastLayer.Gradient.shape[0] - layer_grad.shape[0]
+                layer_grad = np.pad(layer_grad, ((0, pad_size), (0, 0), (0, 0)), mode='constant')
+            mom = self.alpha * layer.LastLayer.Gradient
+            layer_grad = layer_grad + mom
+        layer.LastLayer.Gradient = layer_grad
+        return layer_grad
