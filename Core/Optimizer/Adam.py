@@ -19,15 +19,6 @@ class Adam(Optimizer):
         self.epsilon = epsilon
         self.timestep = 1
 
-        if self.alpha is None:
-            self.momentum = False
-        else:
-            self.momentum = True
-
-        if self.lambda_ is None:
-            self.regularization = False
-        else:
-            self.regularization = True
 
     def optimize(self, layer: Layer, target: np.ndarray):
         """
@@ -48,31 +39,44 @@ class Adam(Optimizer):
         layer_grad = self.CalculateGradient(layer)
 
         # Calculate and apply the momentum
-        if layer.LastLayer.Velocity is None:
-            first_velocity = 0
-            velocity = self.alpha * first_velocity + ((1 - self.alpha) * layer_grad)
-        else:
-            velocity = self.alpha * layer.LastLayer.Velocity + ((1 - self.alpha) * layer_grad)
-
-        layer.LastLayer.Velocity = velocity
+        layer.LastLayer.Velocity = self.ApplyMomentum(layer, layer_grad)
 
         # Compute RMS value
+        layer.LastLayer.Acceleration = self.ApplyRMS(layer, layer_grad)
+
+        # Bias corrections
+        vel_hat, acc_hat = self.BiasCorrection(layer)
+
+        # Compute final gradient
+        layer_grad = self.eta * vel_hat / (np.sqrt(acc_hat) + self.epsilon)
+        # Apply regularization
+        layer_update = self.ComputeRegularization(layer, layer_grad)
+
+        # Optimize the weights
+        self.updates.append(layer_update)
+        self.timestep += 1
+
+
+    def ApplyMomentum (self, layer: Layer, layer_grad: np.ndarray):
+        # Calculate and apply the momentum
+        if layer.LastLayer.Velocity is None:
+            first_velocity = 0
+            velocity = first_velocity * self.alpha + ((1 - self.alpha) * layer_grad)
+        else:
+            velocity = layer.LastLayer.Velocity * self.alpha + ((1 - self.alpha) * layer_grad)
+
+        return velocity
+
+    def ApplyRMS (self, layer: Layer, layer_grad: np.ndarray):
         if layer.LastLayer.Acceleration is None:
             first_acceleration = 0
             acceleration = self.beta * first_acceleration + ((1 - self.beta) * np.square(layer_grad))
         else:
             acceleration = self.beta * layer.LastLayer.Acceleration + ((1 - self.beta) * np.square(layer_grad))
 
-        layer.LastLayer.Acceleration = acceleration
+        return acceleration
 
-        # Bias corrections
-        vel_hat  = layer.LastLayer.Velocity / (1 - self.alpha ** self.timestep)
+    def BiasCorrection(self, layer: Layer):
+        vel_hat = layer.LastLayer.Velocity / (1 - self.alpha ** self.timestep)
         acc_hat = layer.LastLayer.Acceleration / (1 - self.beta ** self.timestep)
-
-        layer_grad = self.eta * vel_hat / (np.sqrt(acc_hat) + self.epsilon)
-
-
-        # Optimize the weights
-        self.ComputeLayerUpdates(layer, layer_grad)
-        self.timestep += 1
-
+        return vel_hat, acc_hat

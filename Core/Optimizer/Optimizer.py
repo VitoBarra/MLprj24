@@ -73,7 +73,8 @@ class Optimizer:
         layer.LastLayer.Gradient = layer_grad
 
         # Optimize the weights
-        self.ComputeLayerUpdates(layer, layer_grad)
+        layer_update = self.ComputeRegularization(layer, layer_grad)
+        self.updates.append(layer_update)
 
     def CalculateDelta(self, layer: Layer, target: np.ndarray):
         deltas = []
@@ -156,14 +157,14 @@ class Optimizer:
             index += 1
         self.updates = []
 
-    def ComputeLayerUpdates(self, layer: Layer, layer_grad: np.ndarray):
+    def ComputeRegularization(self, layer: Layer, layer_grad: np.ndarray):
         # Optimize the weights
         if self.regularization is True:
             layer_update = layer_grad + (2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
         else:
             layer_update = layer_grad
 
-        self.updates.append(layer_update)
+        return layer_update
 
     def PreProcessigWeights(self, layer: Layer):
         return layer.WeightToNextLayer
