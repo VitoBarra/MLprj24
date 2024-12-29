@@ -1,7 +1,7 @@
 ﻿import numpy as np
 
 class WeightInitializer:
-    def __init__(self):
+    def __init__(self, seed: int | None = None):
         pass
 
     def GenerateWeight(self, Unit: int, Unit1: int) -> np.ndarray:
@@ -11,8 +11,11 @@ class WeightInitializer:
 
 
 class GlorotInitializer(WeightInitializer):
-    def __init__(self):
+    def __init__(self, seed: int | None = None):
         super().__init__()
+        if seed is not None:
+            np.random.seed(seed)
+
 
     def GenerateWeight(self, input_unit: int, output_unit: int) -> np.ndarray:
         """
@@ -25,6 +28,7 @@ class GlorotInitializer(WeightInitializer):
         Returns:
         np.ndarray: Randomly initialized weight matrix of shape (Unit, Unit1).
         """
+
         # Compute the Glorot scaling factor
         limit = np.sqrt(6 / (input_unit + output_unit))
         # Generate the weights from a uniform distribution within [-limit, limit]
