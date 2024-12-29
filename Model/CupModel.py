@@ -6,8 +6,9 @@ from Core.FeedForwardModel import *
 from Core.Layer import DropoutLayer
 from Core.LossFunction import MSELoss
 from Core.Metric import *
+from Core.ModelSelection import BestSearch
 from Core.Optimizer.BackPropagation import BackPropagation
-from Core.Tuner.HpSearch import RandomSearch, GetBestSearch
+from Core.Tuner.HpSearch import RandomSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.WeightInitializer import GlorotInitializer
 from DataUtility.PlotUtil import *
@@ -50,13 +51,12 @@ def HyperModel_CAP(hp :HyperBag ):
 
 if __name__ == '__main__':
     alldata = readCUP(file_path_cup)
-    alldata.ToCategoricalLabel()
     alldata.PrintData()
     alldata.Split(0.15, 0.5)
     alldata.Standardize(True)
 
     watched_metric = "val_loss"
-    bestSearch = GetBestSearch(HyperBag_Cap(), RandomSearch(250))
+    bestSearch = BestSearch(HyperBag_Cap(), RandomSearch(250))
     best_model, best_hpSel = bestSearch.GetBestModel(
         HyperModel_CAP,
         alldata,

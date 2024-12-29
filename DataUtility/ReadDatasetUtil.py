@@ -81,7 +81,7 @@ def readCUP(file_path:str) -> DataSet:
     data = np.array(data)
     labels = np.array(labels)
     ids = np.array(ids)
-    return DataSet(data, labels, ids)
+    return DataSet.FromData(data, labels, ids)
 
 
 
@@ -91,4 +91,4 @@ def CreateFakeData(nData:int, xdim :int=1, ydim:int=1) -> DataSet:
     y = np.random.choice([0, 1], (nData, ydim))
     id = np.array(range(x.shape[0]))
 
-    return DataSet(x,y, id)
+    return DataSet.FromData(x,y, id)

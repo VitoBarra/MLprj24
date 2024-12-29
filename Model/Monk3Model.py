@@ -4,19 +4,16 @@ from Core.ActivationFunction import *
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.FeedForwardModel import *
 from Core.Layer import DropoutLayer
-from Core.LossFunction import MSELoss
-from Core.Metric import *
-from Core.Optimizer.Adam import Adam
+from Core.LossFunction import MSELoss, CategoricalCrossEntropyLoss
 from Core.Metric import Accuracy
-from Core.Tuner.HpSearch import  RandomSearch, GridSearch
 from Core.ModelSelection import *
-from Core.Tuner.HpSearch import RandomSearch, GetBestSearch
+from Core.Optimizer.Adam import Adam
+from Core.Optimizer.BackPropagation import BackPropagation
+from Core.Tuner.HpSearch import RandomSearch
 from Core.Tuner.HyperBag import HyperBag
 from DataUtility.PlotUtil import *
 from DataUtility.ReadDatasetUtil import *
 
-USE_CATEGORICAL = False
-file_path_monk3 = "dataset/monk+s+problems/monks-3.train"
 
 def HyperModel_Monk_manual(hp):
     model = ModelFeedForward()
@@ -35,6 +32,8 @@ def HyperModel_Monk_manual(hp):
 
     return model, optimizer
 
+USE_CATEGORICAL = False
+file_path_monk = "dataset/monk+s+problems/monks-3.train"
 
 def HyperModel_Monk(hp :HyperBag ):
     model = ModelFeedForward()
@@ -75,7 +74,7 @@ def HyperBag_Monk():
 
 if __name__ == '__main__':
 
-    alldata = readMonk(file_path_monk1)
+    alldata = readMonk(file_path_monk)
     alldata.Shuffle(195)
     if USE_CATEGORICAL:
         alldata.ToCategoricalLabel()
