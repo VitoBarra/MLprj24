@@ -1,5 +1,3 @@
-from pickletools import optimize
-
 from sklearn.linear_model import LogisticRegression
 
 from Core.ActivationFunction import *
@@ -8,30 +6,40 @@ from Core.FeedForwardModel import *
 from Core.Layer import DropoutLayer
 from Core.LossFunction import MSELoss
 from Core.Metric import *
-from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
-from Core.Optimizer.BackPropagation import BackPropagation
-from Core.Optimizer.BackPropagationMomentum import BackPropagationMomentum
-from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
 from Core.Optimizer.Adam import Adam
-from Core.Tuner.HpSearch import RandomSearch, GetBestSearch, GridSearch
 from Core.Metric import Accuracy
 from Core.Tuner.HpSearch import  RandomSearch, GridSearch
 from Core.ModelSelection import *
+from Core.Tuner.HpSearch import RandomSearch, GetBestSearch
 from Core.Tuner.HyperBag import HyperBag
 from DataUtility.PlotUtil import *
 from DataUtility.ReadDatasetUtil import *
 
 USE_CATEGORICAL = False
-
-file_path_monk1 = "dataset/monk+s+problems/monks-1.train"
-file_path_monk2 = "dataset/monk+s+problems/monks-2.train"
 file_path_monk3 = "dataset/monk+s+problems/monks-3.train"
 
-
-def HyperModel_Monk(hp):
+def HyperModel_Monk_manual(hp):
     model = ModelFeedForward()
 
     model.AddLayer(Layer(6, Linear(),True, "input"))
+
+    for i in range(1):
+        model.AddLayer(Layer(4, TanH(), True, f"_h{i}")) #monk3
+
+    model.AddLayer(Layer(1, Sigmoid(), False,"output"))
+
+    #optimizer = BackPropagationMomentum(MSELoss(), 0.5, 0.015, 0.99, 0.02)
+    #optimizer = BackPropagationNesterovMomentum(MSELoss(), 0.5, 0.9, 0.03, 0.02)
+    #optimizer = BackPropagation(MSELoss(), 0.5, 0.015, 0.99, 0.02)
+    optimizer = Adam(MSELoss(), 0.05, 0.04 , 0.9,0.9, 1e-13 ) # monk 3
+
+    return model, optimizer
+
+
+def HyperModel_Monk(hp :HyperBag ):
+    model = ModelFeedForward()
+
+    model.AddLayer(Layer(6, Linear(), True, "input"))
     for i in range(hp["hlayer"]):
         if hp["drop_out"] is not None:
             model.AddLayer(DropoutLayer(hp["unit"], Sigmoid(), hp["drop_out"], True, f"drop_out_h{i}"))

@@ -1,5 +1,6 @@
 import json
 from typing import List, Any
+
 import numpy as np
 
 import DataUtility.MiniBatchGenerator as mb
@@ -87,7 +88,7 @@ Attributes:
                 batch_accumulator.append(batch_metrics)
 
                 # Back Propagation
-                optimizer.start_optimize(self, targets_batch)
+                optimizer.StartOptimize(self, targets_batch)
 
 
             metric_epoch = np.mean(batch_accumulator, axis=0)

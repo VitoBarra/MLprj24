@@ -6,7 +6,7 @@ from Core.Optimizer.Optimizer import Optimizer
 
 class Adam(Optimizer):
     def __init__(self, loss_function: LossFunction, eta: float, lambda_: float | None = None,
-                 alpha: float | None = None, beta: float | None = None, epsilon: float = 1e-8, decay_rate: float = 0.0):
+                 alpha: float  | None = 0.9, beta: float | None = 0.99, epsilon: float = 1e-8, decay_rate: float = 0.0):
         """
         Initializes the BackPropagation object with a specific loss function.
 
@@ -31,7 +31,7 @@ class Adam(Optimizer):
 
         # Calculate delta
         if layer.LastLayer is None: # Input layer
-            self.update_weights(layer)
+            self.UpdateWeights(layer)
             return
         else:
             self.deltas = self.CalculateDelta(layer, target)
@@ -39,7 +39,7 @@ class Adam(Optimizer):
         layer_grad = self.CalculateGradient(layer)
 
         # Calculate and apply the momentum
-        layer.LastLayer.Velocity = self.ApplyMomentum(layer, layer_grad)
+        layer.LastLayer.Gradient = self.ApplyMomentum(layer, layer_grad)
 
         # Compute RMS value
         layer.LastLayer.Acceleration = self.ApplyRMS(layer, layer_grad)
@@ -59,11 +59,11 @@ class Adam(Optimizer):
 
     def ApplyMomentum (self, layer: Layer, layer_grad: np.ndarray):
         # Calculate and apply the momentum
-        if layer.LastLayer.Velocity is None:
+        if layer.LastLayer.Gradient is None:
             first_velocity = 0
             velocity = first_velocity * self.alpha + ((1 - self.alpha) * layer_grad)
         else:
-            velocity = layer.LastLayer.Velocity * self.alpha + ((1 - self.alpha) * layer_grad)
+            velocity = layer.LastLayer.Gradient * self.alpha + ((1 - self.alpha) * layer_grad)
 
         return velocity
 
@@ -77,6 +77,6 @@ class Adam(Optimizer):
         return acceleration
 
     def BiasCorrection(self, layer: Layer):
-        vel_hat = layer.LastLayer.Velocity / (1 - self.alpha ** self.timestep)
+        vel_hat = layer.LastLayer.Gradient / (1 - self.alpha ** self.timestep)
         acc_hat = layer.LastLayer.Acceleration / (1 - self.beta ** self.timestep)
         return vel_hat, acc_hat

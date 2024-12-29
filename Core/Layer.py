@@ -1,6 +1,5 @@
 import numpy as np
 
-
 from Core import WeightInitializer
 from Core.ActivationFunction import ActivationFunction
 
@@ -29,8 +28,7 @@ class Layer:
     LayerNets: np.ndarray | None
     bias : float | None
     WeightToNextLayer: np.ndarray | None
-    Gradient: np.ndarray | None
-    Velocity: np.ndarray | None
+    Gradient: np.ndarray | None # Also interpreted as "velocity" of the function
     Acceleration: np.ndarray | None
     NextLayer: 'Layer'
     LastLayer: 'Layer'

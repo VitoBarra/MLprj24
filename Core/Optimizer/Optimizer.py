@@ -4,7 +4,7 @@ from Core.LossFunction import *
 
 
 class Optimizer:
-    deltas: list[float]
+    deltas: np.ndarray[float]
     updates: list[np.ndarray]
     momentum: bool
     regularization: bool
@@ -39,7 +39,7 @@ class Optimizer:
             self.regularization = True
 
 
-    def start_optimize(self, model: FeedForwardModel, target: np.ndarray):
+    def StartOptimize(self, model: FeedForwardModel, target: np.ndarray):
         self.iteration += 1
         if self.decay_rate is not None:
             self.eta = self.initial_eta * np.exp(-self.decay_rate * self.iteration)
@@ -58,7 +58,7 @@ class Optimizer:
 
         # Calculate delta
         if layer.LastLayer is None: # Input layer
-            self.update_weights(layer)
+            self.UpdateWeights(layer)
             return
         else:
             self.deltas = self.CalculateDelta(layer, target)
@@ -67,13 +67,13 @@ class Optimizer:
         layer_grad = self.CalculateGradient(layer)
 
         # Calculte and applay the momentum
-        if self.momentum is True:
+        if self.momentum is True and layer.LastLayer.Gradient is not None:
             layer_grad = self.ApplyMomentum(layer, layer_grad)
             layer.LastLayer.Gradient = layer_grad
 
+
         # Optimize the weights
         layer_update = self.ComputeRegularization(layer, layer_grad)
-
         self.updates.append(layer_update)
 
     def CalculateDelta(self, layer: Layer, target: np.ndarray):
@@ -136,7 +136,7 @@ class Optimizer:
 
         return layer_grad
 
-    def update_weights(self, layer: Layer):
+    def UpdateWeights(self, layer: Layer):
         """
         Function to update the layer's weights.
 
@@ -170,11 +170,14 @@ class Optimizer:
         return layer.WeightToNextLayer
 
     def ApplyMomentum (self, layer: Layer, layer_grad: np.ndarray):
-        if layer.LastLayer.Gradient is not None:
-            if layer.LastLayer.Gradient.shape != layer_grad.shape:
-                # Pad gradients to match shape, this is used only in the last mini-batch that usually have fewer data
-                pad_size = layer.LastLayer.Gradient.shape[0] - layer_grad.shape[0]
-                layer_grad = np.pad(layer_grad, ((0, pad_size), (0, 0), (0, 0)), mode='constant')
-            velocity = self.alpha * layer.LastLayer.Gradient
-            layer_grad = layer_grad + velocity
+        if layer.LastLayer.Gradient is None:
+            return None
+
+        if layer.LastLayer.Gradient.shape != layer_grad.shape:
+            # Pad gradients to match shape, this is used only in the last mini-batch that usually have fewer data
+            pad_size = layer.LastLayer.Gradient.shape[0] - layer_grad.shape[0]
+            layer_grad = np.pad(layer_grad, ((0, pad_size), (0, 0), (0, 0)), mode='constant')
+        velocity = self.alpha * layer.LastLayer.Gradient
+        layer_grad = layer_grad + velocity
+
         return layer_grad
