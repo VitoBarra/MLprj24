@@ -4,25 +4,40 @@ from Core.ActivationFunction import *
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.FeedForwardModel import *
 from Core.Layer import DropoutLayer
+from Core.LossFunction import MSELoss, CategoricalCrossEntropyLoss
 from Core.Metric import Accuracy
-from Core.Tuner.HpSearch import  RandomSearch, GridSearch
 from Core.ModelSelection import *
+from Core.Optimizer.Adam import Adam
+from Core.Tuner.HpSearch import RandomSearch
 from Core.Tuner.HyperBag import HyperBag
 from DataUtility.PlotUtil import *
 from DataUtility.ReadDatasetUtil import *
 
-USE_CATEGORICAL = False
 
-file_path_monk1 = "dataset/monk+s+problems/monks-1.train"
-file_path_monk2 = "dataset/monk+s+problems/monks-2.train"
-file_path_monk3 = "dataset/monk+s+problems/monks-3.train"
-
-
-
-def HyperModel_Monk(hp):
+def HyperModel_Monk_manual(hp):
     model = ModelFeedForward()
 
     model.AddLayer(Layer(6, Linear(),True, "input"))
+
+    for i in range(1):
+        model.AddLayer(Layer(4, TanH(), True, f"_h{i}")) #monk3
+
+    model.AddLayer(Layer(1, Sigmoid(), False,"output"))
+
+    #optimizer = BackPropagationMomentum(MSELoss(), 0.5, 0.015, 0.99, 0.02)
+    #optimizer = BackPropagationNesterovMomentum(MSELoss(), 0.5, 0.9, 0.03, 0.02)
+    #optimizer = BackPropagation(MSELoss(), 0.5, 0.015, 0.99, 0.02)
+    optimizer = Adam(MSELoss(), 0.05, 0.04 , 0.9,0.9, 1e-13 ) # monk 3
+
+    return model, optimizer
+
+USE_CATEGORICAL = False
+file_path_monk = "dataset/monk+s+problems/monks-3.train"
+
+def HyperModel_Monk(hp :HyperBag ):
+    model = ModelFeedForward()
+
+    model.AddLayer(Layer(6, Linear(), True, "input"))
     for i in range(hp["hlayer"]):
         if hp["drop_out"] is not None:
             model.AddLayer(DropoutLayer(hp["unit"], Sigmoid(), hp["drop_out"], True, f"drop_out_h{i}"))
@@ -37,7 +52,8 @@ def HyperModel_Monk(hp):
         model.AddLayer(Layer(1, Sigmoid(), False,"output"))
         loss = MSELoss()
 
-    optimizer = BackPropagation(loss, hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+    #optimizer = BackPropagation(loss, hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+    optimizer = Adam(MSELoss(),hp["eta"], hp["labda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
     return model, optimizer
 
 
@@ -48,6 +64,8 @@ def HyperBag_Monk():
     hp.AddRange("labda", 0.001, 0.05, 0.005)
     hp.AddRange("alpha", 0.05, 0.9, 0.05)
     hp.AddRange("decay", 0.0001, 0.1, 0.0005)
+    hp.AddRange("beta", 0.95, 0.99, 0.01)
+    hp.AddRange("epsilon", 1e-13, 1e-8, 1e-1)
 
     #hp.AddRange("drop_out", 0.2, 0.6, 0.1)
 
@@ -58,7 +76,7 @@ def HyperBag_Monk():
 
 if __name__ == '__main__':
 
-    alldata = readMonk(file_path_monk1)
+    alldata = readMonk(file_path_monk)
     alldata.Shuffle(195)
     if USE_CATEGORICAL:
         alldata.ToCategoricalLabel()
@@ -109,6 +127,6 @@ if __name__ == '__main__':
         baseline=baseline,
         baselineName= f"baseline {BaselineMetric.Name}" ,
         limitYRange=None,
-        title="MONK results",
+        title="MONK3 results",
         xlabel="Epoche",
         ylabel="")
