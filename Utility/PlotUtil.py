@@ -3,7 +3,7 @@ import pickle
 import matplotlib.pyplot as plt
 import networkx as nx
 
-from DataUtility.FileUtil import *
+from Utility.FileUtil import *
 
 
 #si può usare anche oer l'accuracu, basta passargli il valore oer training e validation con i corretti label

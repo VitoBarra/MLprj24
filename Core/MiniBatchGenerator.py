@@ -1,7 +1,7 @@
-from DataUtility.DataSet import *
+from Utility.DataSet import *
 import numpy as np
 
-from DataUtility.DataSet import DataExamples
+from Utility.DataSet import DataExamples
 
 
 class MiniBatchGenerator:

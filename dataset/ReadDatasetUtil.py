@@ -1,7 +1,8 @@
 ﻿import numpy as np
 
-from DataUtility.DataExamples import DataExamples
-from DataUtility.DataSet import DataSet
+from Utility.DataExamples import DataExamples
+from Utility.DataSet import DataSet
+from Utility.DataUtil import *
 
 
 def readMonk(file_path:str) -> DataSet:
@@ -21,7 +22,8 @@ def readMonk(file_path:str) -> DataSet:
             # L'ottavo valore come ID
             ids.append(parts[7])
 
-    # Converti le liste in array NumPy
+
+    # Converts list to array NumPy
     data = np.array(data)
     labels = np.array(labels)
     labels = labels.reshape(labels.shape[0], 1)
@@ -29,30 +31,6 @@ def readMonk(file_path:str) -> DataSet:
 
     return DataSet.FromData(data, labels, ids)
 
-def readMonkDataExample(file_path: str):
-    data = []
-    labels = []
-    ids = []
-
-    with open(file_path, 'r') as file:
-        for line in file:
-            parts = line.strip().split()
-            if len(parts) != 8:
-                raise ValueError("Each line must contain exactly 8 elements.")
-
-            # First six values as data array
-            data.append([int(x) for x in parts[1:7]])
-            # Seventh value as label
-            labels.append(int(parts[0]))
-            # Eighth value as ID
-            ids.append(parts[7])
-
-    # Convert lists to NumPy arrays
-    data = np.array(data)
-    labels = np.array(labels).reshape(-1, 1)
-    ids = np.array(ids)
-
-    return DataExamples(data, labels, ids)
 
 
 
