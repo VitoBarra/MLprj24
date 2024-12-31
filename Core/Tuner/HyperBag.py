@@ -1,4 +1,4 @@
-from DataUtility.npUtil import *
+from Utility.npUtil import *
 
 class HyperBag:
 
@@ -25,7 +25,7 @@ class HyperBag:
 
 
     def AddRange(self, hpName:str , lower:float, upper:float, inc:float) -> None:
-        if lower >=upper:
+        if lower > upper:
             raise ValueError("Lower bound must be smaller than upper bound")
         self.CheckHP(hpName)
         self.hpDic[hpName] = arrangeClosed(lower, upper, inc).tolist()

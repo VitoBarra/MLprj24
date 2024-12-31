@@ -1,6 +1,6 @@
 import numpy as np
 
-from DataUtility.DataExamples import DataExamples
+from Utility.DataExamples import DataExamples
 
 
 class DataSet(object):
@@ -103,6 +103,18 @@ class DataSet(object):
         if self.Test is not None:
             self.Test.ToCategoricalLabel()
         return self
+
+    def ToOnHotOnExamples(self):
+        if self._Data is not None:
+            self._Data.ToCategoricalData()
+        if self.Training is not None:
+            self.Training.ToCategoricalData()
+        if self.Validation is not None:
+            self.Validation.ToCategoricalData()
+        if self.Test is not None:
+            self.Test.ToCategoricalData()
+        return self
+
 
     def Shuffle(self, seed: int = 0) -> 'DataSet':
         """
@@ -251,5 +263,12 @@ class DataSet(object):
         instance.Validation = Validation
         instance.Test = Test
         return instance
+
+    def ApplayTranformationOnLable(self, param):
+        self._Data.Label = param(self._Data.Label)
+
+
+
+
 
 

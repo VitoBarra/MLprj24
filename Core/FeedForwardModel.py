@@ -3,16 +3,16 @@ from typing import List, Any
 
 import numpy as np
 
-import DataUtility.MiniBatchGenerator as mb
+from Core import MiniBatchGenerator as mb
 from Core import Metric
 from Core.ActivationFunction import ActivationFunction
 from Core.Layer import Layer
 from Core.LossFunction import LossFunction
 from Core.Optimizer.Optimizer import Optimizer
 from Core.WeightInitializer import WeightInitializer, GlorotInitializer
-from DataUtility.DataSet import DataSet
-from DataUtility.FileUtil import CreateDir, convert_to_serializable
-from DataUtility.PlotUtil import plot_neural_network_with_transparency
+from Utility.DataSet import DataSet
+from Utility.FileUtil import CreateDir, convert_to_serializable
+from Utility.PlotUtil import plot_neural_network_with_transparency
 
 
 class ModelFeedForward:
