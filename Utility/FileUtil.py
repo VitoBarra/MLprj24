@@ -1,7 +1,7 @@
 import os
 import numpy as np
-from DataUtility.DataExamples import DataExamples
-from DataUtility.DataSet import DataSet
+from Utility.DataExamples import DataExamples
+from Utility.DataSet import DataSet
 
 
 def GetDirectSubDir(path:str) -> list[os.DirEntry]:

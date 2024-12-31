@@ -50,7 +50,7 @@ class Adam(Optimizer):
         # Compute final gradient
         layer_grad = self.eta * vel_hat / (np.sqrt(acc_hat) + self.epsilon)
         # Apply regularization
-        layer_update = self.ComputeRegularization(layer, layer_grad)
+        layer_update = self.ApplayRegularization(layer, layer_grad)
 
         # Optimize the weights
         self.updates.append(layer_update)

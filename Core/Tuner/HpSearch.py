@@ -6,7 +6,7 @@ from Core.Callback.CallBack import CallBack
 from Core.Metric import Metric
 from Core.Tuner.HyperBag import HyperBag
 from Core.WeightInitializer import GlorotInitializer
-from DataUtility.DataSet import DataSet
+from Utility.DataSet import DataSet
 
 
 class HyperParameterSearch:

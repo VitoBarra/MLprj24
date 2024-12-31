@@ -6,7 +6,7 @@ from Core.Metric import Metric
 from Core.Tuner.HpSearch import HyperParameterSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.WeightInitializer import GlorotInitializer
-from DataUtility.DataSet import DataSet
+from Utility.DataSet import DataSet
 
 
 class ModelSelection:

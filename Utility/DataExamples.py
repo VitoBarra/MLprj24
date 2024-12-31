@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import ndarray
 from numpy.random import default_rng
+from Utility.DataUtil import *
 
 
 class DataExamples(object):
@@ -167,10 +168,11 @@ class DataExamples(object):
 
         :raises NotImplementedError: If the method for conversion is not implemented.
         """
-        #TODO : transform to the categorical format
-        num_classes = np.max(self.Label) + 1
-        self.Label = np.eye(num_classes)[self.Label]
-        self.Label = self.Label.squeeze()
+        self.Label = one_hot_encode(self.Label)
+
+    def ToCategoricalData(self):
+        self.Data = one_hot_encode(self.Data)
+
 
 
 
@@ -204,9 +206,5 @@ class DataExamples(object):
         """
         return self.DataLength
 
-    def _ToCategorical(self, Label: np.ndarray) -> None:
-        """
-        Generate the data in categorical format.
 
-        """
-        pass
+
