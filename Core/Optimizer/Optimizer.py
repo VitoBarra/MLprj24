@@ -40,12 +40,12 @@ class Optimizer:
 
 
     def StartOptimize(self, model: FeedForwardModel, target: np.ndarray):
+        for layer in reversed(model.Layers):
+            self.optimize(layer, target)
+
         self.iteration += 1
         if self.decay_rate is not None:
             self.eta = self.initial_eta * np.exp(-self.decay_rate * self.iteration)
-
-        for layer in reversed(model.Layers):
-            self.optimize(layer, target)
 
 
     def optimize(self, layer: Layer, target: np.ndarray):
@@ -71,10 +71,11 @@ class Optimizer:
             layer_grad = self.ApplyMomentum(layer, layer_grad)
             layer.LastLayer.Gradient = layer_grad
 
+        # Apply regularization
+        layer_grad = self.ComputeRegularization(layer, layer_grad)
 
-        # Optimize the weights
-        layer_update = self.ComputeRegularization(layer, layer_grad)
-        self.updates.append(layer_update)
+        # Add updates to updates' list
+        self.updates.append(layer_grad)
 
     def CalculateDelta(self, layer: Layer, target: np.ndarray):
         deltas = []
@@ -118,7 +119,6 @@ class Optimizer:
 
             deltas = np.array(deltas).T
 
-        # Calculate Gradient
         if layer.UseBias is True:
             deltas = deltas[:, :-1]
 
@@ -159,12 +159,26 @@ class Optimizer:
 
     def ComputeRegularization(self, layer: Layer, layer_grad: np.ndarray):
         # Optimize the weights
-        if self.regularization is True:
-            layer_update = layer_grad + (2 * self.lambda_ * layer.LastLayer.WeightToNextLayer)
-        else:
-            layer_update = layer_grad
+        if self.regularization is False:
+            return None
 
-        return layer_update
+        else:
+            if layer.UseBias is True:
+                unit_weights = layer.LastLayer.WeightToNextLayer[:-1]
+                layer_grad = layer_grad[:-1]
+                layer_grad_bias = layer_grad[-1]
+            else:
+                unit_weights = layer.LastLayer.WeightToNextLayer
+
+            layer_update = layer_grad + (2 * self.lambda_ * unit_weights)
+
+            if layer.UseBias is True:
+                # Add back the bias gradient
+                layer_update = np.vstack((layer_update, layer_grad_bias[np.newaxis, :]))
+            else:
+                layer_update = layer_grad
+
+            return layer_update
 
     def PreProcessigWeights(self, layer: Layer):
         return layer.WeightToNextLayer
