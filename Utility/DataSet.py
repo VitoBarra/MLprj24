@@ -70,8 +70,48 @@ class DataSet(object):
         self._Data = None
         return self.Training, self.Validation, self.Test
 
+    def Split2(self, validationPercent: float = 0.15, test:str = None) -> (DataExamples, DataExamples, DataExamples):
+        """
+        Splits the dataset into training, validation, and test sets.
 
+        :param validationPercent: The fraction of the dataset to be used for validation.
+        :param testPercent: The fraction of the dataset to be used for testing.
+        :return: The current DataSet object with split data.
+        """
+        dataLength = self._Data.Data.shape[0]
+        trainingBound = int(dataLength * (1 - validationPercent))
+        valBound = int(dataLength * validationPercent)
+        self.Training = DataExamples(self._Data.Data[:trainingBound], self._Data.Label[:trainingBound], self._Data.Id[:trainingBound])
+        self.Validation = DataExamples(self._Data.Data[trainingBound:trainingBound + valBound],
+                                  self._Data.Label[trainingBound:trainingBound + valBound],
+                                  self._Data.Id[trainingBound:trainingBound + valBound])
+        self.Test = self.readMonkTest(test)
+        #self._Data = None
 
+    def readMonkTest(self, file_path: str):
+        data = []
+        labels = []
+        ids = []
+        with open(file_path, 'r') as file:
+            for line in file:
+                parts = line.strip().split()
+                if len(parts) != 8:
+                    raise ValueError("we want 8 elements in this file.")
+
+                # I primi sei valori come array di dati
+                data.append([int(x) for x in parts[1:7]])
+                # Il settimo valore come label
+                labels.append(int(parts[0]))
+                # L'ottavo valore come ID
+                ids.append(parts[7])
+
+        # Converts list to array NumPy
+        data = np.array(data)
+        labels = np.array(labels)
+        labels = labels.reshape(labels.shape[0], 1)
+        ids = np.array(ids)
+
+        return DataExamples(data, labels, ids)
 
     def Standardize(self, normalizeLable :bool= False) -> 'DataSet':
         """
@@ -80,8 +120,8 @@ class DataSet(object):
         :return: The current DataSet object with normalized data.
         :raises ValueError: If normalization is attempted before splitting the dataset.
         """
-        if self._Data is not None:
-            raise ValueError('Standardize function must be called after splitDataset')
+        #if self._Data is not None:
+        #    raise ValueError('Standardize function must be called after splitDataset')
 
         (statd,statl) = self.Training.Standardize(normalizeLable)
         self.Validation.Standardize(normalizeLable,statd,statl)
