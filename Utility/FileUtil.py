@@ -2,6 +2,7 @@ import os
 import numpy as np
 from Utility.DataExamples import DataExamples
 from Utility.DataSet import DataSet
+import json
 
 
 def GetDirectSubDir(path:str) -> list[os.DirEntry]:
@@ -22,3 +23,11 @@ def convert_to_serializable(obj):
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     raise TypeError(f"Type {type(obj)} not serializable")
+
+def SaveJson(direc, filename, data):
+
+    if not os.path.exists(direc):
+        os.makedirs(direc)
+
+    with open(f"{direc}/{filename}", 'w') as f:
+        json.dump(data, f, default=convert_to_serializable)

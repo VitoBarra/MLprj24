@@ -19,6 +19,9 @@ class HyperBag:
     def __delitem__(self, key:str):
         del self.hpDic[key]
 
+    def __str__(self):
+        return self.GetHPString()
+
     def CheckHP(self, hpName:str) -> None:
         if hpName in self.hpDic:
             raise ValueError(f"Hyper parameter '{hpName}' has already bean registered")
@@ -44,4 +47,9 @@ class HyperBag:
         return self.hpDic.values()
 
     def Set(self, hpDic:dict[str,list[float]]):
+        if hpDic is None:
+            raise ValueError("hpDic cannot be None")
         self.hpDic = hpDic
+
+    def GetHPString(self):
+        return "| "+" | ".join(f"{key}:{value:.4f}" for key, value in self.hpDic.items())

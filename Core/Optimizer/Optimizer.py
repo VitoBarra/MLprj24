@@ -92,19 +92,16 @@ class Optimizer:
         #Hidden Layer
         else:
             prev_delta = self.deltas
-            weights = self.PreProcessigWeights(layer)
 
+            weights = self.PreProcessigWeights(layer)
             # transpose weight metric to use a single unit's output weights
             all_weight_T = weights.T
 
-            if layer.UseBias is True:
+            if layer.UseBias:
                 # get all weight except the bias
                 unit_weight_T = all_weight_T[:-1]
-                # get only the bias weight
-                bias_weight_T = all_weight_T[-1]
             else:
                 unit_weight_T = all_weight_T
-                bias_weight_T = None
 
             for weightFrom1Neuron_toAll, net_one_unit in zip(unit_weight_T, layer.LayerNets.T):
                 # compute the internal sum for a single unit
@@ -112,15 +109,7 @@ class Optimizer:
                 delta = delta_sum * layer.ActivationFunction.CalculateDerivative(net_one_unit)
                 deltas.append(delta)
 
-            if layer.UseBias:
-                # Calcualte Bias delta
-                delta_sum = (prev_delta @ bias_weight_T)
-                deltas.append(delta_sum)
-
             deltas = np.array(deltas).T
-
-        if layer.UseBias is True:
-            deltas = deltas[:, :-1]
 
         return deltas
 
@@ -158,27 +147,38 @@ class Optimizer:
         self.updates = []
 
     def ApplayRegularization(self, layer: Layer, layer_grad: np.ndarray):
-        # Optimize the weights
-        if not self.regularization :
+        """
+        Apply L2 regularization to the gradients of a layer's weights.
+
+        Arguments:
+            layer (Layer): The current layer for which regularization is applied.
+            layer_grad (np.ndarray): The gradient of the weights for the layer.
+
+        Returns:
+            np.ndarray: The updated gradient    with regularization applied.
+        """
+        if not self.regularization:
             return layer_grad
 
-
-        if layer.UseBias:
-            unit_weights = layer.LastLayer.WeightToNextLayer[:-1]
-            layer_grad = layer_grad[:-1]
-            layer_grad_bias = layer_grad[-1]
+        # Extract weights and biases separately if the layer uses biases
+        if layer.LastLayer.UseBias:
+            weights = layer.LastLayer.WeightToNextLayer[:, :-1]  # Exclude bias from weights
+            bias_grad = layer_grad[:, -1]  # Bias gradient
+            weight_grad = layer_grad[:, :-1]  # Weight gradient
+            weight_grad_with_reg = weight_grad + (self.lambda_ * weights)
+            # Combine updated weights with original bias gradient
+            layer_update = np.hstack((weight_grad_with_reg, bias_grad[:, np.newaxis]))
         else:
-            unit_weights = layer.LastLayer.WeightToNextLayer
+            weights = layer.LastLayer.WeightToNextLayer  # All weights
+            weight_grad = layer_grad
+            weight_grad_with_reg = weight_grad + ( self.lambda_ * weights)
+            layer_update = weight_grad_with_reg
 
-        layer_update = layer_grad + (2 * self.lambda_ * unit_weights)
 
-        if layer.UseBias:
-            # Add back the bias gradient
-            layer_update = np.vstack((layer_update, layer_grad_bias[np.newaxis, :]))
-        else:
-            layer_update = layer_grad
-
+        # Apply L2 regularization to weight gradients
         return layer_update
+
+
 
     def PreProcessigWeights(self, layer: Layer):
         return layer.WeightToNextLayer

@@ -12,9 +12,17 @@ class MiniBatchGenerator:
 
     LastPosition: int
 
-    def __init__(self, Data:DataExamples, BatchSize:int):
-        self.Data = Data
-        self.BatchSize = BatchSize
+    def __init__(self, data:DataExamples, batchSize:int):
+        if data is None:
+            raise ValueError("Data cannot be None")
+        if len(data) == 0:
+            raise ValueError("Data is empty")
+
+        if batchSize <= 0:
+            raise ValueError("BatchSize must be a positive integer")
+
+        self.Data = data
+        self.BatchSize = batchSize
         self.LastPosition = 0
         self.IsBatchGenerationFinished = False
 
@@ -29,7 +37,7 @@ class MiniBatchGenerator:
        """
 
         if self.LastPosition >= len(self.Data) or self.IsBatchGenerationFinished:
-            return None
+            return None , None
 
         batch_data = self.Data.Data[self.LastPosition : self.LastPosition + self.BatchSize]
         batch_target = self.Data.Label[self.LastPosition : self.LastPosition + self.BatchSize]
