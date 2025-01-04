@@ -32,7 +32,7 @@ class TestMetrics(unittest.TestCase):
         self.assertAlmostEqual(m.ComputeMetric(self.val, self.target), np.sqrt((1.0 / self.val.shape[0])), places=6)
 
     def test_MAE(self):
-        m = MAE()
+        m = MEE()
         # Test case 1: Perfect prediction
         self.assertEqual(m.ComputeMetric(self.val, self.val), 0.0)
         # Test case 2: Prediction with errors

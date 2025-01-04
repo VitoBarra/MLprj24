@@ -24,11 +24,11 @@ class DataExamples(object):
     """
     Label: ndarray
     Data: ndarray
-    Id: ndarray
+    Id: ndarray | None
     DataLength: int
     isCategorical: bool
 
-    def __init__(self, data: np.ndarray, label: np.ndarray, Id: np.ndarray) -> None:
+    def __init__(self, data: np.ndarray, label: np.ndarray, Id: np.ndarray = None) -> None:
         """
         Initializes a DataExamples object with data and labels.
 
@@ -36,17 +36,22 @@ class DataExamples(object):
         :param label: A numpy array containing the labels for the data.
         :raises ValueError: If the length of data and label do not match.
         """
-        self.DataLength = data.shape[0]
-
-        if self.DataLength != label.shape[0]:
+        self.LabelStat = None
+        self.DataStat = None
+        if data.shape[0] != label.shape[0]:
             raise ValueError('Data and label must have the same length')
-        if self.DataLength != Id.shape[0]:
+        if Id is not None and data.shape[0] != Id.shape[0]:
             raise ValueError('Data and id must have the same length')
 
         self.Data = data
         self.Label = label
         self.Id = Id
         self.isCategorical = False
+    @classmethod
+    def Clone(cls, dataExamples: 'DataExamples'):
+        if dataExamples is None:
+            return None
+        return DataExamples(dataExamples.Data, dataExamples.Label, dataExamples.Id)
 
 
 
@@ -58,7 +63,7 @@ class DataExamples(object):
 
     def __next__(self):
         self.current=self.current+1
-        if self.current >= self.DataLength :
+        if self.current >= len(self.Data) :
             raise StopIteration  # Stop iteration when we've passed the end
         return self.Data[self.current], self.Label[self.current], self.Id[self.current]
 
@@ -134,23 +139,64 @@ class DataExamples(object):
         Data = DataExamples(self.Data[splitIndex:], self.Label[splitIndex:], self.Id[splitIndex:])
         return Data, dataSplit
 
-    def Standardize(self, normalizeLables:bool, datastat: (float, float ) = None, lablestat: (float, float ) = None) -> ((float, float), (float, float)):
+    def Standardize(self, standardizeLabel:bool, datastat: (float, float) = None, lablestat: (float, float) = None) -> ((float, float), (float, float)):
         """
         Normalizes the data by subtracting the mean and dividing by the standard deviation.
 
-        :param normalizeLables:  normalize the lables or not.
+        :param standardizeLabel:  normalize the lables or not.
         :param datastat: An optional precomputed mean for normalization. Defaults to the mean of the dataset.
         :param lablestat: An optional precomputed standard deviation for normalization. Defaults to the std of the dataset.
         """
 
-        (meanD,stdD), self.Data = DataExamples._normalization(self.Data, datastat)
-        if normalizeLables:
-            (meanL,stdL), self.Label = DataExamples._normalization(self.Label, lablestat)
+        (meanD,stdD), self.Data = DataExamples._Standardization(self.Data, datastat)
+        if standardizeLabel:
+            (meanL,stdL), self.Label = DataExamples._Standardization(self.Label, lablestat)
+            self.DataStat = (meanD,stdD)
+            self.LabelStat = (meanL,stdL)
             return (meanD,stdD), (meanL,stdL)
         return (meanD,stdD), None
 
+    def Undo_Standardization(self, normalizeLabels: bool) -> None:
+        """
+        Reverses the standardization of the data and optionally the labels.
+
+        :param normalizeLabels: Indicates whether to reverse standardization for the labels.
+        """
+
+        if self.DataStat is not None:
+            meanD, stdD = self.DataStat
+            if stdD != 0:  # Avoid division by zero
+                self.Data = (self.Data * stdD) + meanD
+
+        if normalizeLabels and  self.LabelStat is not None:
+            meanL, stdL = self.LabelStat
+            if stdL != 0:  # Avoid division by zero
+                self.Label = (self.Label * stdL) + meanL
+
+    def Undo_Standardization_ExternalData(self, Data,lables) :
+        """
+        Reverses the standardization of the data and optionally the labels.
+
+        :param normalizeLabels: Indicates whether to reverse standardization for the labels.
+        """
+
+        if Data is None:
+            raise ValueError("Data must be provided.")
+
+        resultData,resultLabels = None,None
+        if self.DataStat is not None:
+            meanD, stdD = self.DataStat
+            resultData = (self.Data * stdD) + meanD
+
+        if lables is not None and  self.LabelStat is not None:
+            meanL, stdL = self.LabelStat
+            resultLabels = (self.Label * stdL) + meanL
+
+        return resultData,resultLabels
+
+
     @staticmethod
-    def _normalization(data , stat) -> ((float, float), list[float]):
+    def _Standardization(data, stat) -> ((float, float), list[float]):
         mean,std = None,None
 
         if stat is not None:
@@ -165,8 +211,6 @@ class DataExamples(object):
     def ToCategoricalLabel(self) -> None:
         """
         Converts the labels to categorical format (one-hot encoding).
-
-        :raises NotImplementedError: If the method for conversion is not implemented.
         """
         self.Label = one_hot_encode(self.Label)
 
@@ -204,7 +248,21 @@ class DataExamples(object):
 
         :return: The number of samples as an integer.
         """
-        return self.DataLength
+        return len(self.Data)
+
+
+    def PrintData(self, name :str):
+        print(f"{name} data {len(self.Data)} :")
+        for d, l, id in self:
+            print(d, l, id)
+
+    def CutData(self,  finish,start=0):
+
+        self.Data = self.Data[start:finish]
+        self.Label = self.Label[start:finish]
+        if self.Id is not None:
+            self.Id = self.Id[start:finish]
+
 
 
 

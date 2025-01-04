@@ -82,11 +82,39 @@ class RMSE(Metric):
         return np.sqrt(np.square(val - target).mean())
 
 
+class MEE(Metric):
+    """
+    Computes the Mean Euclidian Error (MEE) between predicted and target values.
+
+    MEE measures the average magnitude of the errors without considering their direction.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.Name = "MEE"
+
+    def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
+        """
+        Computes the Mean Euclidian Error.
+
+        :param val: A numpy array of predicted values.
+        :param target: A numpy array of target (ground truth) values.
+        :return: The Mean Euclidian Error as a float.
+        """
+        if val.shape != target.shape:
+            raise ValueError(f"The size of val and target must be the same but instead where {val.shape} and {target.shape}")
+        differences = val - target
+        if len(differences.shape) == 1:
+            differences  = differences.reshape(-1,1)
+
+        norms = np.linalg.norm(differences, axis=1)  # L2 norm for each sample
+        mee = np.mean(norms)
+        return mee  # Return the mean of the L2 norms
+
+
 class MAE(Metric):
     """
     Computes the Mean Absolute Error (MAE) between predicted and target values.
-
-    MAE measures the average magnitude of the errors without considering their direction.
     """
 
     def __init__(self):
@@ -102,14 +130,11 @@ class MAE(Metric):
         :return: The Mean Absolute Error as a float.
         """
         if val.shape != target.shape:
-            raise ValueError(f"The size of val and target must be the same but instead where {val.shape} and {target.shape}")
-        differences = val - target
-        if len(differences.shape) == 1:
-            differences  = differences.reshape(-1,1)
+            raise ValueError(f"The size of val and target must be the same but instead were {val.shape} and {target.shape}")
 
-        norms = np.linalg.norm(differences, axis=1)  # L2 norm for each sample
-        mee = np.mean(norms)
-        return mee  # Return the mean of the L2 norms
+        # Compute Mean Absolute Error
+        mae = np.mean(np.abs(val - target))
+        return mae
 
 
 class Accuracy(Metric):

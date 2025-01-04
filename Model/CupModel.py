@@ -1,36 +1,38 @@
-from sklearn.linear_model import LinearRegression
-
-from Core.ActivationFunction import *
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.FeedForwardModel import *
+from Core.ActivationFunction import *
+from Core.Metric import *
+from Core.Optimizer.BackPropagationMomentum import BackPropagationMomentum
+from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
+from Model.ModelResults import PlotMultipleModels, PlotTableVarianceAndMean
+from Utility.PlotUtil import *
 from Core.Layer import DropoutLayer
 from Core.LossFunction import MSELoss
-from Core.Metric import *
-from Core.ModelSelection import BestSearch, BestSearchKFold
+from Core.ModelSelection import BestSearch, BestSearchKFold, ModelSelection
 from Core.Optimizer.Adam import Adam
 from Core.Optimizer.BackPropagation import BackPropagation
-from Core.Tuner.HpSearch import RandomSearch
+from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.WeightInitializer import GlorotInitializer
-from Utility.PlotUtil import *
 from dataset.ReadDatasetUtil import readCUP
-
-import json
+import random
 from statistics import mean, variance
-import matplotlib.pyplot as plt
-USE_KFOLD = False
-USE_ADAM = True
-MULTI = True
 
-def HyperModel_CAP(hp :HyperBag ):
+USE_KFOLD = False
+USE_ADAM = False
+MULTY = False
+
+
+def HyperModel_CAP(hp: HyperBag):
     model = ModelFeedForward()
 
     act_fun = TanH()
 
-    model.AddLayer(Layer(12, Linear(), True, "input"))
+    model.AddLayer(Layer(12, Linear(), False, "input"))
     for i in range(hp["hlayer"]):
         if hp["drop_out"] is not None:
-            model.AddLayer(DropoutLayer(hp["unit"],act_fun, hp["drop_out"], True, f"drop_out_h{i}"))
+            model.AddLayer(DropoutLayer(hp["unit"], act_fun, hp["drop_out"], True, f"drop_out_h{i}"))
         else:
             model.AddLayer(Layer(hp["unit"], act_fun, True, f"_h{i}"))
 
@@ -38,19 +40,18 @@ def HyperModel_CAP(hp :HyperBag ):
 
     loss = MSELoss()
     if USE_ADAM:
-        optimizer = Adam(loss,hp["eta"], hp["labda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
+        optimizer = Adam(loss, hp["eta"], hp["labda"], hp["alpha"], hp["beta"], hp["epsilon"], hp["decay"])
     else:
-        optimizer = BackPropagation(loss, hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+        optimizer = BackPropagation(loss, hp["eta"], hp["labda"], hp["alpha"], hp["decay"])
 
     return model, optimizer
-
 
 
 def HyperBag_Cap():
     hp = HyperBag()
 
     hp.AddRange("eta", 0.001, 0.1, 0.01)
-    hp.AddRange("labda", 0.001, 0.1, 0.001)
+    #hp.AddRange("labda", 0.001, 0.1, 0.001)
     hp.AddRange("alpha", 0.1, 0.9, 0.1)
     hp.AddRange("decay", 0.001, 0.1, 0.001)
 
@@ -66,189 +67,177 @@ def HyperBag_Cap():
 
     return hp
 
-def ReadCUP(val_split:float = 0.15, test_split:float =0.5):
+
+def ReadCUP(val_split: float = 0.15, test_split: float = 0.5):
     file_path_cup = "dataset/CUP/ML-CUP24-TR.csv"
     all_data = readCUP(file_path_cup)
-    all_data.PrintData()
+    #all_data.PrintData()
 
-    all_data.Split(val_split, test_split)
-    all_data.Standardize(True)
+    if not USE_KFOLD or MULTY:
+        all_data.Split(val_split, test_split)
+        #all_data.Standardize(True)
+    baseline_metric = MEE()
+    return all_data, baseline_metric
 
-    baseline_metric = MAE()
-    return all_data,baseline_metric
+def ModelSelection(dataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -> tuple[ModelFeedForward, HyperBag]:
+    if USE_KFOLD:
+        ModelSelector = BestSearchKFold(HyperBag_Cap(), RandomSearch(NumberOrTrial))
+    else:
+        ModelSelector = BestSearch(HyperBag_Cap(), RandomSearch(NumberOrTrial))
+
+    watched_metric = "val_loss"
+    callback = [EarlyStopping(watched_metric, 25)]
+
+    best_model, best_hpSel = ModelSelector.GetBestModel(
+        HyperModel_CAP,
+        dataset,
+        500,
+        128,
+        watched_metric,
+        [BaselineMetric],
+        GlorotInitializer(),
+        callback)
+    #best_model.PlotModel("CUP Model")
+    return best_model, best_hpSel
 
 
 
-
-
-def SaveResults(results, path: str = "Data/Results/model_results.json") -> None:
-    """
-    Save the model results to a JSON file.
-
-    :param results: Dictionary of model results (metrics and hyperparameters).
-    :param path: Path to save the results JSON file.
-    """
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(results, f, indent=4)
-
-def TrainMultipleModels(num_models: int = 5) -> None:
+def TrainMultipleModels(num_models: int = 5,NumberOrTrial:int=50) -> None:
     """
     Train multiple models and evaluate their performance.
 
     :param num_models: Number of models to train.
     """
+    CupDataset, BaselineMetric = ReadCUP(0.15, 0.05)
     results = {}
-    for i in range(num_models):
+
+    print("Performing initial Random Search for best hyperparameters...")
+
+
+    best_model, best_hpSel = ModelSelection(CupDataset,BaselineMetric,NumberOrTrial)
+
+
+    print(f"Best hyperparameters found: {best_hpSel}")
+
+    SavedTraining = DataExamples.Clone(CupDataset.Training)
+    if not USE_KFOLD:
+        SavedTraining.Concatenate(CupDataset.Validation)
+        CupDataset.Validation=None
+
+    seedList = [random.randint(0, 1000) for _ in range(num_models)]
+    for i,seed in zip(range(num_models),seedList):
+        training:DataExamples = DataExamples.Clone(SavedTraining)
+        training.Shuffle(seed)
+        CupDataset.Training = training
+        #monkDataset.Training.CutData(-55)
         print(f"Training Model {i + 1}/{num_models}...")
 
-        if USE_KFOLD:
-            ModelSelector = BestSearchKFold(HyperBag_Cap(), RandomSearch(50), 5)
-        else:
-            ModelSelector = BestSearch(HyperBag_Cap(), RandomSearch(5))
-
-        watched_metric = "val_loss"
-        callBacks = [EarlyStopping(watched_metric, 50)]
-
-        best_model, best_hpSel = ModelSelector.GetBestModel(
-            HyperModel_CAP,
-            alldata,
-            500,
-            64,
-            watched_metric,
-            [BaselineMetric],
-            GlorotInitializer(),
-            callBacks
-        )
+        model, optimizer = HyperModel_CAP(best_hpSel)
+        model.Build(GlorotInitializer())
+        model.AddMetric(BaselineMetric)
+        model.Fit( optimizer,CupDataset, 250, 64,)
 
         model_name = f"CUP_Model_{i}"
-        best_model.SaveModel(f"Data/Models/{model_name}.vjf")
-        best_model.SaveMetricsResults(f"Data/Results/{model_name}.mres")
-        best_model.PlotModel(f"CUP_Model_ Model {i}")
+        model.SaveModel(f"Data/Models/{model_name}.vjf")
+        model.SaveMetricsResults(f"Data/Results/{model_name}.mres")
 
         # Save metrics
         results[model_name] = {
             "hyperparameters": best_hpSel,
-            "metrics": best_model.MetricResults
+            "metrics": model.MetricResults
         }
-    PlotMultipleModels(results)
-    CalculateVarianceAndMean(results)
+    PlotMultipleModels(results,"test_loss")
+    PlotTableVarianceAndMean(results)
 
-def CalculateVarianceAndMean(results: dict) -> None:
-    """
-    Calculate and display mean and variance for each model's metrics.
 
-    :param results: Dictionary containing model metrics.
-    """
-    metric_summary = {}
-    for model_name, model_data in results.items():
-        for metric, values in model_data["metrics"].items():
-            if metric not in metric_summary:
-                metric_summary[metric] = []
-            metric_summary[metric].append(values[-1])
-
-    final_summary = {}
-    metrics = []
-    means = []
-    variances = []
-
-    for metric, values in metric_summary.items():
-        mean_val = mean(values)
-        variance_val = variance(values)
-        final_summary[metric] = {
-            "mean": mean_val,
-            "variance": variance_val
-        }
-        metrics.append(metric)
-        means.append(mean_val)
-        variances.append(variance_val)
-
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.axis('tight')
-    ax.axis('off')
-    table_data = list(zip(metrics, means, variances))
-    table = plt.table(cellText=table_data,
-                      colLabels=["Metric", "Mean", "Variance"],
-                      cellLoc='center',
-                      loc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(12)
-    table.scale(1.2, 1.2)
-    plt.title("Table of Means and Variances")
-    plt.show()
-
-    SaveResults(final_summary)
-
-def PlotMultipleModels(results: dict) -> None:
-    """
-    Plot the test loss for multiple models, including individual model losses and the mean curve.
-
-    :param results: Dictionary containing model metrics.
-    """
-    plt.figure(figsize=(12, 8))
-
-    all_losses = []
-    min_length = min(len(model_data["metrics"]["test_loss"]) for model_data in results.values())
-
-    for model_name, model_data in results.items():
-        loss_values = model_data["metrics"]["test_loss"][:min_length]
-        all_losses.append(loss_values)
-        plt.plot(loss_values, color='dodgerblue', alpha=0.2)
-
-    all_losses = np.array(all_losses)
-    mean_loss = np.mean(all_losses, axis=0)
-    plt.plot(mean_loss, color='blue', linewidth=2, label='Mean')
-
-    plt.xlabel("Epochs")
-    plt.ylabel("Test Loss")
-    plt.title("Test Loss Comparison for Multiple Models")
-    plt.legend()
-    plt.show()
-
-if __name__ == '__main__':
-
-    alldata, BaselineMetric= ReadCUP(0.15, 0.05)
-    if MULTI:
-        TrainMultipleModels(5)
+def GenerateTagName():
+    tagName=""
+    if USE_ADAM:
+        tagName += "_Adam"
     else:
+        tagName +="_Backprop"
+    return tagName
 
 
-        if USE_KFOLD:
-            ModelSelector = BestSearchKFold(HyperBag_Cap(), RandomSearch(50), 5)
-        else:
-            ModelSelector = BestSearch(HyperBag_Cap(), RandomSearch(50))
+def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
+    mode = HyperBag()
+    mode.AddChosen("Adam", [True, False])
+    global USE_ADAM
+    gs = GridSearch()
+    for modes, _ in gs.search(mode):
+        USE_ADAM = modes["Adam"]
 
+        tagName = GenerateTagName()
 
-        watched_metric = "val_loss"
-        best_model, best_hpSel = ModelSelector.GetBestModel(
-            HyperModel_CAP,
-            alldata,
-            500,
-            128,
-            watched_metric,
-            [baselineMetric],
-            GlorotInitializer(),
-            [EarlyStopping(watched_metric, 10)])
-
+        CupDataset, BaselineMetric_MEE = ReadCUP(0.15, 0.05)
+        best_model, best_hpSel = ModelSelection(CupDataset,BaselineMetric_MEE,NumberOrTrial)
+        best_model:ModelFeedForward
         print(f"Best hp : {best_hpSel}")
         best_model.PlotModel("CUP Model")
 
-        best_model.SaveModel("Data/Models/BestCup.vjf")
-        best_model.SaveMetricsResults("Data/Results/BestCup.mres")
+        best_model.SaveMetricsResults(f"Data/Results/Cup{tagName}.mres")
+        best_model.SaveModel(f"Data/Models/Cup{tagName}.vjf")
+        GeneratePlot(BaselineMetric_MEE,best_model.MetricResults,CupDataset , tagName)
 
-        lin_model = LinearRegression()
-        lin_model.fit(alldata.Training.Data, alldata.Training.Label)
-        print(f"R2 on test: {lin_model.score(alldata.Validation.Data, alldata.Validation.Label)}%")
-        predictions = lin_model.predict(alldata.Validation.Data)
-        baseline = baselineMetric.ComputeMetric(predictions, alldata.Validation.Label)
+        res = {}
 
-        metric_to_plot = {key: value[2:] for key, value in best_model.MetricResults.items()}
+        for i in range(NumberOrTrial_mean):
+            model, optimizer = HyperModel_CAP(best_hpSel)
+            model.Build(GlorotInitializer())
+            model.AddMetric(BaselineMetric_MEE)
+            model.Fit(optimizer, CupDataset, 300, 64)
+            for key, value in model.MetricResults.items():
+                if key not in res:
+                    res[key] = []
+                res[key].append(value[-1])
+            print(f"training model {i + 1} / {NumberOrTrial_mean} " + " | ".join(
+                f"{key}:{value[-1]:.4f}" for key, value in res.items()))
 
-        plot_metric(
-            metricDic=metric_to_plot,
-            baseline=baseline,
-            baselineName= f"Baseline ({baselineMetric.Name})",
-            limitYRange=None,
-            title="CUP results",
-            xlabel="Epoche",
-            ylabel="")
+        res = {key: [mean(value),variance(value)] for key, value in res.items()}
+        res["HP"] = best_hpSel.hpDic
+
+        SaveJson(f"Data/FinalModel/CUP", f"res_CUP{tagName}.json", res)
+
+
+
+def GeneratePlot(BaselineMetric_MEE, MetricResults,CupDataset, extraname:str= ""):
+    BaselineMetric_MSE = MSE()
+    lin_model = LinearRegression()
+    lin_model.fit(CupDataset.Training.Data, CupDataset.Training.Label)
+    predictions = lin_model.predict(CupDataset.Test.Data)
+    baseline_MSE = BaselineMetric_MSE.ComputeMetric(predictions, CupDataset.Test.Label)
+    baseline_MEE = BaselineMetric_MEE.ComputeMetric(predictions, CupDataset.Test.Label)
+    metric_to_plot_loss = {key: value[1:] for key, value in MetricResults.items() if key.endswith("loss")}
+    metric_to_plot_MEE = {key: value[1:] for key, value in MetricResults.items() if key.endswith("MEE")}
+    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+    plot_metrics(
+        metricDic=metric_to_plot_loss,
+        baseline=baseline_MSE,
+        baselineName=f"Baseline ({BaselineMetric_MSE.Name})",
+        limitYRange=None,
+        title=f"CUP results {BaselineMetric_MSE.Name}",
+        xlabel="Epochs",
+        ylabel="",
+        subplotAxes=axes[0])
+    plot_metrics(
+        metricDic=metric_to_plot_MEE,
+        baseline=baseline_MEE,
+        baselineName=f"Baseline ({BaselineMetric_MEE.Name})",
+        limitYRange=None,
+        title=f"CUP results {BaselineMetric_MEE.Name}",
+        xlabel="Epochs",
+        ylabel="",
+        subplotAxes=axes[1])
+    # Adjust layout and save the entire figure
+    fig.tight_layout()
+    ShowOrSavePlot(f"Data/Plots/CUP", f"Loss(MSE)-MEE{extraname}")
+
+
+if __name__ == '__main__':
+
+    alldata, BaselineMetric = ReadCUP(0.15, 0.05)
+
+    if MULTY:
+        TrainMultipleModels(40,50)
+    else:
+        TrainCUPModel(150, 50)

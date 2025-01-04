@@ -24,12 +24,17 @@ class DataSet(object):
     Test:       DataExamples | None
     Validation: DataExamples | None
     Training:   DataExamples | None
+    Kfolds: list[tuple[DataExamples,DataExamples]] | None
 
-    def __init__(self, ):
+    Splitted: bool
+
+    def __init__(self ):
+        self.Kfolds = None
         self._Data = None
         self.Test = None
         self.Validation = None
         self.Training = None
+        self.Splitted = False
 
     @classmethod
     def FromData(cls, data: np.ndarray, label: np.ndarray, Id: np.ndarray):
@@ -44,19 +49,57 @@ class DataSet(object):
             raise ValueError("Data and label must be provided.")
         dataset = DataSet()
         dataset._Data = DataExamples(data, label, Id)
+        dataset.DataLength = len(dataset._Data)
 
-        dataset.Training = None
-        dataset.Validation = None
-        dataset.Test = None
+        return dataset
+
+
+    @classmethod
+    def FromDataExample(cls, data:DataExamples):
+        dataset = DataSet()
+        dataset._Data = data
+
         return dataset
 
     @classmethod
-    def FromDataExample(cls, Training:DataExamples, Validation:DataExamples, Test:DataExamples):
+    def FromDataExampleTVT(cls, Training:DataExamples, Validation:DataExamples, Test:DataExamples):
         dataset = DataSet()
+
+        alldata = DataExamples.Clone(Training)
+        alldata.Concatenate(Validation)
+        alldata.Concatenate(Test)
+        dataset._Data = alldata
+
         dataset.Training = Training
         dataset.Validation = Validation
         dataset.Test = Test
+
+
+
         return dataset
+
+    @classmethod
+    def FromDataExampleTV(cls, Training:DataExamples, Test:DataExamples):
+        dataset = DataSet()
+
+        alldata = DataExamples.Clone(Training)
+        alldata.Concatenate(Test)
+        dataset._Data = alldata
+
+        dataset.Training = Training
+        dataset.Test = Test
+
+        return dataset
+
+    @classmethod
+    def Clone(cls, dataset:'DataSet'):
+        dataset_new = DataSet()
+        dataset_new._Data = DataExamples.Clone(dataset._Data)
+        dataset_new.Training = DataExamples.Clone(dataset.Training)
+        dataset_new.Validation = DataExamples.Clone(dataset.Validation)
+        dataset_new.Test = DataExamples.Clone(dataset.Test)
+
+        return dataset_new
 
     def Split(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> (DataExamples, DataExamples, DataExamples):
         """
@@ -66,11 +109,12 @@ class DataSet(object):
         :param testPercent: The fraction of the dataset to be used for testing.
         :return: The current DataSet object with split data.
         """
+
         self.Training, self.Validation, self.Test = self._Data.SplitDataset(validationPercent, testPercent)
-        self._Data = None
+        self.Splitted = True
         return self.Training, self.Validation, self.Test
 
-    def Split2(self, validationPercent: float = 0.15, test:str = None) -> (DataExamples, DataExamples, DataExamples):
+    def SplitTV(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> (DataExamples, DataExamples, DataExamples):
         """
         Splits the dataset into training, validation, and test sets.
 
@@ -78,55 +122,35 @@ class DataSet(object):
         :param testPercent: The fraction of the dataset to be used for testing.
         :return: The current DataSet object with split data.
         """
-        dataLength = self._Data.Data.shape[0]
-        trainingBound = int(dataLength * (1 - validationPercent))
-        valBound = int(dataLength * validationPercent)
-        self.Training = DataExamples(self._Data.Data[:trainingBound], self._Data.Label[:trainingBound], self._Data.Id[:trainingBound])
-        self.Validation = DataExamples(self._Data.Data[trainingBound:trainingBound + valBound],
-                                  self._Data.Label[trainingBound:trainingBound + valBound],
-                                  self._Data.Id[trainingBound:trainingBound + valBound])
-        self.Test = self.readMonkTest(test)
-        #self._Data = None
+        self.Training, self.Validation, = self._Data.SplitIn2(validationPercent)
+        self.Splitted = True
+        return self.Training, self.Validation
 
-    def readMonkTest(self, file_path: str):
-        data = []
-        labels = []
-        ids = []
-        with open(file_path, 'r') as file:
-            for line in file:
-                parts = line.strip().split()
-                if len(parts) != 8:
-                    raise ValueError("we want 8 elements in this file.")
 
-                # I primi sei valori come array di dati
-                data.append([int(x) for x in parts[1:7]])
-                # Il settimo valore come label
-                labels.append(int(parts[0]))
-                # L'ottavo valore come ID
-                ids.append(parts[7])
-
-        # Converts list to array NumPy
-        data = np.array(data)
-        labels = np.array(labels)
-        labels = labels.reshape(labels.shape[0], 1)
-        ids = np.array(ids)
-
-        return DataExamples(data, labels, ids)
-
-    def Standardize(self, normalizeLable :bool= False) -> 'DataSet':
+    def Standardize(self, Lable :bool= False) -> 'DataSet':
         """
         Standardize the dataset by subtracting the mean and dividing by the standard deviation.
 
         :return: The current DataSet object with normalized data.
         :raises ValueError: If normalization is attempted before splitting the dataset.
         """
-        #if self._Data is not None:
-        #    raise ValueError('Standardize function must be called after splitDataset')
+        if not self.Splitted:
+           raise ValueError('Standardize function must be called after splitDataset')
 
-        (statd,statl) = self.Training.Standardize(normalizeLable)
-        self.Validation.Standardize(normalizeLable,statd,statl)
-        self.Test.Standardize(normalizeLable,statd,statl)
+        (statd,statl) = self.Training.Standardize(Lable)
+        self.Validation.Standardize(Lable, statd, statl)
+        self.Test.Standardize(Lable, statd, statl)
         return self
+    def UndoStandardization(self, lable :bool= False):
+        if self._Data is not None:
+            self._Data.Undo_Standardization(lable)
+        if self.Training is not None:
+            self.Training.Undo_Standardization(lable)
+        if self.Validation is not None:
+            self.Validation.Undo_Standardization(lable)
+        if self.Test is not None:
+            self.Test.Undo_Standardization(lable)
+
 
     def ToCategoricalLabel(self) -> 'DataSet':
         """
@@ -164,7 +188,7 @@ class DataSet(object):
         :return: The current DataSet object with shuffled data.
         :raises ValueError: If shuffling is attempted after splitting the dataset.
         """
-        if self._Data is None:
+        if self.Splitted:
             raise ValueError('shuffle function must be called before splitDataset')
         self._Data.Shuffle(seed)
         return self
@@ -196,24 +220,18 @@ class DataSet(object):
         Prints the sizes of the training, validation, and test splits.
         """
 
+        if not self.Splitted:
+            self._Data.PrintData("all")
+        else:
+            if self.Training is not None:
+                self.Training.PrintData("Training")
+            if self.Validation is not None:
+                self.Validation.PrintData("Validation")
+            if self.Test is not None:
+                self.Test.PrintData("Test")
 
-        if self._Data is not None:
-            print("All Data:")
-            for d, l, id in self._Data:
-                print(d,l, id)
 
-        if self.Training is not None:
-            print("Training data:")
-            for d, l, id in self.Training:
-                print(d, l, id)
-        if self.Validation is not None:
-            print("Validation data:")
-            for d, l, id in self.Validation:
-                print(d, l, id)
-        if self.Test is not None:
-            print("Test data:")
-            for d, l, id in self.Test:
-                print(d, l, id)
+
 
     def FlattenSeriesData(self) -> None:
         """
@@ -228,7 +246,7 @@ class DataSet(object):
         if self.Test is not None:
             self.Test.FlattenSeriesData()
 
-    def Kfold_TestHoldOut(self, k: int, testRate: float = 0.15) -> (DataExamples, [(DataExamples, DataExamples)]):
+    def SetUp_Kfold_TestHoldOut(self, k: int, testRate: float = 0.15) -> None :
         """
         Perform k-fold cross-validation, returning a test set and an array of tuples (train_set, val_set).
 
@@ -243,11 +261,28 @@ class DataSet(object):
             raise ValueError("Number of folds cannot exceed the number of examples.")
 
         # Split into test set and remaining data
-        data, test_set = self._Data.SplitIn2(testRate)
+        if testRate<=0:
+            data, test_set = self._Data.SplitIn2(testRate)
+            self.Test = test_set
+        else:
+            data = self._Data
 
+        if self.Test is None:
+            raise ValueError(f"Test set must be manually set or the testRate must be greater than 0 (it was {testRate} ) ")
+
+
+        self.Kfolds = self._GenerateKFoldSplit(data, k)
+
+        Total_tr = DataExamples.Clone(self.Kfolds[0][0])
+        Total_tr.Concatenate(self.Kfolds[0][1])
+        self.Training = Total_tr
+
+
+
+    def _GenerateKFoldSplit(self,data: DataExamples , k : int = 5) -> list[tuple[DataExamples, DataExamples]] :
         # Calculate fold sizes
         fold_size = len(data)    // k
-        remainder = len(data) % k
+        remainder = len(data)    % k
 
         # Create folds
         folds = []
@@ -283,8 +318,7 @@ class DataSet(object):
                 np.concatenate(train_set_ids, axis=0) if train_set_ids else None
             )
             foldsSplit.append((train_set, val_set))
-
-        return test_set, foldsSplit
+        return foldsSplit
 
 
     @classmethod
@@ -297,7 +331,7 @@ class DataSet(object):
         :param Test: A DataExamples object for the test subset.
         :return: An instance of the DataSet class.
         """
-        instance = DataSet(None, None)
+        instance = DataSet()
 
         instance.Training = training
         instance.Validation = Validation
@@ -306,6 +340,13 @@ class DataSet(object):
 
     def ApplayTranformationOnLable(self, param):
         self._Data.Label = param(self._Data.Label)
+        if self.Training is not None:
+            self.Training.Label = param(self.Training.Label)
+        if self.Validation is not None:
+            self.Validation.Label = param(self.Validation.Label)
+        if self.Test is not None:
+            self.Test.Label = param(self.Test.Label)
+        return self
 
 
 

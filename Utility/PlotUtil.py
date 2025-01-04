@@ -6,39 +6,37 @@ import networkx as nx
 from Utility.FileUtil import *
 
 
-#si può usare anche oer l'accuracu, basta passargli il valore oer training e validation con i corretti label
-def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = None, baselineName : str = "Baseline",
-                title: str = "Loss per Epoch", xlabel: str = "Epochs", ylabel: str = "Loss Value", limitYRange = None,
-                path: str = None) -> None:
+
+def plot_metrics(metricDic, baseline=None, baselineName="Baseline", title="Title",
+                 xlabel="X-axis", ylabel="Y-axis", limitYRange=None, path=None, subplotAxes=None):
     """
-    Plots loss curves over epochs using a given loss matrix, using different line styles for better distinction in black and white.
+    :brief Plots metrics with optional baseline, as either a standalone plot or a subplot.
 
-    Args:
-        metricDic (list of lists or numpy.ndarray): A matrix where each row represents an epoch
-                                                      and each column corresponds to a different loss function.
-        labels (list of str, optional): Labels for each loss function. Should match the number of columns in the matrix.
-                                        Default is None, in which case generic labels will be used.
-        title (str, optional): Title of the plot. Default is "Loss per Epoch".
-        xlabel (str, optional): Label for the x-axis. Default is "Epochs".
-        ylabel (str, optional): Label for the y-axis. Default is "Loss Value".
-        path (str, optional): Path to save the plot. Default is None (plot is shown but not saved).
-
-    Returns:
-        None
+    :param metricDic A dictionary where keys are labels and values are lists of metric values to plot.
+    :param baseline (Optional) A constant baseline value to plot. Default is None.
+    :param baselineName (Optional) The label for the baseline line. Default is "Baseline".
+    :param title (Optional) The title of the plot or subplot. Default is "Title".
+    :param xlabel (Optional) The label for the x-axis. Default is "X-axis".
+    :param ylabel (Optional) The label for the y-axis. Default is "Y-axis".
+    :param limitYRange (Optional) A tuple specifying the y-axis limits (min, max). Default is None.
+    :param path (Optional) The path to save the plot if provided. Default is None.
+    :param subplotAxes (Optional) A matplotlib Axes object to use for a subplot. If None, a new figure is created.
     """
-
-    labels = metricDic.keys()
+    # If no subplot axes are provided, create a new figure
+    if subplotAxes is None:
+        plt.figure(figsize=(10, 6))
+        ax = plt.gca()  # Get the current axes
+    else:
+        ax = subplotAxes
 
     # Define different line styles and markers for black-and-white readability
     linestyles = ['-', '--', '-.', ':']
     markers = ['o', 's', 'D', '^']
 
-    plt.figure(figsize=(10, 6))
-
-
     # Plot each loss function with different styles
-    for i,label in enumerate(labels):
-        plt.plot(
+    labels = metricDic.keys()
+    for i, label in enumerate(labels):
+        ax.plot(
             metricDic[label],
             label=label,
             linestyle=linestyles[i % len(linestyles)],  # Cycle through linestyles
@@ -47,9 +45,9 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = Non
             linewidth=1.5
         )
 
-        # Plot the baseline
+    # Plot the baseline
     if baseline is not None:
-        plt.plot(
+        ax.plot(
             [baseline for _ in range(len(list(metricDic.values())[0]))],
             label=baselineName,
             color="magenta",
@@ -58,31 +56,18 @@ def plot_metric(metricDic: dict[list[float]] | np.ndarray, baseline: float = Non
         )
 
     # Add title, labels, and legend
-    plt.title(title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
+    ax.set_title(title,fontsize=22)
+    ax.set_xlabel(xlabel,fontsize=18)
+    ax.set_ylabel(ylabel,fontsize=18)
     if limitYRange is not None:
-        plt.ylim(*limitYRange)
-    plt.legend()
+        ax.set_ylim(*limitYRange)
+    ax.legend()
+    ax.legend(fontsize=18)
+    ax.grid(True)
 
-    # Show grid and save the plot if a path is provided
-    plt.grid(True)
-    if path is not None:
-        directory = os.path.dirname(path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        plt.savefig(path, format='png', dpi=300)
-        print(f"Plot saved to {path}")
-
-
-
-
-
-
-    plt.show()
-
-
-
+    # Save the plot if path is provided, only for standalone plots
+    if subplotAxes is None:
+        ShowOrSavePlot(path, title)
 
 def ShowOrSavePlot(path=None, filename=None):
     if path is None or path == '':
@@ -244,7 +229,15 @@ def plot_neural_network_with_transparency(weights , plotName = "Neural Network D
                 edges.append((src_idx, tgt_idx))
                 # Calculate transparency and color based on weight magnitude
                 intensity = abs(weight) / max_weight_module
-                alpha = intensity  # Transparency (smaller weight = more transparent)
+                # Transparency (smaller weight = more transparent)
+                if intensity <= 0:
+                    alpha = 0.05
+                    print(f"{intensity=}")
+                elif intensity > 1:
+                    alpha = 1
+                    print(f"{intensity=}")
+                else:
+                    alpha = intensity
                 color = "red" if weight < 0 else "blue"
                 edge_colors.append(color)
                 edge_alphas.append(alpha)

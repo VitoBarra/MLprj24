@@ -5,7 +5,7 @@ from Utility.DataSet import DataSet
 from Utility.DataUtil import *
 
 
-def readMonk(file_path:str) -> DataSet:
+def readMonk(file_path:str) -> DataExamples:
     data = []
     labels = []
     ids = []
@@ -28,8 +28,8 @@ def readMonk(file_path:str) -> DataSet:
     labels = np.array(labels)
     labels = labels.reshape(labels.shape[0], 1)
     ids = np.array(ids)
-
-    return DataSet.FromData(data, labels, ids)
+    de = DataExamples(data, labels, ids)
+    return de
 
 
 
