@@ -1,12 +1,7 @@
 import random
 from itertools import product
 
-from Core import FeedForwardModel
-from Core.Callback.CallBack import CallBack
-from Core.Metric import Metric
 from Core.Tuner.HyperBag import HyperBag
-from Core.WeightInitializer import GlorotInitializer
-from Utility.DataSet import DataSet
 
 
 class HyperParameterSearch:
@@ -14,12 +9,12 @@ class HyperParameterSearch:
     def __init__(self):
         pass
 
-    def search(self, hp:HyperBag) -> (dict[str, any], int):
+    def Search(self, hp:HyperBag) -> (dict[str, any], int):
         yield None,0
 
     def GetName(self):
         return "BaseClass"
-    def TrialNumber(self):
+    def GetTrialNumber(self):
         return 0
 
 class GridSearch(HyperParameterSearch):
@@ -30,7 +25,7 @@ class GridSearch(HyperParameterSearch):
         self.trials = 0
 
 
-    def search(self, hp:HyperBag) -> (dict[str, any], int):
+    def Search(self, hp:HyperBag) -> (dict[str, any], int):
         keys = hp.Keys()
         values = hp.Values()
         prod = list(product(*values))
@@ -42,7 +37,7 @@ class GridSearch(HyperParameterSearch):
 
     def GetName(self):
         return "GridSearch"
-    def TrialNumber(self):
+    def GetTrialNumber(self):
         return self.trials
 
 
@@ -54,7 +49,7 @@ class RandomSearch(HyperParameterSearch):
         super().__init__()
         self.trials = trials
 
-    def search(self,hp) -> (dict[str, any], int):
+    def Search(self, hp) -> (dict[str, any], int):
         keys = hp.Keys()
         values = hp.Values()
 
@@ -67,7 +62,7 @@ class RandomSearch(HyperParameterSearch):
 
     def GetName(self):
         return "RandomSearch"
-    def TrialNumber(self):
+    def GetTrialNumber(self):
         return self.trials
 
 

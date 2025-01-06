@@ -26,7 +26,6 @@ class Layer:
     LayerOutput: np.ndarray | None
     LayerInput: np.ndarray | None
     LayerNets: np.ndarray | None
-    bias : float | None
     WeightToNextLayer: np.ndarray | None
     Gradient: np.ndarray | None # Also interpreted as "velocity" of the function
     Acceleration: np.ndarray | None
@@ -57,7 +56,6 @@ class Layer:
         self.LayerInput = None
         self.LayerNets = None
         self.Name = name
-        self.bias = 1
         self.UseBias = useBias
         self.TrainMode = train
 
@@ -97,46 +95,36 @@ class Layer:
             self.LayerOutput = self.LayerInput
 
         if self.UseBias:
-            biasCol = np.full((self.LayerOutput.shape[0], 1), self.bias)
+            biasCol = np.full((self.LayerOutput.shape[0], 1), 1)
             self.LayerOutput = np.hstack((self.LayerOutput,biasCol))
 
         return self.LayerOutput
-
-    def get_weights(self) -> np.ndarray:
-        """
-        Retrieves the current weights of the layer.
-
-        :return: The weight matrix of the layer.
-        """
-        return self.WeightToNextLayer
-
-    def set_weights(self, weights: np.ndarray) -> None:
-        """
-        Sets the weights of the layer.
-
-        :param weights: The weight matrix to set for this layer.
-        """
-        self.WeightToNextLayer = weights
-
-
-    def get_gradients(self) -> np.ndarray:
-        """
-        Retrieves the last gradients of the layer.
-        :return: The matrix of last gradients of the layer.
-        """
-        return self.Gradient
-
-    def set_gradients(self, gradients: np.ndarray) -> None:
-        """
-        Sets the gradients of the layer.
-        :param gradients: New gradients of the layer.
-        """
-        self.Gradient = gradients
 
     def InferenceMode(self):
         pass
     def TrainingMode(self):
         pass
+
+    def SerializeLayer(self):
+        return {
+            "name":self.name,
+            "unit":self.Unit,
+            "activation":self.ActivationFunction.Name,
+            "useBias":self.UseBias,
+            "train":self.TrainMode,
+            "weight": self.WeightToNextLayer
+        }
+    @classmethod
+    def DeserializeLayer(self, layerDic:dict):
+        layer  = Layer(
+            layerDic["unit"],
+            ActivationFunction.GetInstances(layerDic["activation"]),
+            layerDic["useBias"],
+            layerDic["name"],
+            layerDic["train"])
+
+        layer.WeightToNextLayer = np.array(layerDic["weight"])
+        return layer
 
 
 class DropoutLayer(Layer):
@@ -200,3 +188,24 @@ class DropoutLayer(Layer):
 
     def TrainingMode(self):
         self.inferenceMode = False  # In training
+
+
+    def SerializeLayer(self):
+        return {
+            "name":self.name,
+            "unit":self.Unit,
+            "activation":self.ActivationFunction.Name,
+            "dropout_rate":self.dropout_rate,
+            "useBias":self.UseBias
+        }
+
+    @classmethod
+    def DeserializeLayer(self, layerDic:dict):
+        layer  = DropoutLayer(
+            layerDic["unit"],
+            ActivationFunction.GetInstances(layerDic["activation"]),
+            layerDic["dropout_rate"],
+            layerDic["useBias"],
+            layerDic["name"],
+            layerDic["train"])
+        return layer

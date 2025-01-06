@@ -3,14 +3,14 @@ from typing import List, Any
 
 import numpy as np
 
-from Core import MiniBatchGenerator as mb
-from Core import Metric
-from Core.ActivationFunction import ActivationFunction
-from Core.Layer import Layer
-from Core.LossFunction import LossFunction
-from Core.Optimizer.Optimizer import Optimizer
-from Core.WeightInitializer import WeightInitializer, GlorotInitializer
-from Utility.DataSet import DataSet
+from . import MiniBatchGenerator as mb
+from . import Metric
+from .ActivationFunction import ActivationFunction
+from .Layer import Layer
+from .LossFunction import LossFunction
+from .Optimizer.Optimizer import Optimizer
+from .WeightInitializer import WeightInitializer, GlorotInitializer
+from .DataSet.DataSet import DataSet
 from Utility.FileUtil import CreateDir, convert_to_serializable
 from Utility.PlotUtil import plot_neural_network_with_transparency
 
@@ -55,7 +55,7 @@ Attributes:
         """
         Trains the model using the provided input data.
 
-        :param data: Data to use
+        :param data: DataSet to use
         :param optimizer: the Optimizer to use for training.
         :param epoch: The number of epochs to train.
         :param batchSize: The size of each mini-batch.
@@ -85,7 +85,7 @@ Attributes:
                 inputs_batch, targets_batch = batch_generator.NextBatch()
 
                 outputs_batch = self.Forward(inputs_batch)
-                batch_metrics = self._compute_metrics(outputs_batch, targets_batch, optimizer.loss_function)
+                batch_metrics = self._ComputeMetrics(outputs_batch, targets_batch, optimizer.loss_function)
                 batch_accumulator.append(batch_metrics)
 
                 # Back Propagation
@@ -100,14 +100,14 @@ Attributes:
             # compute metric on validation
             if data.Validation is not None:
                 val_outputs = self.Forward(data.Validation.Data)
-                val_metric_epoch = self._compute_metrics(val_outputs, data.Validation.Label, optimizer.loss_function)
+                val_metric_epoch = self._ComputeMetrics(val_outputs, data.Validation.Label, optimizer.loss_function)
                 val_metric.append(val_metric_epoch)
                 val_metric_array = np.array(val_metric).T
 
             # compute metric on test
             if data.Test is not None:
                 test_outputs = self.Forward(data.Test.Data)
-                test_metric_epoch = self._compute_metrics(test_outputs, data.Test.Label, optimizer.loss_function)
+                test_metric_epoch = self._ComputeMetrics(test_outputs, data.Test.Label, optimizer.loss_function)
                 test_metric.append(test_metric_epoch)
                 test_metric_array = np.array(test_metric).T
 
@@ -149,12 +149,7 @@ Attributes:
         :param path: The file path to save the model to.
         :return: None
         """
-        model_data = {
-            "Units": [layer.Unit for layer in self.Layers],
-            "Activations": [layer.ActivationFunction.GetName() for layer in self.Layers],
-            "LayersWeights": [layer.get_weights() for layer in self.Layers],
-            "Names": [layer.name for layer in self.Layers]
-        }
+        model_data = {"layers": [layer.SerializeLayer() for layer in self.Layers]}
 
         CreateDir(path)
         with open(path, "w") as file:
@@ -173,11 +168,11 @@ Attributes:
         with open(path, "r") as file:
             model_data = json.load(file)
 
-        for unit, act ,name in zip(model_data["Units"], model_data["Activations"],model_data["Names"]):
-            self.AddLayer(Layer(unit, ActivationFunction.GetInstances(act),name))
+        for layerDic in model_data["layers"]:
+            layer = Layer.DeserializeLayer(layerDic)
+            self.AddLayer(layer)
 
-        for layer, weights in zip(self.Layers, model_data["LayersWeights"]):
-            layer.set_weights(np.array(weights))
+
 
     def AddMetric(self, metric: Metric) -> None:
         """
@@ -234,25 +229,25 @@ Attributes:
 
 
     def PlotModel(self, plotTitle:str = "Neural Network diagram"):
-        w = [np.array(l.get_weights()) for l in self.Layers if l.get_weights() is not None]
+        w = [np.array(l.WeightToNextLayer) for l in self.Layers if l.WeightToNextLayer is not None]
         plot_neural_network_with_transparency(w,plotTitle)
 
 
-    def Build(self, weightInizialization: WeightInitializer|None = None) -> None:
+    def Build(self, weightIni: WeightInitializer | None = None) -> None:
         """
         build each layer of the model.
 
-        :param weightInizialization: the weights' initializer.
+        :param weightIni: the weights' initializer.
 
         """
-        if weightInizialization is None:
-            weightInizialization=  GlorotInitializer()
+        if weightIni is None:
+            weightIni=  GlorotInitializer()
 
         for layer in self.Layers:
-            layer.Build(weightInizialization)
+            layer.Build(weightIni)
 
 
-    def _compute_metrics(self, output: np.ndarray, target: np.ndarray, lossFunction: LossFunction) -> np.ndarray:
+    def _ComputeMetrics(self, output: np.ndarray, target: np.ndarray, lossFunction: LossFunction) -> np.ndarray:
         """
         Computes the metrics for the current epoch.
 

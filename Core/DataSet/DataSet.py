@@ -1,6 +1,6 @@
 import numpy as np
 
-from Utility.DataExamples import DataExamples
+from .DataExamples import DataExamples
 
 
 class DataSet(object):
@@ -15,7 +15,7 @@ class DataSet(object):
        - Flatten series data for models requiring 2D inputs.
 
     Attributes:
-       Data (DataExamples | None): The complete dataset before splitting.
+       DataSet (DataExamples | None): The complete dataset before splitting.
        Test (DataExamples | None): The test subset of the dataset.
        Validation (DataExamples | None): The validation subset of the dataset.
        Training (DataExamples | None): The training subset of the dataset.
@@ -46,7 +46,7 @@ class DataSet(object):
         """
 
         if data is None or label is None:
-            raise ValueError("Data and label must be provided.")
+            raise ValueError("DataSet and label must be provided.")
         dataset = DataSet()
         dataset._Data = DataExamples(data, label, Id)
         dataset.DataLength = len(dataset._Data)
@@ -150,6 +150,11 @@ class DataSet(object):
             self.Validation.Undo_Standardization(lable)
         if self.Test is not None:
             self.Test.Undo_Standardization(lable)
+    def MergeTrainingAndValidation(self):
+        if self.Training is not None and self.Validation is not None:
+            self.Training.Concatenate(self.Validation)
+            self.Validation = None
+
 
 
     def ToCategoricalLabel(self) -> 'DataSet':

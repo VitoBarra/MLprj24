@@ -33,9 +33,13 @@ class HyperBag:
         self.CheckHP(hpName)
         self.hpDic[hpName] = arrangeClosed(lower, upper, inc).tolist()
 
+
     def AddChosen(self, hpName:str, chosen:list[float]) -> None:
         if len(chosen) <1:
             raise ValueError("Chosen parameter must have at least length 1")
+        if len(chosen) != len(set(chosen)):
+            raise ValueError("Chosen parameter cannot contain duplicates")
+
         self.CheckHP(hpName)
         self.hpDic[hpName] = chosen
 
