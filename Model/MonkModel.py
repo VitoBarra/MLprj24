@@ -9,13 +9,13 @@ from Core.FeedForwardModel import *
 from Core.Layer import DropoutLayer
 from Core.LossFunction import MSELoss, CategoricalCrossEntropyLoss
 from Core.Metric import Accuracy, MSE
-from Core.ModelSelection import *
+from Core.Tuner.ModelSelection import *
 from Core.Optimizer.Adam import Adam
 from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
-from Model.CupModel import PlotMultipleModels
-from Model.ModelResults import PlotTableVarianceAndMean
+from Core.DataSet.DataExamples import DataExamples
+from Model.ModelResults import PlotTableVarianceAndMean, PlotMultipleModels
 from Utility.PlotUtil import *
 from dataset.ReadDatasetUtil import readMonk
 
@@ -35,12 +35,12 @@ def HyperModel_Monk(hp :HyperBag ):
     else:
         act_fn = Sigmoid()
 
-    model.AddLayer(Layer(17 if USE_ONEHOT_VARIABLE_DATA else 6, Linear(), False, "input"))
+    model.AddLayer(Layer(17 if USE_ONEHOT_VARIABLE_DATA else 6, Linear(), hp["UseBiasIN"], "input"))
     for i in range(hp["hlayer"]):
         if hp["drop_out"] is not None:
-            model.AddLayer(DropoutLayer(hp["unit"], act_fn, hp["drop_out"], False, f"drop_out_h{i}"))
+            model.AddLayer(DropoutLayer(hp["unit"], act_fn, hp["drop_out"], hp["UseBias"], f"drop_out_h{i}"))
         else:
-            model.AddLayer(Layer(hp["unit"], act_fn, False, f"_h{i}"))
+            model.AddLayer(Layer(hp["unit"], act_fn, hp["UseBias"], f"_h{i}"))
 
 
     if USE_CATEGORICAL_LABLE:
@@ -59,7 +59,7 @@ def HyperModel_Monk(hp :HyperBag ):
 
 
 
-def ReadMonk(n: int, val_split: float = 0.15, test_split: float = 0.05, seed: int = 0):
+def ReadMonk(n: int, val_split: float = 0.15, seed: int = 0):
     if n <0 or n>3:
         raise Exception("n must be between 0 and 3")
     TR_file_path_monk = f"dataset/monk+s+problems/monks-{MONK_NUM}.train"
@@ -99,11 +99,13 @@ def ReadMonk(n: int, val_split: float = 0.15, test_split: float = 0.05, seed: in
 def HyperBag_Monk():
     hp = HyperBag()
 
-    hp.AddRange("eta", 0.05, 0.2, 0.005)
+    hp.AddRange("eta", 0.001, 0.2, 0.005)
     if MONK_NUM ==3:
         hp.AddRange("labda", 0.000, 0.01, 0.005)
     hp.AddRange("alpha", 0.5, 0.9, 0.05)
-    # hp.AddRange("decay", 0.0003, 0.005, 0.0003)
+    hp.AddRange("decay", 0.0003, 0.005, 0.0003)
+    hp.AddChosen("UseBias",[True,False])
+    hp.AddChosen("UseBiasIN",[True,False])
 
     # only adam
     if USE_ADAM:
@@ -112,8 +114,8 @@ def HyperBag_Monk():
 
     #hp.AddRange("drop_out", 0.2, 0.6, 0.1)
 
-    hp.AddRange("unit", 1, 8, 1)
-    hp.AddRange("hlayer", 0, 2, 1)
+    hp.AddRange("unit", 2, 8, 1)
+    hp.AddRange("hlayer", 0, 3, 1)
     return hp
 
 
@@ -126,11 +128,11 @@ def ModelSelection(monkDataset:DataSet, BaselineMetric:Metric, NumberOrTrial: in
 
     watched_metric = "val_loss"
 
-    callBacks = [EarlyStopping(watched_metric, 50,0.0001)]
+    callBacks = [EarlyStopping(watched_metric, 100,0.0001)]
     best_model, hpSel = ModelSelector.GetBestModel(
         HyperModel_Monk,
         monkDataset,
-        500,
+        800,
         minibatchSize,
         watched_metric,
         [BaselineMetric],
@@ -166,7 +168,6 @@ def TrainMultipleModels(num_models: int = 5, NumberOrTrial:int = 50 ) -> None:
         training:DataExamples = DataExamples.Clone(SavedTraining)
         training.Shuffle(seed)
         monkDataset.Training = training
-        #monkDataset.Training.CutData(-55)
 
         print(f"Training Model {i + 1}/{num_models}...")
 
@@ -253,9 +254,9 @@ def GenerateTagName():
     return tagName
 
 
-def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
+def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int,minibatchSize:int = 64) -> None:
     mode = HyperBag()
-    mode.AddChosen("Adam",[True,False])
+    mode.AddChosen("Adam",[False])
     mode.AddChosen("OneHot",[True,False])
     mode.AddChosen("Tanh",[True,False])
     global USE_TANH
@@ -263,7 +264,7 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
     global USE_ONEHOT_VARIABLE_DATA
 
     gs = GridSearch()
-    for modes, _ in gs.search(mode):
+    for modes, _ in gs.Search(mode):
         USE_ADAM=modes["Adam"]
         USE_ONEHOT_VARIABLE_DATA=modes["OneHot"]
         USE_TANH=modes["Tanh"]
@@ -275,9 +276,9 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
         for monk in [1,2,3]:
             MONK_NUM = monk
             print(f"Training MONK {MONK_NUM}...")
-            monkDataset, BaselineMetric_Accuracy = ReadMonk(MONK_NUM, 0.15, 0.05)
+            monkDataset, BaselineMetric_Accuracy = ReadMonk(MONK_NUM, 0.15)
 
-            best_model, best_hpSel = ModelSelection(monkDataset, BaselineMetric_Accuracy, NumberOrTrial_search, 64)
+            best_model, best_hpSel = ModelSelection(monkDataset, BaselineMetric_Accuracy, NumberOrTrial_search, minibatchSize)
             best_hpSel:HyperBag
             best_model.SaveModel(f"Data/Models/Monk{MONK_NUM}{tagName}.vjf")
             best_model.SaveMetricsResults(f"Data/Results/Monk{MONK_NUM}{tagName}.mres")
@@ -287,13 +288,14 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
 
             print(f"Best hp : {best_hpSel}")
 
+            monkDataset.MergeTrainingAndValidation()
             res = {}
-
             for i in range(NumberOrTrial_mean):
                 model, optimizer = HyperModel_Monk(best_hpSel)
                 model.Build(GlorotInitializer())
                 model.AddMetric(BaselineMetric_Accuracy)
-                model.Fit( optimizer,monkDataset, 300, 64)
+                calbacks = [EarlyStopping("loss", 25, 0.0001)]
+                model.Fit( optimizer,monkDataset, 300, minibatchSize, calbacks)
                 for key, value in model.MetricResults.items():
                     if key not in res:
                         res[key] = []
@@ -315,4 +317,4 @@ if __name__ == '__main__':
     if MULTY:
         TrainMultipleModels(50,250)
     else:
-        TrainMonkModel(150,50)
+        TrainMonkModel(150,50,96)

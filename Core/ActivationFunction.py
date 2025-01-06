@@ -10,12 +10,18 @@ class ActivationFunction:
 
     Subclasses must implement the `Calculate` and `CalculateDerivative` methods.
     """
+    Name: str
 
     def __init__(self):
-        pass
+        self.Name = "NONE"
 
     def __call__(self, z: float|np.array(float)) -> float|np.array(float):
         return self.Calculate(z)
+
+
+    def GetName(self):
+        return self.Name
+
 
     def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
@@ -37,9 +43,6 @@ class ActivationFunction:
         """
         raise NotImplementedError("Must override CalculateDerivative method")
 
-    def GetName(self):
-        return "NONE"
-
     @staticmethod
     def GetInstances(functionName):
         function = {
@@ -47,6 +50,10 @@ class ActivationFunction:
             "ReLU": ReLU(),
             "Sign": Sign(),
             "Linear":Linear(),
+            "Sigmoid":Sigmoid(),
+            "SoftARGMax":SoftARGMax(),
+            "Binary":Binary()
+
         }
         return function.get(functionName, "Invalid option")
 
@@ -56,6 +63,9 @@ class TanH(ActivationFunction):
 
     This activation function squashes input values to the range [-1, 1].
     """
+    def __init__(self):
+        super().__init__()
+        self.Name = "TanH"
 
     def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
@@ -75,15 +85,15 @@ class TanH(ActivationFunction):
         """
         return 1 - np.tanh(z) ** 2
 
-    def GetName(self):
-        return "TanH"
-
 class ReLU(ActivationFunction):
     """
     Rectified Linear Unit (ReLU) activation function.
 
     This activation function outputs the input value if it is positive; otherwise, it outputs 0.
     """
+    def __init__(self):
+        super().__init__()
+        self.Name = "ReLU"
 
     def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
@@ -103,8 +113,6 @@ class ReLU(ActivationFunction):
         """
         return np.where(z > 0, 1, 0)
 
-    def GetName(self):
-        return "ReLU"
 
 
 class Sign(ActivationFunction):
@@ -113,6 +121,10 @@ class Sign(ActivationFunction):
 
     This activation function outputs -1 for negative inputs, 0 for zero, and 1 for positive inputs.
     """
+    def __init__(self):
+        super().__init__()
+        self.Name = "Sign"
+
 
     def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
@@ -134,17 +146,16 @@ class Sign(ActivationFunction):
         """
         raise NotImplementedError("Derivative does not make sense in this case")
 
-    def GetName(self):
-        return "Sign"
-
-
 class Binary(ActivationFunction):
     """
     Binary activation function.
 
     This activation function outputs 0 or 1.
     """
-    def __init__(self, trashold:float=0.0):
+    def __init__(self, trashold: float = 0.0):
+
+        super().__init__()
+        self.Name = "Binary"
         self.Thrashold   = trashold
 
     def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
@@ -162,9 +173,6 @@ class Binary(ActivationFunction):
         """
         raise NotImplementedError("Derivative does not make sense in this case")
 
-    def GetName(self):
-        return "Binary"
-
 
 class Linear(ActivationFunction):
     """
@@ -173,6 +181,11 @@ class Linear(ActivationFunction):
     This activation function directly returns the input value (identity function).
     It is typically used in the output layer for regression tasks or as a building block for other operations.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.Name = "Linear"
+
 
     def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
         """
@@ -194,8 +207,7 @@ class Linear(ActivationFunction):
         """
         return np.ones_like(z)
 
-    def GetName(self):
-        return "Linear"
+
 
 
 class Sigmoid(ActivationFunction):
@@ -204,6 +216,9 @@ class Sigmoid(ActivationFunction):
 
     This activation function outputs a value between 0 and 1.
     """
+    def __init__(self):
+        super().__init__()
+        self.Name = "Sigmoid"
 
     def Calculate(self, z: float | np.ndarray) -> float | np.ndarray:
         """
@@ -224,13 +239,6 @@ class Sigmoid(ActivationFunction):
         sigmoid = self.Calculate(z)
         return sigmoid * (1 - sigmoid)
 
-    def GetName(self):
-        """
-        Return the name of the activation function.
-
-        :return: Name of the activation function.
-        """
-        return "Sigmoid"
 
 
 
@@ -240,6 +248,9 @@ class SoftARGMax(ActivationFunction):
 
     This activation function outputs a probability distribution over a set of inputs.
     """
+    def __init__(self):
+        super().__init__()
+        self.Name = "SoftARGMax"
 
     def Calculate(self, z: np.ndarray) -> np.ndarray:
         """
@@ -273,10 +284,3 @@ class SoftARGMax(ActivationFunction):
         return jacobian
 
 
-    def GetName(self):
-        """
-        Return the name of the activation function.
-
-        :return: Name of the activation function.
-        """
-        return "SoftMax"

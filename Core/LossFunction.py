@@ -3,15 +3,15 @@ import numpy as np
 from Core.Metric import Metric, MSE, RMSE
 
 
-class LossFunction(Metric):
+class LossFunction:
 
     def __init__(self):
-        Metric.__init__(self)
+        pass
 
     def CalculateLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
         pass
 
-    def CalculateDerivLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
+    def CalculateDeriv(self, prediction: np.ndarray, target: np.ndarray) -> float:
         pass
 
 
@@ -27,7 +27,7 @@ class MSELoss(LossFunction):
     def CalculateLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
         return self.MSEFun.ComputeMetric(prediction, target)
 
-    def CalculateDerivLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
+    def CalculateDeriv(self, prediction: np.ndarray, target: np.ndarray) -> float:
         der = 2 * (prediction - target)
         return der
 
@@ -40,7 +40,7 @@ class RMSELoss(LossFunction):
         rmse=RMSE()
         return rmse.ComputeMetric(prediction, target)
 
-    def CalculateDerivLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
+    def CalculateDeriv(self, prediction: np.ndarray, target: np.ndarray) -> float:
         der = np.mean(2 * (prediction - target)) / np.sqrt(np.mean((prediction - target) ** 2))
         return der
 
@@ -63,7 +63,7 @@ class BinaryCrossEntropyLoss(LossFunction):
         loss = -np.mean(target * np.log(prediction) + (1 - target) * np.log(1 - prediction))
         return loss
 
-    def CalculateDerivLoss(self, prediction: np.ndarray, target: np.ndarray) -> np.ndarray:
+    def CalculateDeriv(self, prediction: np.ndarray, target: np.ndarray) -> np.ndarray:
         """
         Compute the derivative of binary cross-entropy loss.
         prediction: Model predictions (values between 0 and 1).
@@ -90,7 +90,7 @@ class CategoricalCrossEntropyLoss(LossFunction):
         loss = -np.sum(target * np.log(prediction)) / target.shape[0]
         return loss
 
-    def CalculateDerivLoss(self, prediction: np.ndarray, target: np.ndarray) -> np.ndarray:
+    def CalculateDeriv(self, prediction: np.ndarray, target: np.ndarray) -> np.ndarray:
         """
         Compute the derivative of categorical cross-entropy loss.
         prediction: Model predictions (probabilities for each class).

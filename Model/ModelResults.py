@@ -80,7 +80,7 @@ def PlotMultipleModels(results: dict,metric: str = "test_loss") -> None:
 
 
 
-def SaveResults(results, path: str = "Data/Results/model_results.json") -> None:
+def SaveResults(results, path: str = "DataSet/Results/model_results.json") -> None:
     """
     Save the model results to a JSON file.
 

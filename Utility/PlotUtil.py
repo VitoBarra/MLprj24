@@ -2,8 +2,7 @@ import pickle
 
 import matplotlib.pyplot as plt
 import networkx as nx
-
-from Utility.FileUtil import *
+from .FileUtil import *
 
 
 

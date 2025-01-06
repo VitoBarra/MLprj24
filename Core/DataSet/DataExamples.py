@@ -1,7 +1,6 @@
-import numpy as np
 from numpy import ndarray
 from numpy.random import default_rng
-from Utility.DataUtil import *
+from Utility.npUtil import *
 
 
 class DataExamples(object):
@@ -39,9 +38,9 @@ class DataExamples(object):
         self.LabelStat = None
         self.DataStat = None
         if data.shape[0] != label.shape[0]:
-            raise ValueError('Data and label must have the same length')
+            raise ValueError('DataSet and label must have the same length')
         if Id is not None and data.shape[0] != Id.shape[0]:
-            raise ValueError('Data and id must have the same length')
+            raise ValueError('DataSet and id must have the same length')
 
         self.Data = data
         self.Label = label
@@ -66,6 +65,14 @@ class DataExamples(object):
         if self.current >= len(self.Data) :
             raise StopIteration  # Stop iteration when we've passed the end
         return self.Data[self.current], self.Label[self.current], self.Id[self.current]
+
+    def __len__(self):
+        """
+        Returns the number of samples in the dataset.
+
+        :return: The number of samples as an integer.
+        """
+        return len(self.Data)
 
 
     def Concatenate(self, dataExample: 'DataExamples') -> None:
@@ -181,7 +188,7 @@ class DataExamples(object):
         """
 
         if Data is None:
-            raise ValueError("Data must be provided.")
+            raise ValueError("DataSet must be provided.")
 
         resultData,resultLabels = None,None
         if self.DataStat is not None:
@@ -242,13 +249,7 @@ class DataExamples(object):
         self.Data = self.Data.reshape(self.Data.shape[0], -1)
         self.Label = self.Label.reshape(self.Label.shape[0], -1)
 
-    def __len__(self):
-        """
-        Returns the number of samples in the dataset.
 
-        :return: The number of samples as an integer.
-        """
-        return len(self.Data)
 
 
     def PrintData(self, name :str):

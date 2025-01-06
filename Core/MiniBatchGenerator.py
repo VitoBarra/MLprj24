@@ -1,7 +1,7 @@
-from Utility.DataSet import *
+
 import numpy as np
 
-from Utility.DataSet import DataExamples
+from .DataSet.DataSet import DataExamples
 
 
 class MiniBatchGenerator:
@@ -14,9 +14,9 @@ class MiniBatchGenerator:
 
     def __init__(self, data:DataExamples, batchSize:int):
         if data is None:
-            raise ValueError("Data cannot be None")
+            raise ValueError("DataSet cannot be None")
         if len(data) == 0:
-            raise ValueError("Data is empty")
+            raise ValueError("DataSet is empty")
 
         if batchSize <= 0:
             raise ValueError("BatchSize must be a positive integer")

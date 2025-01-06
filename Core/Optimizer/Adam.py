@@ -5,7 +5,7 @@ from Core.Optimizer.Optimizer import Optimizer
 
 
 class Adam(Optimizer):
-    def __init__(self, loss_function: LossFunction, eta: float, lambda_: float | None = None,
+    def __init__(self, loss_function: LossFunction, eta: float =0.001, lambda_: float | None = None,
                  alpha: float  | None = 0.9, beta: float | None = 0.99, epsilon: float = 1e-8, decay_rate: float = 0.0):
         """
         Initializes the BackPropagation object with a specific loss function.
@@ -17,10 +17,8 @@ class Adam(Optimizer):
 
         self.beta = beta
         self.epsilon = epsilon
-        self.timestep = 1
 
-
-    def optimize(self, layer: Layer, target: np.ndarray):
+    def Optimize(self, layer: Layer, target: np.ndarray):
         """
         Computes the gradients of the weights for the given layer during backpropagation.
 
@@ -50,11 +48,10 @@ class Adam(Optimizer):
         # Compute final gradient
         layer_grad = self.eta * vel_hat / (np.sqrt(acc_hat) + self.epsilon)
         # Apply regularization
-        layer_update = self.ApplayRegularization(layer, layer_grad)
+        layer_update = self.ApplyRegularization(layer, layer_grad)
 
         # Optimize the weights
         self.updates.append(layer_update)
-        self.timestep += 1
 
 
     def ApplyMomentum (self, layer: Layer, layer_grad: np.ndarray):
@@ -77,6 +74,6 @@ class Adam(Optimizer):
         return acceleration
 
     def BiasCorrection(self, layer: Layer):
-        vel_hat = layer.LastLayer.Gradient / (1 - self.alpha ** self.timestep)
-        acc_hat = layer.LastLayer.Acceleration / (1 - self.beta ** self.timestep)
+        vel_hat = layer.LastLayer.Gradient / (1 - self.alpha ** self.iteration+1)
+        acc_hat = layer.LastLayer.Acceleration / (1 - self.beta ** self.iteration+1)
         return vel_hat, acc_hat

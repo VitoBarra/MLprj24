@@ -30,6 +30,9 @@ class Metric:
         """
         raise NotImplementedError("Must override Error method")
 
+    def __Call__(self, val: np.ndarray, target: np.ndarray) -> float:
+        return self.ComputeMetric(val, target)
+
 
 class MSE(Metric):
     """

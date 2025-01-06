@@ -1,9 +1,7 @@
 ﻿import numpy as np
 
-from Utility.DataExamples import DataExamples
-from Utility.DataSet import DataSet
-from Utility.DataUtil import *
-
+from Core.DataSet.DataExamples import DataExamples
+from Core.DataSet.DataSet import DataSet
 
 def readMonk(file_path:str) -> DataExamples:
     data = []

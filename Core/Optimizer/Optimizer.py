@@ -39,16 +39,16 @@ class Optimizer:
             self.regularization = True
 
 
-    def StartOptimize(self, model: FeedForwardModel, target: np.ndarray):
+    def StartOptimize(self, model: FeedForwardModel, targets: np.ndarray):
         for layer in reversed(model.Layers):
-            self.optimize(layer, target)
+            self.Optimize(layer, targets)
 
         self.iteration += 1
         if self.decay_rate is not None:
             self.eta = self.initial_eta * np.exp(-self.decay_rate * self.iteration)
 
 
-    def optimize(self, layer: Layer, target: np.ndarray):
+    def Optimize(self, layer: Layer, target: np.ndarray):
         """
         Central optimization algorithm of the weights for the given layer during backpropagation.
 
@@ -72,7 +72,7 @@ class Optimizer:
             layer.LastLayer.Gradient = layer_grad
 
         # Apply regularization
-        layer_grad = self.ApplayRegularization(layer, layer_grad)
+        layer_grad = self.ApplyRegularization(layer, layer_grad)
 
         # Add updates to updates' list
         self.updates.append(layer_grad)
@@ -83,8 +83,8 @@ class Optimizer:
         #Output Layer
         if layer.NextLayer is None:
             for out, y, net in zip(layer.LayerOutput, target, layer.LayerNets):
-                out_delta_p = self.loss_function.CalculateDerivLoss(out,
-                                                                    y) * layer.ActivationFunction.CalculateDerivative(
+                out_delta_p = self.loss_function.CalculateDeriv(out,
+                                                                y) * layer.ActivationFunction.CalculateDerivative(
                     net)
                 deltas.append(out_delta_p)
             deltas = np.array(deltas)
@@ -93,7 +93,7 @@ class Optimizer:
         else:
             prev_delta = self.deltas
 
-            weights = self.PreProcessigWeights(layer)
+            weights = self.PreProcesWeights(layer)
             # transpose weight metric to use a single unit's output weights
             all_weight_T = weights.T
 
@@ -146,7 +146,7 @@ class Optimizer:
             index += 1
         self.updates = []
 
-    def ApplayRegularization(self, layer: Layer, layer_grad: np.ndarray):
+    def ApplyRegularization(self, layer: Layer, layer_grad: np.ndarray):
         """
         Apply L2 regularization to the gradients of a layer's weights.
 
@@ -180,7 +180,7 @@ class Optimizer:
 
 
 
-    def PreProcessigWeights(self, layer: Layer):
+    def PreProcesWeights(self, layer: Layer):
         return layer.WeightToNextLayer
 
     def ApplyMomentum (self, layer: Layer, layer_grad: np.ndarray):

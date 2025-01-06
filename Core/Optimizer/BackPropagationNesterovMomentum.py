@@ -10,7 +10,7 @@ class BackPropagationNesterovMomentum(Optimizer):
         super().__init__(loss_function, eta, lambda_, alpha, decay_rate)
 
 
-    def PreProcessigWeights(self, layer: Layer):
+    def PreProcesWeights(self, layer: Layer):
         if self.momentum and layer.LastLayer.Gradient is not None:
             weights = layer.WeightToNextLayer + self.alpha * layer.LastLayer.Gradient
         else:
