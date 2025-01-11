@@ -43,7 +43,6 @@ class HyperBag:
         self.CheckHP(hpName)
         self.hpDic[hpName] = chosen
 
-
     def Keys(self):
         return self.hpDic.keys()
 

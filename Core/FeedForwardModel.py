@@ -67,7 +67,7 @@ Attributes:
 
         self.EarlyStop=False
         if batchSize is None:
-            batchSize = data.Training.DataLength
+            batchSize = data.Training.Data.shape[0]
 
         if callbacks is not None:
             for callback in callbacks:
