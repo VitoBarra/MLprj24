@@ -150,6 +150,7 @@ class DataSet(object):
             self.Validation.Undo_Standardization(lable)
         if self.Test is not None:
             self.Test.Undo_Standardization(lable)
+
     def MergeTrainingAndValidation(self):
         if self.Training is not None and self.Validation is not None:
             self.Training.Concatenate(self.Validation)

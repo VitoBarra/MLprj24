@@ -17,14 +17,12 @@ class DataExamples(object):
     Attributes:
         Label (ndarray): The labels corresponding to the data samples.
         Data (ndarray): The input data samples.
-        iD (ndarray): The indices of the data samples.
-        DataLength (int): The number of data samples in the dataset.
+        Id (ndarray): The indices of the data samples.
         isCategorical (bool): Indicates if the labels are in categorical format.
     """
     Label: ndarray
     Data: ndarray
     Id: ndarray | None
-    DataLength: int
     isCategorical: bool
 
     def __init__(self, data: np.ndarray, label: np.ndarray, Id: np.ndarray = None) -> None:
@@ -88,13 +86,13 @@ class DataExamples(object):
         self.Label = np.concatenate((self.Label, dataExample.Label), axis=0)
         self.Id = np.concatenate((self.Id, dataExample.Id), axis=0)
 
-    def Shuffle(self, seed: int = 0) -> None:
+    def Shuffle(self, seed: int = None) -> None:
         """
         Shuffles the dataset randomly.
 
         :param seed: An integer seed for reproducibility of shuffling. Default is 0.
         """
-        #rng.seed(seed)
+
         rng = default_rng(seed)
         perm = rng.permutation(self.Data.shape[0])
         self.Data = self.Data[perm,]

@@ -49,8 +49,12 @@ class MiniBatchGenerator:
 
     def Reset(self) -> None:
         """
-        reset the mini-batch generation.
+        reset the mini-batch generation. Usually called after each epoch.
         the next NextBatch() will start from the first data point.
+        with BatchSize == 1 (online-training), the data will be shuffled at each epoch.
         """
         self.IsBatchGenerationFinished = False
         self.LastPosition = 0
+        if self.BatchSize == 1:
+            self.Data.Shuffle()
+

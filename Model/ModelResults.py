@@ -5,6 +5,7 @@ from statistics import mean, variance
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.constants import metric_ton
+from Utility.PlotUtil import ShowOrSavePlot
 
 
 def PlotTableVarianceAndMean(results: dict) -> None:
@@ -52,7 +53,7 @@ def PlotTableVarianceAndMean(results: dict) -> None:
 
     SaveResults(final_summary)
 
-def PlotMultipleModels(results: dict,metric: str = "test_loss") -> None:
+def PlotMultipleModels(results: list[dict], metric: str = "test_loss", path = None, filename =None) -> None:
     """
     Plot the test loss for multiple models, including individual model losses and the mean curve.
 
@@ -60,23 +61,22 @@ def PlotMultipleModels(results: dict,metric: str = "test_loss") -> None:
     """
     plt.figure(figsize=(12, 8))
 
-    all_losses = []
-    min_length = min(len(model_data["metrics"][metric]) for model_data in results.values())
+    all_metric = [metricData[metric] for metricData in results]
+    min_length = min(len(model_data) for model_data in all_metric)
+    all_metric = [metricData[:min_length] for metricData in all_metric]
 
-    for model_name, model_data in results.items():
-        metric_values = model_data["metrics"][metric][2:min_length]
-        all_losses.append(metric_values)
-        plt.plot(metric_values, color='dodgerblue', alpha=0.3)
+    for model_data in all_metric:
+        plt.plot(model_data, color='dodgerblue', alpha=0.3)
 
-    all_losses = np.array(all_losses)
-    mean_loss = np.mean(all_losses, axis=0)
+    all_metric = np.array(all_metric)
+    mean_loss = np.mean(all_metric, axis=0)
     plt.plot(mean_loss, color='blue', linewidth=2, label=f'{metric} Mean')
 
-    plt.xlabel("Epochs")
-    plt.ylabel(f"{metric}")
-    plt.title(f"{metric} Comparison for Multiple Models")
-    plt.legend()
-    plt.show()
+    plt.xlabel("Epochs", fontsize=14)
+    plt.ylabel(f"{metric}", fontsize=14)
+    plt.title(f"mean {metric}", fontsize=14)
+    plt.legend(fontsize=14)
+    ShowOrSavePlot(path,filename)
 
 
 
