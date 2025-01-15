@@ -8,6 +8,8 @@ from scipy.constants import metric_ton
 from Utility.PlotUtil import ShowOrSavePlot
 
 
+
+
 def PlotTableVarianceAndMean(results: dict) -> None:
     """
     Calculate and display mean and variance for each model's metrics.
@@ -53,30 +55,75 @@ def PlotTableVarianceAndMean(results: dict) -> None:
 
     SaveResults(final_summary)
 
-def PlotMultipleModels(results: list[dict], metric: str = "test_loss", path = None, filename =None) -> None:
+import matplotlib.pyplot as plt
+import numpy as np
+
+def PlotMultipleModels(results: list[dict], metrics: list[str], path: str = None, filename: str = None) -> None:
     """
-    Plot the test loss for multiple models, including individual model losses and the mean curve.
+    Plot multiple metrics for multiple models, including individual model curves and the mean curve for each metric.
 
-    :param results: Dictionary containing model metrics.
+    Metrics containing similar keywords (e.g., "loss" or "accuracy") will be grouped into the same subplot.
+
+    :param results: List of dictionaries containing model metrics.
+    :param metrics: List of metrics to plot.
+    :param path: (Optional) Path to save the plot.
+    :param filename: (Optional) Filename to save the plot.
     """
-    plt.figure(figsize=(12, 8))
+    # Group metrics by keyword (e.g., "loss", "accuracy")
+    grouped_metrics = {}
+    for metric in metrics:
+        if "loss" in metric:
+            key = "loss"
+        elif "Accuracy" in metric:
+            key = "Accuracy"
+        else:
+            key = metric
 
-    all_metric = [metricData[metric] for metricData in results]
-    min_length = min(len(model_data) for model_data in all_metric)
-    all_metric = [metricData[:min_length] for metricData in all_metric]
+        if key not in grouped_metrics:
+            grouped_metrics[key] = []
+        grouped_metrics[key].append(metric)
 
-    for model_data in all_metric:
-        plt.plot(model_data, color='dodgerblue', alpha=0.3)
+    num_groups = len(grouped_metrics)
 
-    all_metric = np.array(all_metric)
-    mean_loss = np.mean(all_metric, axis=0)
-    plt.plot(mean_loss, color='blue', linewidth=2, label=f'{metric} Mean')
+    # Create subplots
+    fig, axes = plt.subplots(1, num_groups, figsize=(12 * num_groups, 6), squeeze=False)
 
-    plt.xlabel("Epochs", fontsize=14)
-    plt.ylabel(f"{metric}", fontsize=14)
-    plt.title(f"mean {metric}", fontsize=14)
-    plt.legend(fontsize=14)
-    ShowOrSavePlot(path,filename)
+    colors = ["blue", "green", "orange", "purple", "red"]  # Predefined color palette
+
+    for idx, (group, group_metrics) in enumerate(grouped_metrics.items()):
+        ax = axes[0, idx]
+
+        for i, metric in enumerate(group_metrics):
+            # Extract data for the current metric
+            all_metric = [metric_data[metric] for metric_data in results]
+            min_length = min(len(model_data) for model_data in all_metric)
+            all_metric = [model_data[:min_length] for model_data in all_metric]
+
+            color = colors[i % len(colors)]  # Assign color for each metric
+
+            # Plot individual model curves
+            for model_data in all_metric:
+                ax.plot(model_data, alpha=0.1, color=color)  # Individual curves, no label, very light
+
+            # Compute and plot the mean curve
+            all_metric = np.array(all_metric)
+            mean_metric = np.mean(all_metric, axis=0)
+            ax.plot(mean_metric, linewidth=2, label=f'{metric} (mean)', color=color)
+
+        # Set axis labels and title
+        ax.set_xlabel("Epochs", fontsize=14)
+        ax.set_ylabel(f"{group}", fontsize=14)
+        ax.set_title(f"Metrics: {group}", fontsize=16)
+        ax.legend(fontsize=10)
+
+    plt.tight_layout()
+
+    # Save or show the plot
+    if path and filename:
+        plt.savefig(f"{path}/{filename}")
+    else:
+        plt.show()
+
 
 
 

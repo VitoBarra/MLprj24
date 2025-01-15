@@ -9,17 +9,17 @@ from .FileUtil import *
 def plot_metrics(metricDic, baseline=None, baselineName="Baseline", title="Title",
                  xlabel="X-axis", ylabel="Y-axis", limitYRange=None, path=None, subplotAxes=None):
     """
-    :brief Plots metrics with optional baseline, as either a standalone plot or a subplot.
+    brief : Plots metrics with optional baseline, as either a standalone plot or a subplot.
 
-    :param metricDic A dictionary where keys are labels and values are lists of metric values to plot.
-    :param baseline (Optional) A constant baseline value to plot. Default is None.
-    :param baselineName (Optional) The label for the baseline line. Default is "Baseline".
-    :param title (Optional) The title of the plot or subplot. Default is "Title".
-    :param xlabel (Optional) The label for the x-axis. Default is "X-axis".
-    :param ylabel (Optional) The label for the y-axis. Default is "Y-axis".
-    :param limitYRange (Optional) A tuple specifying the y-axis limits (min, max). Default is None.
-    :param path (Optional) The path to save the plot if provided. Default is None.
-    :param subplotAxes (Optional) A matplotlib Axes object to use for a subplot. If None, a new figure is created.
+    :param metricDic: A dictionary where keys are labels and values are lists of metric values to plot.
+    :param baseline: (Optional) A constant baseline value to plot. Default is None.
+    :param baselineName: (Optional) The label for the baseline line. Default is "Baseline".
+    :param title: (Optional) The title of the plot or subplot. Default is "Title".
+    :param xlabel: (Optional) The label for the x-axis. Default is "X-axis".
+    :param ylabel: (Optional) The label for the y-axis. Default is "Y-axis".
+    :param limitYRange: (Optional) A tuple specifying the y-axis limits (min, max). Default is None.
+    :param path: (Optional) The path to save the plot if provided. Default is None.
+    :param subplotAxes: (Optional) A matplotlib Axes object to use for a subplot. If None, a new figure is created.
     """
     # If no subplot axes are provided, create a new figure
     if subplotAxes is None:

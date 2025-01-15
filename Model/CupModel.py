@@ -5,6 +5,7 @@ from Core.FeedForwardModel import *
 from Core.ActivationFunction import *
 from Core.Metric import *
 from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
+from Model import CUPMODELPATH, CUPPLOTPATH, CUPRESULTSPATH
 from Model.ModelResults import PlotMultipleModels, PlotTableVarianceAndMean
 from Utility.PlotUtil import *
 from Core.Layer import DropoutLayer
@@ -21,8 +22,7 @@ import gc
 from statistics import mean, variance
 
 USE_KFOLD = False
-OPTIMIZER = False
-MULTY = False
+OPTIMIZER = None
 BATCH_SIZE = None
 
 
@@ -163,8 +163,8 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
         print(f"Best hp : {best_hpSel}")
         #best_model.PlotModel("CUP Model")
 
-        best_model.SaveMetricsResults(f"Data/Results/Cup{tagName}.mres")
-        best_model.SaveModel(f"Data/Models/Cup{tagName}.vjf")
+        #best_model.SaveMetricsResults(f"Data/Results/Cup{tagName}.mres")
+        best_model.SaveModel(f"{CUPMODELPATH}",f"CUP{tagName}.vjf")
 
         GeneratePlot(BaselineMetric_MEE,best_model.MetricResults,SplittedCupDataset , tagName)
 
@@ -174,6 +174,7 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
         tempDataset:DataSet = DataSet()
         tempDataset.Test = SplittedCupDataset.Test
 
+        random.seed(42)
         seedList = [random.randint(0, 1000) for _ in range(NumberOrTrial_mean)]
         for i,seed in zip(range(NumberOrTrial_mean),seedList):
             training:DataExamples = DataExamples.Clone(mergedDataset.Training)
@@ -184,8 +185,8 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
             model, optimizer = HyperModel_CAP(best_hpSel)
             model.Build(GlorotInitializer())
             model.AddMetric(BaselineMetric_MEE)
-            calbacks = [EarlyStopping("loss", 10, 0.0001)]
-            model.Fit(optimizer, tempDataset, 500, BATCH_SIZE, calbacks)
+            callbacks = [EarlyStopping("loss", 10, 0.0001)]
+            model.Fit(optimizer, tempDataset, 500, BATCH_SIZE, callbacks)
             totalResult["metrics"].append(model.MetricResults)
 
 
@@ -196,8 +197,8 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
                 f"{key}:{value[-1]:.4f}" for key, value in res.items()))
 
         totalResult["MetricStat"] = {key: [mean(value),variance(value)] for key, value in res.items()}
-        PlotMultipleModels(totalResult["metrics"],"test_loss",f"Data/Plots/CUP",f"mean_CUP{tagName}.png" )
-        SaveJson(f"Data/FinalModel/CUP", f"res_CUP{tagName}.json", totalResult)
+        PlotMultipleModels(totalResult["metrics"],"test_loss",f"{CUPPLOTPATH}",f"mean_CUP{tagName}.png" )
+        SaveJson(f"{CUPRESULTSPATH}", f"res_CUP{tagName}.json", totalResult)
 
         SaveJson(f"Data/FinalModel/CUP", f"res_CUP{tagName}.json", res)
         gc.collect()
@@ -239,7 +240,8 @@ def GeneratePlot(BaselineMetric_MEE, MetricResults,CupDataset, extraname:str= ""
         subplotAxes=axes[1])
     # Adjust layout and save the entire figure
     fig.tight_layout()
-    ShowOrSavePlot(f"Data/Plots/CUP", f"Loss(MSE)-MEE{extraname}")
+    ShowOrSavePlot(f"{CUPPLOTPATH}", f"Loss(MSE)-MEE{extraname}")
+    plt.close(fig)
 
 
 if __name__ == '__main__':

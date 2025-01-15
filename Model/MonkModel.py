@@ -16,22 +16,23 @@ from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.DataSet.DataExamples import DataExamples
+from Model import MONKRESUTLPATH, MONKPLOTPATH, MONKMODELPATH
 from Model.ModelResults import PlotTableVarianceAndMean, PlotMultipleModels
 from Utility.PlotUtil import *
 from dataset.ReadDatasetUtil import readMonk
 
-USE_CATEGORICAL_LABLE = False
-
+USE_CATEGORICAL_LABEL = False
 USE_ONEHOT_VARIABLE_DATA = False
-OPTIMIZER = False
-USE_TANH = True
+OPTIMIZER = None
+ACT_FUN = None
 USE_KFOLD = False
-MONK_NUM=1
+MONK_NUM= None
 BATCH_SIZE = None
+
 
 def HyperModel_Monk(hp :HyperBag ):
     model = ModelFeedForward()
-    if USE_TANH:
+    if ACT_FUN == 1:
         act_fn = TanH()
     else:
         act_fn = Sigmoid()
@@ -44,7 +45,7 @@ def HyperModel_Monk(hp :HyperBag ):
             model.AddLayer(Layer(hp["unit"], act_fn, hp["UseBias"], f"_h{i}"))
 
 
-    if USE_CATEGORICAL_LABLE:
+    if USE_CATEGORICAL_LABEL:
         model.AddLayer(Layer(2, SoftARGMax(), False, "output_HotEncoding"))
         loss = CategoricalCrossEntropyLoss()
     else:
@@ -74,19 +75,19 @@ def ReadMonk(n: int, val_split: float = 0.15, seed: int = 0):
     monkDataset = DataSet.FromDataExample(designSet)
     monkDataset.Test = testSet
 
-    if USE_TANH:
-        monkDataset.ApplayTranformationOnLable(np.vectorize(lambda x: -1 if x == 0 else 1 ))
+    if ACT_FUN == 1:
+        monkDataset.ApplayTranformationOnLabel(np.vectorize(lambda x: -1 if x == 0 else 1 ))
         baseline_metric = Accuracy(Sign())
     else:
         baseline_metric = Accuracy(Binary(0.5))
 
+    monkDataset.Shuffle(seed)
 
     if USE_ONEHOT_VARIABLE_DATA:
         monkDataset.ToOnHotOnExamples()
 
-    monkDataset.Shuffle(seed)
-
-    if USE_CATEGORICAL_LABLE:
+    if USE_CATEGORICAL_LABEL:
+    
         monkDataset.ToCategoricalLabel()
     monkDataset.PrintData()
 
@@ -155,7 +156,7 @@ def GeneratePlot(AccuracyMetric, MetricResults, monkDataset,extraname:str=""):
     MSEmetric = MSE()
 
     lin_model = LogisticRegression()
-    if USE_CATEGORICAL_LABLE:
+    if USE_CATEGORICAL_LABEL:
         lin_model.fit(monkDataset.Training.Data, monkDataset.Training.Label[:, 1])
         test_Label = monkDataset.Test.Label[:, 1]
     else:
@@ -191,7 +192,8 @@ def GeneratePlot(AccuracyMetric, MetricResults, monkDataset,extraname:str=""):
         subplotAxes=axes[1])
     # Adjust layout and save the entire figure
     fig.tight_layout()
-    ShowOrSavePlot(f"Data/Plots/MONK {MONK_NUM}", f"Loss(MSE)-Accuracy{extraname}")
+    ShowOrSavePlot(f"{MONKPLOTPATH}{MONK_NUM}", f"Loss(MSE)-Accuracy{extraname}")
+    plt.close(fig)
 
 def GenerateTagName():
     tagName = ""
@@ -206,7 +208,7 @@ def GenerateTagName():
         tagName += "_onehot"
     else:
         tagName += "_numeric"
-    if USE_TANH:
+    if ACT_FUN == 1:
         tagName += "_tanh"
     else:
         tagName += "_sigmoid"
@@ -226,17 +228,20 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
 
 
     mode = HyperBag()
-    mode.AddChosen("Adam",[True,False])
-    mode.AddChosen("OneHot",[False])
-    mode.AddChosen("Tanh",[True,False])
-    mode.AddChosen("BatchSize",[1,32,64,96,None])
-    global USE_TANH
+    mode.AddChosen("Optimizer",[1,2,3])
+    mode.AddChosen("OneHot",[True,False])
+    mode.AddChosen("ActFun",[1,2])
+    mode.AddChosen("BatchSize",[None,1,32,64,96,128])
+
+
+    global ACT_FUN
     global OPTIMIZER
     global USE_ONEHOT_VARIABLE_DATA
     global BATCH_SIZE
     global MONK_NUM
 
     gs = GridSearch()
+
     for monk in [1,2,3]:
         MONK_NUM = monk
 
@@ -249,7 +254,7 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
         for modes, _ in gs.Search(mode):
             USE_ADAM=modes["Adam"]
             USE_ONEHOT_VARIABLE_DATA=modes["OneHot"]
-            USE_TANH=modes["Tanh"]
+            ACT_FUN=modes["ActFun"]
             BATCH_SIZE = modes["BatchSize"]
 
 
@@ -262,8 +267,9 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
 
             best_model, best_hpSel = ModelSelection(monkDataset, BaselineMetric_Accuracy, NumberOrTrial_search, BATCH_SIZE)
             best_hpSel:HyperBag
-            best_model.SaveModel(f"Data/Models/Monk{MONK_NUM}{tagName}.vjf")
-            best_model.SaveMetricsResults(f"Data/Results/Monk{MONK_NUM}{tagName}.mres")
+            best_model.SaveModel( f"{MONKMODELPATH}{MONK_NUM}", f"MONK{MONK_NUM}{tagName}.vjf")
+
+            #best_model.SaveMetricsResults(f"Data/Results/Monk{MONK_NUM}{tagName}.mres")
 
             GeneratePlot(BaselineMetric_Accuracy, best_model.MetricResults, monkDataset,tagName)
 
@@ -275,7 +281,7 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
             tempDataset:DataSet = DataSet()
             tempDataset.Test = monkDataset.Test
 
-
+            random.seed(42)
             seedList = [random.randint(0, 1000) for _ in range(NumberOrTrial_mean)]
             for i,seed in zip(range(NumberOrTrial_mean),seedList):
                 training = DataExamples.Clone(mergedMonkDataset.Training)
@@ -284,10 +290,10 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
                 print(f"Training Model {i + 1}/{NumberOrTrial_mean}...")
 
                 model, optimizer = HyperModel_Monk(best_hpSel)
-                model.Build(GlorotInitializer())
+                model.Build(GlorotInitializer(seed))
                 model.AddMetric(BaselineMetric_Accuracy)
-                calbacks = [EarlyStopping("loss", 25, 0.0001)]
-                model.Fit( optimizer,tempDataset, 300, BATCH_SIZE, calbacks)
+                callbacks = [EarlyStopping("loss", 25, 0.0001)]
+                model.Fit( optimizer,tempDataset, 300, BATCH_SIZE, callbacks)
                 totalResult["metrics"].append(model.MetricResults)
 
                 for key, value in model.MetricResults.items():
@@ -297,8 +303,8 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
                     f"{key}:{value[-1]:.4f}" for key, value in res.items()))
 
             totalResult["MetricStat"] = {key: [mean(value),variance(value)] for key, value in res.items()}
-            PlotMultipleModels(totalResult["metrics"],"test_loss",f"Data/Plots/MONK {MONK_NUM}",f"mean_MONK{tagName}.png" )
-            SaveJson(f"Data/FinalModel/MONK {MONK_NUM}",f"res{tagName}.json",res)
+            PlotMultipleModels(totalResult["metrics"],["test_loss", "loss", "test_Accuracy", "Accuracy"],f"{MONKPLOTPATH}{MONK_NUM}",f"mean_MONK{tagName}.png" )
+            SaveJson(f"{MONKRESUTLPATH}{MONK_NUM}",f"res{tagName}.json",totalResult)
             print(res)
 
 
@@ -306,4 +312,4 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
 
 
 if __name__ == '__main__':
-        TrainMonkModel(150,25)
+        TrainMonkModel(250,25)

@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List, Any
 
 import numpy as np
@@ -142,18 +143,30 @@ Attributes:
             self.InputLayer = newLayer
         self.OutputLayer = newLayer
 
-    def SaveModel(self, path: str) -> None:
+
+
+
+    def SaveModel(self, directory: str, filename: str = "model.json") -> None:
         """
         Saves the model's weights to a file.
 
-        :param path: The file path to save the model to.
+        :param directory: The directory where the file will be saved.
+        :param filename: The name of the file to save the model to. Defaults to 'model.json'.
         :return: None
         """
+        # Ensure the directory exists
+        os.makedirs(directory, exist_ok=True)
+
+        # Combine directory and filename to create the full file path
+        file_path = os.path.join(directory, filename)
+
+        # Serialize model data
         model_data = {"layers": [layer.SerializeLayer() for layer in self.Layers]}
 
-        CreateDir(path)
-        with open(path, "w") as file:
-            json.dump(model_data, file, default= convert_to_serializable)
+        # Save the serialized data to the file
+        with open(file_path, "w") as file:
+            json.dump(model_data, file, default=convert_to_serializable)
+
 
 
     def LoadModel(self, path: str) -> None:
