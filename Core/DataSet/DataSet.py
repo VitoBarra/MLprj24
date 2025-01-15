@@ -344,7 +344,7 @@ class DataSet(object):
         instance.Test = Test
         return instance
 
-    def ApplayTranformationOnLable(self, param):
+    def ApplayTranformationOnLabel(self, param):
         self._Data.Label = param(self._Data.Label)
         if self.Training is not None:
             self.Training.Label = param(self.Training.Label)
