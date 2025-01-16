@@ -4,13 +4,13 @@ from Core.FeedForwardModel import *
 from Core.ActivationFunction import *
 from Core.Metric import *
 from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
-from Model import CUPMODELPATH, CUPPLOTPATH, CUPRESULTSPATH
-from Model.ModelResults import *
+from Model import *
+from Model.ModelPlots import *
 from Model.TrainingFuction import ValidateSelectedModel
 from Utility.PlotUtil import *
-from Core.Layer import DropoutLayer
 from Core.LossFunction import MSELoss
 from Core.Tuner.ModelSelection import BestSearch, BestSearchKFold, ModelSelection
+from Core.Tuner.HyperModel import HyperModel
 from Core.Optimizer.Adam import Adam
 from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Tuner.HpSearch import RandomSearch, GridSearch
@@ -22,8 +22,8 @@ import gc
 from statistics import mean, variance
 
 
-USE_KFOLD = False
-OPTIMIZER = None
+USE_KFOLD = True
+OPTIMIZER = 1
 
 
 def HyperModel_CAP(hp: HyperBag):
@@ -68,9 +68,9 @@ def HyperBag_Cap():
     # hp.AddRange("drop_out", 0.1, 0.5, 0.05)
     hp.AddChosen("UseBiasIN",[True,False])
     hp.AddChosen("UseBias",[True,False])
-    hp.AddChosen("actFun",[Sigmoid(),TanH(),ReLU(),LeakyReLU()])
     hp.AddRange("unit", 1, 25, 1)
     hp.AddRange("hlayer", 1, 5, 1)
+    hp.AddChosen("actFun",[Sigmoid(),TanH(),ReLU(),LeakyReLU()])
 
     return hp
 
@@ -84,21 +84,23 @@ def ReadCUP(val_split: float = 0.15, test_split: float = 0.5,seed:int = 10):
     if not USE_KFOLD or MULTY:
         all_data.Split(val_split, test_split)
         #all_data.Standardize(True)
+    else:
+        all_data.SetUp_Kfold_TestHoldOut(5,test_split)
 
     return all_data, MEE()
 
 def ModelSelection(dataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -> tuple[ModelFeedForward, HyperBag]:
 
     if USE_KFOLD:
-        ModelSelector = BestSearchKFold(HyperBag_Cap(), RandomSearch(NumberOrTrial))
+        ModelSelector = BestSearchKFold(RandomSearch(NumberOrTrial))
     else:
-        ModelSelector = BestSearch(HyperBag_Cap(), RandomSearch(NumberOrTrial))
+        ModelSelector = BestSearch(RandomSearch(NumberOrTrial))
 
     watched_metric = "val_loss"
     callback = [EarlyStopping(watched_metric, 10)]
 
     best_model, best_hpSel = ModelSelector.GetBestModel(
-        HyperModel_CAP,
+        HyperModel_CAP, HyperBag_Cap(),
         dataset,
         500,
         watched_metric,
@@ -110,12 +112,12 @@ def ModelSelection(dataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -
 
 
 
-
-def GenerateTagName():
+def GenerateTagNameFromSettings(settings):
     tagName=""
-    if OPTIMIZER == 1:
+
+    if settings["optimizer"] == 1:
         tagName += "_backprop"
-    elif OPTIMIZER == 2:
+    elif settings["optimizer"] == 2:
         tagName += "_nasterov"
     else:
         tagName += "_adam"
@@ -128,6 +130,8 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
     #DataSet Preparation
     SplitCUPDataset, BaselineMetric_MEE = ReadCUP(0.15, 0.20)
     mergedCUPDataset = DataSet.Clone(SplitCUPDataset)
+
+
     if not USE_KFOLD:
         mergedCUPDataset.MergeTrainingAndValidation()
 
@@ -138,12 +142,12 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
     global OPTIMIZER
 
 
-
     gs = GridSearch()
     for modes, _ in gs.Search(mode):
         OPTIMIZER = modes["Optimizer"]
 
-        tagName = GenerateTagName()
+        settingDict = {"optimizer": OPTIMIZER}
+        tagName = GenerateTagNameFromSettings(settingDict)
 
         print(f"Run experiment with the following settings: {tagName}")
 
@@ -153,7 +157,7 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
         #best_model.PlotModel("CUP Model")
 
         #best_model.SaveMetricsResults(f"Data/Results/Cup{tagName}.mres")
-        best_model.SaveModel(f"{CUPMODELPATH}",f"CUP{tagName}.vjf")
+        best_model.SaveModel(f"{CUP_MODEL_PATH}",f"CUP{tagName}.vjf")
 
         #GeneratePlot(BaselineMetric_MEE, best_model.MetricResults, SplitCUPDataset, tagName)
 
@@ -164,15 +168,15 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
             NumberOrTrial_mean, MetricToCheck,
             BaselineMetric_MEE,
             SplitCUPDataset.Test,mergedCUPDataset.Training,
-            None,
             500,50,42 )
-        SaveJson(f"{CUPRESULTSPATH}", f"res_CUP{tagName}.json", totalResult)
+        totalResult["settings"] = settingDict
+        SaveJson(f"{CUP_RESULTS_PATH}", f"res_CUP{tagName}.json", totalResult)
 
         #PlotMultipleModels(totalResult["metrics"],"test_loss",f"{CUPPLOTPATH}",f"mean_CUP{tagName}.png" )
 
 
 
-def GeneratePlot(BaselineMetric_MEE, MetricResults,CupDataset, extraname:str= ""):
+def GeneratePlot_ForCUP(BaselineMetric_MEE, MetricResults, CupDataset, extraname:str= ""):
     BaselineMetric_MSE = MSE()
 
     lin_model = LinearRegression()
@@ -208,9 +212,17 @@ def GeneratePlot(BaselineMetric_MEE, MetricResults,CupDataset, extraname:str= ""
         subplotAxes=axes[1])
     # Adjust layout and save the entire figure
     fig.tight_layout()
-    ShowOrSavePlot(f"{CUPPLOTPATH}", f"Loss(MSE)-MEE{extraname}")
+    ShowOrSavePlot(f"{CUP_PLOT_PATH}", f"Loss(MSE)-MEE{extraname}")
     plt.close(fig)
 
 
 if __name__ == '__main__':
-        TrainCUPModel(250 ,250)
+        TrainCUPModel(1000 ,50)
+
+        
+        jsonFiles = GetAllFileInDir(f"{CUP_RESULTS_PATH}")
+        for jsonFile in jsonFiles:
+            data = readJson(jsonFile)
+            PlotAveragedResults(data["metrics"], ["test_loss", "loss", "test_MEE", "MEE"],
+                                path =f"{CUP_PLOT_PATH}",
+                                filename=f"mean_CUP{GenerateTagNameFromSettings(data['settings'])}.png")

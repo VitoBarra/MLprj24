@@ -18,6 +18,33 @@ def CreateDir(path):
     # Ensure the directory exists
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
+
+
+
+def GetAllFileInDir(path: str) -> list[os.DirEntry]:
+    """
+    Returns a list of all files in a specified directory.
+
+    :param path: The path of the directory to scan.
+    :return: A list of os.DirEntry objects representing files in the directory.
+    :raises Exception: If the path does not exist or is not a directory.
+    """
+    try:
+        # Check if the path exists and is a directory
+        if not os.path.isdir(path):
+            raise NotADirectoryError(f"The specified path '{path}' is not a valid directory.")
+
+        # Return a list of all files in the directory
+        files = [entry for entry in os.scandir(path) if entry.is_file()]
+        return files
+
+    except Exception as e:
+        print(f"Error accessing the directory '{path}': {e}")
+        raise
+
+
+
+
 # Convert NumPy arrays to lists
 def convert_to_serializable(obj):
     if isinstance(obj, np.ndarray):
@@ -33,3 +60,22 @@ def SaveJson(direc, filename, data):
 
     with open(f"{direc}/{filename}", 'w') as f:
         json.dump(data, f, default=convert_to_serializable)
+
+import json
+
+
+def readJson(path):
+    """
+    Legge i dati da un file JSON e restituisce il contenuto come dizionario.
+
+    :param path: Il percorso del file JSON da leggere.
+    :return: I dati letti dal file JSON come dizionario.
+    :raises Exception: Se il file non può essere letto o se il contenuto non è un JSON valido.
+    """
+    try:
+        with open(path, 'r') as file:
+            data = json.load(file)
+        return data
+    except Exception as e:
+        print(f"Error while reading {path}: {e}")
+        raise

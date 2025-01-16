@@ -1,12 +1,7 @@
-import random
-from statistics import mean, variance
-
 from sklearn.linear_model import LogisticRegression
-
 from Core.ActivationFunction import *
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.FeedForwardModel import *
-from Core.Layer import DropoutLayer
 from Core.LossFunction import MSELoss, CategoricalCrossEntropyLoss
 from Core.Metric import Accuracy, MSE
 from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
@@ -15,50 +10,141 @@ from Core.Optimizer.Adam import Adam
 from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
-from Core.DataSet.DataExamples import DataExamples
-from Model import MONKRESUTLPATH, MONKPLOTPATH, MONKMODELPATH
-from Model.ModelResults import PlotTableVarianceAndMean, PlotMultipleModels, PlotMetrics
+from Model import MONK_RESUTL_PATH, MONK_PLOT_PATH, MONK_MODEL_PATH
+from Model.ModelPlots import  *
 from Model.TrainingFuction import ValidateSelectedModel
 from Utility.PlotUtil import *
 from dataset.ReadDatasetUtil import readMonk
 
-USE_CATEGORICAL_LABEL = False
-USE_ONEHOT_VARIABLE_DATA = False
-OPTIMIZER = None
-OUT_ACT_FUN = None
-USE_KFOLD = False
-MONK_NUM= None
+OPTIMIZER = 1
+
+USE_KFOLD = True
+KFOLD_NUM = 5
+VAL_SPLIT = 0.15
+
+MONK_NUM= 1
 
 
-def HyperModel_Monk(hp :HyperBag ):
-    model = ModelFeedForward()
+class HyperModel_MONK(HyperModel):
 
 
-    model.AddLayer(Layer(17 if USE_ONEHOT_VARIABLE_DATA else 6, Linear(), hp["UseBiasIN"], "input"))
-    for i in range(hp["hlayer"]):
-            model.AddLayer(Layer(hp["unit"], hp["ActFun"], hp["UseBias"], f"_h{i}"))
+    def __init__(self, originalDataset : DataSet):
+        super().__init__( originalDataset)
+        self.k = None
+        self.val_split = None
+        self.IntepretationMatric = None
+
+    def SetSlit(self,val_split, k):
+        self.val_split = val_split
+        self.k = k
+
+    def GetHyperParamethers(self) ->HyperBag:
+        hp = HyperBag()
+
+        # Optimizer
+        hp.AddChosen("BatchSize",[-1,1,32,64,96,128])
+        hp.AddRange("eta", 0.001, 0.2, 0.005)
+        if MONK_NUM ==3:
+            hp.AddRange("labda", 0.000, 0.01, 0.005)
+        hp.AddRange("alpha", 0.5, 0.9, 0.05)
+        hp.AddRange("decay", 0.0003, 0.005, 0.0003)
+
+        # only for adam
+        if OPTIMIZER>2:
+            hp.AddRange("beta", 0.97, 0.99, 0.01)
+            hp.AddRange("epsilon", 1e-13, 1e-10, 1e-1)
 
 
-    if USE_CATEGORICAL_LABEL:
-        model.AddLayer(Layer(2, SoftARGMax(), False, "output_HotEncoding"))
-        loss = CategoricalCrossEntropyLoss()
-    else:
-        model.AddLayer(Layer(1, TanH() if OUT_ACT_FUN == 1 else Sigmoid(), False,"output"))
-        loss = MSELoss()
+        # Architecture
+        hp.AddChosen("UseBiasIN",[True,False])
+        hp.AddChosen("UseBias",[True,False])
+        hp.AddRange("unit", 2, 8, 1)
+        hp.AddRange("hlayer", 0, 3, 1)
+        hp.AddChosen("ActFun",[TanH(),Sigmoid(),ReLU()])
 
-    if OPTIMIZER == 1:
-        optimizer = BackPropagation(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
-    elif OPTIMIZER == 2:
-        optimizer = BackPropagationNesterovMomentum(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
-    else:
-        optimizer = Adam(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
-
-    return model, optimizer
+        # Data format
+        hp.AddChosen("oneHotInput",[True,False])
+        hp.AddChosen("outFun",[TanH(),Sigmoid(),SoftARGMax()])
 
 
 
+        #hp.AddRange("drop_out", 0.2, 0.6, 0.1)
 
-def ReadMonk(n: int, val_split: float = 0.15, seed: int = 0):
+        return hp
+
+    def GetDatasetVariant(self, hp):
+        data_set = DataSet.Clone(self.originalDataset)
+        if (hp["oneHotInput"],hp["outFun"]) not in self.DataSetsVariant:
+            self.PreprocessInput(hp ,data_set)
+            self.PreprocessOutput(hp,data_set)
+            self.SplitAllDataset(data_set)
+            self.DataSetsVariant[hp["oneHotInput"],hp["outFun"].Name] = data_set
+
+
+        return self.DataSetsVariant[hp["oneHotInput"],hp["outFun"].Name]
+
+    def SplitAllDataset(self,data_set):
+
+        if USE_KFOLD:
+            data_set.SetUp_Kfold_TestHoldOut(self.k)
+        else:
+            data_set.SplitTV(self.val_split)
+
+
+    def PreprocessInput(self,hp, data_set):
+        if hp["oneHotInput"]:
+            data_set.ToOnHotOnData()
+
+    def PreprocessOutput(self,hp, data_set : DataSet):
+        if hp["outFun"].Name == "TanH": # TanH
+            data_set.ApplayTranformationOnLabel(np.vectorize(lambda x: -1 if x == 0 else 1 ))
+            Interpretation_metric = Accuracy(Sign())
+
+        elif hp["outFun"].Name == "Sigmoid": #asigmoid
+            Interpretation_metric = Accuracy(Binary(0.5))
+
+        elif hp["outFun"].Name == "SoftARGMax": #  one Hot label
+            data_set.ToOneHotLabel()
+            Interpretation_metric = Accuracy()
+        else:
+            raise ValueError("value unknown")
+        self.IntepretationMatric= Interpretation_metric
+
+
+    def GetModel(self, hp :HyperBag):
+        model = ModelFeedForward()
+
+
+        model.AddLayer(Layer(17 if hp["oneHotInput"] else 6, Linear(), hp["UseBiasIN"], "input"))
+        for i in range(hp["hlayer"]):
+                model.AddLayer(Layer(hp["unit"], hp["ActFun"], hp["UseBias"], f"_h{i}"))
+
+        output_act = hp["outFun"]
+
+        model.AddLayer(Layer(1 if output_act.Name !="SoftARGMax" else 2 ,
+                             output_act, False,f"output_{output_act.Name}"))
+        return model
+
+
+    def GetOptimizer(self, hp :HyperBag):
+
+        loss = CategoricalCrossEntropyLoss() if hp["outFun"].Name == "SoftARGMax" else MSELoss()
+
+
+        if OPTIMIZER == 1:
+            optimizer = BackPropagation(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+        elif OPTIMIZER == 2:
+            optimizer = BackPropagationNesterovMomentum(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+        else:
+            optimizer = Adam(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
+
+        return  optimizer
+
+
+
+
+
+def ReadMonk(n: int, seed: int = 0) -> DataSet:
     if n <0 or n>3:
         raise Exception("n must be between 0 and 3")
     TR_file_path_monk = f"dataset/monk+s+problems/monks-{MONK_NUM}.train"
@@ -68,80 +154,32 @@ def ReadMonk(n: int, val_split: float = 0.15, seed: int = 0):
     testSet = readMonk(TS_file_path_monk)
     monkDataset = DataSet.FromDataExample(designSet)
     monkDataset.Test = testSet
-
-    if OUT_ACT_FUN == 1:
-        monkDataset.ApplayTranformationOnLabel(np.vectorize(lambda x: -1 if x == 0 else 1 ))
-        baseline_metric = Accuracy(Sign())
-    else:
-        baseline_metric = Accuracy(Binary(0.5))
-
     monkDataset.Shuffle(seed)
+    return monkDataset
 
-    if USE_ONEHOT_VARIABLE_DATA:
-        monkDataset.ToOnHotOnExamples()
 
-    if USE_CATEGORICAL_LABEL:
-    
-        monkDataset.ToCategoricalLabel()
-    monkDataset.PrintData()
+
+
+
+
+
+
+def ModelSelection( hyperModel:HyperModel_MONK ,NumberOrTrial: int) -> tuple[ModelFeedForward, HyperBag]:
+
 
     if USE_KFOLD:
-        monkDataset.SetUp_Kfold_TestHoldOut(5)
+        ModelSelector:ModelSelection = BestSearchKFold( RandomSearch(NumberOrTrial))
     else:
-        monkDataset.SplitTV(val_split)
-
-    return monkDataset, baseline_metric
-
-
-
-
-def HyperBag_Monk():
-    hp = HyperBag()
-
-    # Optimizer
-    hp.AddChosen("BatchSize",[-1,1,32,64,96,128])
-    hp.AddRange("eta", 0.001, 0.2, 0.005)
-    if MONK_NUM ==3:
-        hp.AddRange("labda", 0.000, 0.01, 0.005)
-    hp.AddRange("alpha", 0.5, 0.9, 0.05)
-    hp.AddRange("decay", 0.0003, 0.005, 0.0003)
-
-    # only for adam
-    if OPTIMIZER>2:
-        hp.AddRange("beta", 0.9, 0.99, 0.01)
-        hp.AddRange("epsilon", 1e-13, 1e-7, 1e-1)
-
-
-    # Architecture
-    hp.AddChosen("UseBiasIN",[True,False])
-    hp.AddChosen("UseBias",[True,False])
-    hp.AddChosen("ActFun",[TanH(),Sigmoid(),ReLU()])
-    hp.AddRange("unit", 2, 8, 1)
-    hp.AddRange("hlayer", 0, 3, 1)
-
-
-
-    #hp.AddRange("drop_out", 0.2, 0.6, 0.1)
-
-    return hp
-
-
-
-def ModelSelection(monkDataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -> tuple[ModelFeedForward, HyperBag]:
-    if USE_KFOLD:
-        ModelSelector:ModelSelection = BestSearchKFold(HyperBag_Monk(), RandomSearch(NumberOrTrial))
-    else:
-        ModelSelector:ModelSelection = BestSearch(HyperBag_Monk(), RandomSearch(NumberOrTrial))
+        ModelSelector:ModelSelection = BestSearch( RandomSearch(NumberOrTrial))
 
     watched_metric = "val_loss"
 
     callBacks = [EarlyStopping(watched_metric, 100,0.0001)]
-    best_model, hpSel = ModelSelector.GetBestModel(
-        HyperModel_Monk,
-        monkDataset,
+    best_model, hpSel = ModelSelector.GetBestModel_HyperModel(
+        hyperModel,
         800,
         watched_metric,
-        [BaselineMetric],
+        None,
         GlorotInitializer(),
         callBacks)
     #best_model.PlotModel(f"MONK Model {MONK_NUM}")
@@ -152,8 +190,7 @@ def ModelSelection(monkDataset:DataSet, BaselineMetric:Metric, NumberOrTrial: in
 
 
 
-
-def GeneratePlot(AccuracyMetric, MetricResults, monkDataset,extraname:str=""):
+def GeneratePlot_ForMonk(AccuracyMetric, MetricResults, monkDataset, extraname:str= ""):
     MSEmetric = MSE()
 
     lin_model = LogisticRegression()
@@ -169,8 +206,9 @@ def GeneratePlot(AccuracyMetric, MetricResults, monkDataset,extraname:str=""):
     baseline_acc = AccuracyMetric(predictions.reshape(-1, 1), test_Label) *100
     baseline_mse = MSEmetric(predictions.reshape(-1, 1), test_Label)
 
-    metric_to_plot_loss = {key: value[1:] for key, value in MetricResults.items() if key.endswith("loss")}
-    metric_to_plot_Accuracy = {key: value[1:]*100 for key, value in MetricResults.items() if key.endswith("Accuracy")}
+    warm_up_epochs = 3
+    metric_to_plot_loss = {key: value[warm_up_epochs:] for key, value in MetricResults.items() if key.endswith("loss")}
+    metric_to_plot_Accuracy = {key: value[warm_up_epochs:]*100 for key, value in MetricResults.items() if key.endswith(baseline_acc.name)}
 
     fig, axes = plt.subplots(1, 2, figsize=(18, 6))
     PlotMetrics(
@@ -185,7 +223,7 @@ def GeneratePlot(AccuracyMetric, MetricResults, monkDataset,extraname:str=""):
     PlotMetrics(
         metricDic=metric_to_plot_Accuracy,
         baseline=baseline_acc,
-        baselineName=f"baseline {AccuracyMetric.Name}",
+        baselineName=f"baseline {AccuracyMetric.name}",
         limitYRange=None,
         title=f"MONK {MONK_NUM} accuracy",
         xlabel="Epochs",
@@ -193,52 +231,38 @@ def GeneratePlot(AccuracyMetric, MetricResults, monkDataset,extraname:str=""):
         subplotAxes=axes[1])
     # Adjust layout and save the entire figure
     fig.tight_layout()
-    ShowOrSavePlot(f"{MONKPLOTPATH}{MONK_NUM}", f"Loss(MSE)-Accuracy{extraname}")
+    ShowOrSavePlot(f"{MONK_PLOT_PATH}{MONK_NUM}", f"Loss(MSE)-Accuracy{extraname}")
     plt.close(fig)
 
-def GenerateTagName():
+def GenerateTagNameFromSettings(settings:dict):
     tagName = ""
-    if OPTIMIZER == 1:
+
+    if settings["optimizer"] == 1:
         tagName += "_backprop"
-    elif OPTIMIZER == 2:
+    elif settings["optimizer"] == 2:
         tagName += "_nasterov"
     else:
         tagName += "_adam"
 
-    if USE_ONEHOT_VARIABLE_DATA:
-        tagName += "_onehot"
-    else:
-        tagName += "_numeric"
-
-    if OUT_ACT_FUN == 1:
-        tagName += "_tanh"
-    else:
-        tagName += "_sigmoid"
-
     return tagName
 
 
-def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
+def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Test=None) -> None:
 
+    if monk_To_Test is None:
+        monk_To_Test = [1, 2, 3]
 
     mode = HyperBag()
 
-    # Data Processing
-    mode.AddChosen("OneHot",[True,False])
-    mode.AddChosen("OutActFun",[1,2])
     # Training
-    mode.AddChosen("Optimizer",[1,2])
+    mode.AddChosen("Optimizer",[1,2,3])
 
-
-
-    global OUT_ACT_FUN
     global OPTIMIZER
-    global USE_ONEHOT_VARIABLE_DATA
     global MONK_NUM
 
     gs = GridSearch()
 
-    for monk in [1,2,3]:
+    for monk in monk_To_Test:
         MONK_NUM = monk
 
         #Dataset Preparation
@@ -248,40 +272,41 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
             mergedMonkDataset.MergeTrainingAndValidation()
 
         for modes, _ in gs.Search(mode):
-            USE_ADAM=modes["Adam"]
-            USE_ONEHOT_VARIABLE_DATA=modes["OneHot"]
-            OUT_ACT_FUN=modes["OutActFun"]
+            OPTIMIZER=modes["Optimizer"]
 
+            #Dataset Preparation
+            monkDataset = ReadMonk(MONK_NUM)
 
-            tagName = GenerateTagName()
+            settingDict = { "optimizer":OPTIMIZER}
+            tagName = GenerateTagNameFromSettings(settingDict)
 
+            hyperModel = HyperModel_MONK(monkDataset)
+            hyperModel.SetSlit(VAL_SPLIT ,KFOLD_NUM)
+            monkDataset.SplitTV()
 
-            print(f"Training MONK {MONK_NUM}...")
+            print(f"Trasining MONK {MONK_NUM}...")
             print(f"Run experiment with the following settings: {tagName}")
 
 
-            best_model, best_hpSel = ModelSelection(monkDataset, BaselineMetric_Accuracy, NumberOrTrial_search)
+            best_model, best_hpSel = ModelSelection(hyperModel, NumberOrTrial_search)
             best_hpSel:HyperBag
-            best_model.SaveModel( f"{MONKMODELPATH}{MONK_NUM}", f"MONK{MONK_NUM}{tagName}.vjf")
-
-            #best_model.SaveMetricsResults(f"Data/Results/Monk{MONK_NUM}{tagName}.mres")
-
-             #GeneratePlot(BaselineMetric_Accuracy, best_model.MetricResults, monkDataset,tagName)
+            best_model.SaveModel( f"{MONK_MODEL_PATH}{MONK_NUM}", f"MONK{MONK_NUM}{tagName}.vjf")
 
             print(f"Best hp : {best_hpSel}")
 
             MetricToCheck = [key for key, _ in best_model.MetricResults.items() if not key.startswith("val_")]
+
+            monk_data = hyperModel.GetDatasetVariant(best_hpSel)
+            hyperModel_fn = lambda hp: (hyperModel.GetModel(hp), hyperModel.GetOptimizer(hp))
             totalResult = ValidateSelectedModel(
-                HyperModel_Monk,best_hpSel,
+                hyperModel_fn,best_hpSel,
                 NumberOrTrial_mean, MetricToCheck,
-                BaselineMetric_Accuracy
-                ,monkDataset.Test,mergedMonkDataset.Training,
-                None,
+                hyperModel.IntepretationMatric
+                ,monk_data.Test,monk_data.Training,
                 500,50,42 )
-            SaveJson(f"{MONKRESUTLPATH}{MONK_NUM}",f"res{tagName}.json",totalResult)
 
-            # PlotMultipleModels(totalResult["metrics"],["test_loss", "loss", "test_Accuracy", "Accuracy"],f"{MONKPLOTPATH}{MONK_NUM}",f"mean_MONK{tagName}.png" )
-
+            totalResult["settings"] = settingDict
+            SaveJson(f"{MONK_RESUTL_PATH}{MONK_NUM}", f"res{tagName}.json", totalResult)
 
 
 
@@ -290,5 +315,16 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
 
 
 if __name__ == '__main__':
-        TrainMonkModel(250,25)
+        monkNumList = [1,2,3]
+        TrainMonkModel(500,50, monkNumList)
+
+        for monk_num in monkNumList:
+            jsonFiles = GetAllFileInDir(f"{MONK_RESUTL_PATH}{monk_num}")
+            for jsonFile in jsonFiles:
+                data = readJson(jsonFile)
+                PlotAveragedResults(data["metrics"], ["test_loss", "loss", "test_Accuracy", "Accuracy"],
+                                    path =f"{MONK_PLOT_PATH}{monk_num}",
+                                    filename=f"mean_MONK{GenerateTagNameFromSettings(data['settings'])}.png")
+
+            #GeneratePlot(BaselineMetric_Accuracy, best_model.MetricResults, monkDataset,tagName)
 

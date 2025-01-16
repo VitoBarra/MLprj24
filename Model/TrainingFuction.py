@@ -1,4 +1,3 @@
-import random
 from statistics import mean, variance
 
 from Core.Callback.EarlyStopping import EarlyStopping
@@ -19,7 +18,6 @@ def ValidateSelectedModel(
                           BaselineMetric:Metric,
                           test : DataExamples,
                           training: DataExamples ,
-                          ExperimentParam: dict = None,
                           epoch: int = 500,
                           patience: int = 50,
                           seed = 42,
@@ -27,11 +25,9 @@ def ValidateSelectedModel(
                           ) -> dict :
 
     totalResult = {"metrics": [], "HP": best_hpSel.hpDic}
-    if ExperimentParam is not None:
-        totalResult["Test parm"] = ExperimentParam
 
 
-    res = {key: [] for key in MetricsName}
+    res = {}
 
     tempDataset:DataSet = DataSet()
     tempDataset.Test = test
@@ -52,6 +48,8 @@ def ValidateSelectedModel(
         totalResult["metrics"].append(model.MetricResults)
 
         for key, value in model.MetricResults.items():
+            if key not in res:
+                res[key] = []
             res[key].append(value[-1])
 
         print(f"training model {i + 1} / {NumberOrTrial} " + " | ".join(

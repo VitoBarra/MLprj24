@@ -6,6 +6,7 @@ from Core.Metric import Metric, MSE, RMSE
 class LossFunction:
 
     def __init__(self):
+        self.Name = "invalid_LossFunction"
         pass
 
     def CalculateLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
@@ -22,6 +23,7 @@ class MSELoss(LossFunction):
     def __init__(self):
         LossFunction.__init__(self)
         self.MSEFun = MSE()
+        self.Name = "MSELoss"
 
 
     def CalculateLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
@@ -35,6 +37,7 @@ class MSELoss(LossFunction):
 class RMSELoss(LossFunction):
     def __init__(self):
         LossFunction.__init__(self)
+        self.Name = "RMSELoss"
 
     def CalculateLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
         rmse=RMSE()
@@ -51,6 +54,7 @@ class RMSELoss(LossFunction):
 class BinaryCrossEntropyLoss(LossFunction):
     def __init__(self):
         LossFunction.__init__(self)
+        self.Name = "BinaryCrossEntropyLoss"
 
     def CalculateLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
         """
@@ -78,6 +82,7 @@ class BinaryCrossEntropyLoss(LossFunction):
 class CategoricalCrossEntropyLoss(LossFunction):
     def __init__(self):
         LossFunction.__init__(self)
+        self.Name = "CategoricalCrossEntropyLoss"
 
     def CalculateLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
         """

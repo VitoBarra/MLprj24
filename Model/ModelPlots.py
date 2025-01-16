@@ -11,53 +11,10 @@ from scipy.constants import metric_ton
 
 
 
-def PlotTableVarianceAndMean(results: dict) -> None:
-    """
-    Calculate and display mean and variance for each model's metrics.
-
-    :param results: Dictionary containing model metrics.
-    """
-    metric_summary = {}
-    for model_name, model_data in results.items():
-        for metric, values in model_data["metrics"].items():
-            if metric not in metric_summary:
-                metric_summary[metric] = []
-            metric_summary[metric].append(values[-1])
-
-    final_summary = {}
-    metrics = []
-    means = []
-    variances = []
-
-    for metric, values in metric_summary.items():
-        mean_val = mean(values)
-        variance_val = variance(values)
-        final_summary[metric] = {
-            "mean": mean_val,
-            "variance": variance_val
-        }
-        metrics.append(metric)
-        means.append(mean_val)
-        variances.append(variance_val)
-
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.axis('tight')
-    ax.axis('off')
-    table_data = list(zip(metrics, means, variances))
-    table = plt.table(cellText=table_data,
-                      colLabels=["Metric", "Mean", "Variance"],
-                      cellLoc='center',
-                      loc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(12)
-    table.scale(1.2, 1.2)
-    plt.title("Table of Means and Variances")
-    plt.show()
-
-    SaveResults(final_summary)
 
 
-def PlotMultipleModels(results: list[dict], metrics: list[str], path: str = None, filename: str = None) -> None:
+
+def PlotAveragedResults(results: list[dict], metrics: list[str], path: str = None, filename: str = None) -> None:
     """
     Plot multiple metrics for multiple models, including individual model curves and the mean curve for each metric.
 
@@ -75,6 +32,8 @@ def PlotMultipleModels(results: list[dict], metrics: list[str], path: str = None
             key = "loss"
         elif "Accuracy" in metric:
             key = "Accuracy"
+        elif "MEE" in metric:
+            key = "MEE"
         else:
             key = metric
 
@@ -88,6 +47,9 @@ def PlotMultipleModels(results: list[dict], metrics: list[str], path: str = None
     fig, axes = plt.subplots(1, num_groups, figsize=(12 * num_groups, 6), squeeze=False)
 
     colors = ["blue", "green", "orange", "purple", "red"]  # Predefined color palette
+    # Define different line styles and markers for black-and-white readability
+    linestyles = ['-', '--', '-.', ':']
+    markers = ['o', 's', 'D', '^']
 
     for idx, (group, group_metrics) in enumerate(grouped_metrics.items()):
         ax = axes[0, idx]
@@ -102,12 +64,25 @@ def PlotMultipleModels(results: list[dict], metrics: list[str], path: str = None
 
             # Plot individual model curves
             for model_data in all_metric:
-                ax.plot(model_data, alpha=0.1, color=color)  # Individual curves, no label, very light
+                ax.plot(model_data,
+                        alpha=0.1,
+                        color=color,
+                        linestyle='-',
+                        marker="",
+                        markersize=5,
+                        linewidth=2)  # Individual curves, no label, very light
 
             # Compute and plot the mean curve
             all_metric = np.array(all_metric)
             mean_metric = np.mean(all_metric, axis=0)
-            ax.plot(mean_metric, linewidth=2, label=f'{metric} (mean)', color=color)
+
+            ax.plot(mean_metric,
+                    label=f'{metric} (mean)',
+                    color=color,
+                    linestyle=linestyles[i % len(linestyles)],  # Cycle through linestyles
+                    marker=markers[i % len(markers)],  # Cycle through markers
+                    markersize=5,
+                    linewidth=2,)
 
         # Set axis labels and title
         ax.set_xlabel("Epochs", fontsize=14)
@@ -118,24 +93,11 @@ def PlotMultipleModels(results: list[dict], metrics: list[str], path: str = None
     plt.tight_layout()
 
     # Save or show the plot
-    if path and filename:
-        plt.savefig(f"{path}/{filename}")
-    else:
-        plt.show()
+    ShowOrSavePlot( path , filename )
 
 
 
 
-def SaveResults(results, path: str = "DataSet/Results/model_results.json") -> None:
-    """
-    Save the model results to a JSON file.
-
-    :param results: Dictionary of model results (metrics and hyperparameters).
-    :param path: Path to save the results JSON file.
-    """
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(results, f, indent=4)
 
 
 def PlotMetrics(metricDic, baseline=None, baselineName="Baseline", title="Title",
