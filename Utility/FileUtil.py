@@ -2,6 +2,8 @@ import os
 import numpy as np
 import json
 
+from Core.ActivationFunction import ActivationFunction
+
 
 def GetDirectSubDir(path:str) -> list[os.DirEntry]:
     """
@@ -20,6 +22,8 @@ def CreateDir(path):
 def convert_to_serializable(obj):
     if isinstance(obj, np.ndarray):
         return obj.tolist()
+    if isinstance(obj, ActivationFunction):
+        return obj.Name
     raise TypeError(f"Type {type(obj)} not serializable")
 
 def SaveJson(direc, filename, data):

@@ -46,6 +46,12 @@ class DataExamples(object):
         self.isCategorical = False
     @classmethod
     def Clone(cls, dataExamples: 'DataExamples'):
+        """
+        Clones a DataExamples object.
+
+        :param dataExamples: A DataExamples object.
+        :return: A new DataExamples object.
+        """
         if dataExamples is None:
             return None
         return DataExamples(dataExamples.Data, dataExamples.Label, dataExamples.Id)
@@ -70,7 +76,7 @@ class DataExamples(object):
 
         :return: The number of samples as an integer.
         """
-        return len(self.Data)
+        return self.Data.shape[0]
 
 
     def Concatenate(self, dataExample: 'DataExamples') -> None:
@@ -103,7 +109,6 @@ class DataExamples(object):
         """
         Splits the dataset into training, validation, and test sets.
 
-        :return: 
         :param validationPercent: The fraction of data to use for validation.
         :param testPercent: The fraction of data to use for testing.
         :return: A tuple (training, validation, test) where each is a DataExamples object.
@@ -151,6 +156,7 @@ class DataExamples(object):
         :param standardizeLabel:  normalize the lables or not.
         :param datastat: An optional precomputed mean for normalization. Defaults to the mean of the dataset.
         :param lablestat: An optional precomputed standard deviation for normalization. Defaults to the std of the dataset.
+        :return: A tuple (mean, std)
         """
 
         (meanD,stdD), self.Data = DataExamples._Standardization(self.Data, datastat)
@@ -178,11 +184,12 @@ class DataExamples(object):
             if stdL != 0:  # Avoid division by zero
                 self.Label = (self.Label * stdL) + meanL
 
-    def Undo_Standardization_ExternalData(self, Data,lables) :
+    def Undo_Standardization_ExternalData(self, Data, labels) :
         """
-        Reverses the standardization of the data and optionally the labels.
+        Reverses the standardization of the data and the labels.
 
-        :param normalizeLabels: Indicates whether to reverse standardization for the labels.
+        :param Data: Data to be reversed.
+        :param labels: Labels to be reversed.
         """
 
         if Data is None:
@@ -193,15 +200,27 @@ class DataExamples(object):
             meanD, stdD = self.DataStat
             resultData = (self.Data * stdD) + meanD
 
-        if lables is not None and  self.LabelStat is not None:
+        if labels is not None and  self.LabelStat is not None:
             meanL, stdL = self.LabelStat
             resultLabels = (self.Label * stdL) + meanL
 
-        return resultData,resultLabels
+        return resultData, resultLabels
 
 
     @staticmethod
     def _Standardization(data, stat) -> ((float, float), list[float]):
+        """
+         Standardizes the given data by subtracting the mean and dividing by the standard deviation.
+
+        :param data: A np array containing the data to be standardized. Each element is expected to be a numeric value.
+        :param stat: A tuple (mean, std) containing the precomputed mean and standard deviation.
+                     If None, the function computes these values from the `data`.
+
+        :return: A tuple containing:
+                 1. A tuple (mean, std) where `mean` is the computed or provided mean,
+                    and `std` is the computed or provided standard deviation.
+                 2. A list or array of standardized values, calculated as (data - mean) / std.
+        """
         mean,std = None,None
 
         if stat is not None:
@@ -220,6 +239,9 @@ class DataExamples(object):
         self.Label = one_hot_encode(self.Label)
 
     def ToCategoricalData(self):
+        """
+        Converts the labels to categorical format (one-hot encoding).
+        """
         self.Data = one_hot_encode(self.Data)
 
 
@@ -241,7 +263,6 @@ class DataExamples(object):
     def FlattenSeriesData(self) -> None:
         """
         Flattens the input data for models requiring 2D inputs.
-
         The data is reshaped such that each sample is a 1D vector.
         """
         self.Data = self.Data.reshape(self.Data.shape[0], -1)
@@ -251,11 +272,22 @@ class DataExamples(object):
 
 
     def PrintData(self, name :str):
+        """
+        Prints the data to the console.
+        :param name: The name of the dataset.
+        :return:
+        """
         print(f"{name} data {len(self.Data)} :")
         for d, l, id in self:
             print(d, l, id)
 
     def CutData(self,  finish,start=0):
+        """
+        Take only a certain part of samples from the dataset.
+
+        :param finish: Finish index for the cut.
+        :param start: Start position of the cut.
+        """
 
         self.Data = self.Data[start:finish]
         self.Label = self.Label[start:finish]

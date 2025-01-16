@@ -5,7 +5,7 @@ from Core.Optimizer.Optimizer import Optimizer
 
 class BackPropagationMomentum(Optimizer):
 
-    def __init__(self, loss_function: LossFunction, eta: float, lambda_: float | None = None,
+    def __init__(self, loss_function: LossFunction, batchSize:int, eta: float, lambda_: float | None = None,
                  alpha: float | None = None, decay_rate: float | None = 0.0):
         """
         Initializes the BackPropagation object with a specific loss function.
@@ -13,7 +13,7 @@ class BackPropagationMomentum(Optimizer):
         :param loss_function: An instance of LossFunction used to compute the loss and its derivative.
         :param eta: The learning rate.
         """
-        super().__init__(loss_function, eta, lambda_, alpha, decay_rate)
+        super().__init__(loss_function,batchSize, eta, lambda_, alpha, decay_rate)
 
 
 

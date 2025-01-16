@@ -15,10 +15,11 @@ class DataSet(object):
        - Flatten series data for models requiring 2D inputs.
 
     Attributes:
-       DataSet (DataExamples | None): The complete dataset before splitting.
+       _Data (DataExamples | None): The complete dataset before splitting.
        Test (DataExamples | None): The test subset of the dataset.
        Validation (DataExamples | None): The validation subset of the dataset.
        Training (DataExamples | None): The training subset of the dataset.
+       Kfolds list[tuple[DataExamples,DataExamples]] | None: The number of folds to split the dataset into.
     """
     _Data: DataExamples | None
     Test:       DataExamples | None
@@ -43,6 +44,8 @@ class DataSet(object):
 
         :param data: A numpy array containing the input data.
         :param label: A numpy array containing the labels for the data.
+        :param Id: A numpy array containing the IDs for the data.
+        :return: DataSet object.
         """
 
         if data is None or label is None:
@@ -56,6 +59,11 @@ class DataSet(object):
 
     @classmethod
     def FromDataExample(cls, data:DataExamples):
+        """
+        Initializes the DataSet with data and labels.
+        :param data: A DataExamples object.
+        :return: A DataSet object.
+        """
         dataset = DataSet()
         dataset._Data = data
 
@@ -63,6 +71,14 @@ class DataSet(object):
 
     @classmethod
     def FromDataExampleTVT(cls, Training:DataExamples, Validation:DataExamples, Test:DataExamples):
+        """
+        Initializes the DataSet with data and labels from training, validation and test sets.
+        :param Training: Training set DataExamples object.
+        :param Validation: Validation set DataExamples object.
+        :param Test: Test set DataExamples object.
+        :return: A DataSet object.
+        """
+
         dataset = DataSet()
 
         alldata = DataExamples.Clone(Training)
@@ -80,6 +96,12 @@ class DataSet(object):
 
     @classmethod
     def FromDataExampleTV(cls, Training:DataExamples, Test:DataExamples):
+        """
+        Initializes the DataSet with data and labels from training and test sets.
+        :param Training: Training set DataExamples object.
+        :param Test: Test set DataExamples object.
+        :return: A DataSet object.
+        """
         dataset = DataSet()
 
         alldata = DataExamples.Clone(Training)
@@ -93,6 +115,11 @@ class DataSet(object):
 
     @classmethod
     def Clone(cls, dataset:'DataSet'):
+        """
+        Clones the DataSet.
+        :param dataset: DataSet object.
+        :return: New DataSet object.
+        """
         dataset_new = DataSet()
         dataset_new._Data = DataExamples.Clone(dataset._Data)
         dataset_new.Training = DataExamples.Clone(dataset.Training)
@@ -127,9 +154,11 @@ class DataSet(object):
         return self.Training, self.Validation
 
 
-    def Standardize(self, Lable :bool= False) -> 'DataSet':
+    def Standardize(self, Labels :bool= False) -> 'DataSet':
         """
         Standardize the dataset by subtracting the mean and dividing by the standard deviation.
+
+        :param Labels: If true, labels will be normalized.
 
         :return: The current DataSet object with normalized data.
         :raises ValueError: If normalization is attempted before splitting the dataset.
@@ -137,21 +166,29 @@ class DataSet(object):
         if not self.Splitted:
            raise ValueError('Standardize function must be called after splitDataset')
 
-        (statd,statl) = self.Training.Standardize(Lable)
-        self.Validation.Standardize(Lable, statd, statl)
-        self.Test.Standardize(Lable, statd, statl)
+        (statd,statl) = self.Training.Standardize(Labels)
+        self.Validation.Standardize(Labels, statd, statl)
+        self.Test.Standardize(Labels, statd, statl)
         return self
-    def UndoStandardization(self, lable :bool= False):
+
+    def UndoStandardization(self, label :bool= False):
+        """
+        Undoes the standardization.
+        :param label: If true, labels will be unnormalized.
+        """
         if self._Data is not None:
-            self._Data.Undo_Standardization(lable)
+            self._Data.Undo_Standardization(label)
         if self.Training is not None:
-            self.Training.Undo_Standardization(lable)
+            self.Training.Undo_Standardization(label)
         if self.Validation is not None:
-            self.Validation.Undo_Standardization(lable)
+            self.Validation.Undo_Standardization(label)
         if self.Test is not None:
-            self.Test.Undo_Standardization(lable)
+            self.Test.Undo_Standardization(label)
 
     def MergeTrainingAndValidation(self):
+        """
+        Merges the training and validation sets.
+        """
         if self.Training is not None and self.Validation is not None:
             self.Training.Concatenate(self.Validation)
             self.Validation = None
@@ -175,6 +212,10 @@ class DataSet(object):
         return self
 
     def ToOnHotOnExamples(self):
+        """
+        Converts labels to categorical (one-hot encoded) format for all splits.
+        :return:
+        """
         if self._Data is not None:
             self._Data.ToCategoricalData()
         if self.Training is not None:

@@ -1,6 +1,6 @@
 import numpy as np
 
-from Core import WeightInitializer
+from Core.Inizializer import WeightInitializer
 from Core.ActivationFunction import ActivationFunction
 
 

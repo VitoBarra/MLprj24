@@ -17,9 +17,7 @@ class ActivationFunction:
 
     def __call__(self, z: float|np.array(float)) -> float|np.array(float):
         return self.Calculate(z)
-
-
-    def GetName(self):
+    def __format__(self, format_spec):
         return self.Name
 
 
@@ -112,6 +110,53 @@ class ReLU(ActivationFunction):
         :return: The derivative value, which is 1 for positive inputs and 0 otherwise.
         """
         return np.where(z > 0, 1, 0)
+
+class LeakyReLU(ActivationFunction):
+    """
+    Leaky Rectified Linear Unit (leaky ReLU) activation function.
+
+    This activation function allows a small, non-zero, gradient when the unit is not active.
+    It is defined as:
+      - f(z) = z if z > 0
+      - f(z) = α * z if z <= 0
+    where α (alpha) is a small positive constant.
+
+    This resolves the "dying ReLU" problem by ensuring non-zero gradients for negative inputs.
+    """
+
+    def __init__(self, alpha: float = 0.01):
+        """
+        Initializes the LeakyReLU activation function with a given alpha value.
+
+        :param alpha: The slope for the negative part of the function. Default is 0.01.
+        """
+        super().__init__()
+        self.Name = "LeakyReLU"
+        self.alpha = alpha
+
+    def Calculate(self, z: float | np.ndarray) -> float | np.ndarray:
+        """
+        Computes the LeakyReLU activation for a given input.
+
+        The function returns the input value if it is positive, and alpha times the input otherwise.
+
+        :param z: The input value (float or numpy array).
+        :return: The activation value as a float or numpy array.
+        """
+        return np.where(z > 0, z, self.alpha * z)
+
+    def CalculateDerivative(self, z: float | np.ndarray) -> float | np.ndarray:
+        """
+        Computes the derivative of the LeakyReLU activation function.
+
+        The derivative is:
+          - 1 if z > 0
+          - alpha if z <= 0
+
+        :param z: The input value (float or numpy array).
+        :return: The derivative value as a float or numpy array.
+        """
+        return np.where(z > 0, 1, self.alpha)
 
 
 
