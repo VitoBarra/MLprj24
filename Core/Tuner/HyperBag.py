@@ -55,4 +55,11 @@ class HyperBag:
         self.hpDic = hpDic
 
     def GetHPString(self):
-        return "| "+" | ".join(f"{key}:{value:.4f}" for key, value in self.hpDic.items())
+        return "| "+" | ".join(
+            f"{key}:None" if value is None else
+            f"{key}:{'True ' if value else 'False'}" if isinstance(value, bool) else
+            f"{key}:{value:4}" if isinstance(value, int) else
+            f"{key}:{value:.4f}" if isinstance(value, float) else
+            f"{key}:{value}"
+            for key, value in self.hpDic.items()
+        )

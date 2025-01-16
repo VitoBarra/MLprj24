@@ -141,12 +141,11 @@ class DataSet(object):
         self.Splitted = True
         return self.Training, self.Validation, self.Test
 
-    def SplitTV(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> (DataExamples, DataExamples, DataExamples):
+    def SplitTV(self, validationPercent: float = 0.15) -> (DataExamples, DataExamples, DataExamples):
         """
         Splits the dataset into training, validation, and test sets.
 
         :param validationPercent: The fraction of the dataset to be used for validation.
-        :param testPercent: The fraction of the dataset to be used for testing.
         :return: The current DataSet object with split data.
         """
         self.Training, self.Validation, = self._Data.SplitIn2(validationPercent)
@@ -195,7 +194,7 @@ class DataSet(object):
 
 
 
-    def ToCategoricalLabel(self) -> 'DataSet':
+    def ToOneHotLabel(self) -> 'DataSet':
         """
         Converts labels to categorical (one-hot encoded) format for all splits.
 
@@ -211,9 +210,9 @@ class DataSet(object):
             self.Test.ToCategoricalLabel()
         return self
 
-    def ToOnHotOnExamples(self):
+    def ToOnHotOnData(self):
         """
-        Converts labels to categorical (one-hot encoded) format for all splits.
+        Converts data (input) to categorical (one-hot encoded) format for all splits.
         :return:
         """
         if self._Data is not None:
@@ -308,7 +307,7 @@ class DataSet(object):
             raise ValueError("Number of folds cannot exceed the number of examples.")
 
         # Split into test set and remaining data
-        if testRate<=0:
+        if testRate>0:
             data, test_set = self._Data.SplitIn2(testRate)
             self.Test = test_set
         else:

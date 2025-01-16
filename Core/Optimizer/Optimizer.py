@@ -69,7 +69,7 @@ class Optimizer:
         # Calculate gradient
         layer_grad = self.eta * self.CalculateGradient(layer)
 
-        # Calculte and applay the momentum
+        # Calculate and apply the momentum
         if self.momentum is True and layer.LastLayer.Gradient is not None:
             layer_grad = self.ApplyMomentum(layer, layer_grad)
             layer.LastLayer.Gradient = layer_grad
@@ -85,48 +85,62 @@ class Optimizer:
 
         #Output Layer
         if layer.NextLayer is None:
-            for out, y, net in zip(layer.LayerOutput, target, layer.LayerNets):
-                out_delta_p = self.loss_function.CalculateDeriv(out,
-                                                                y) * layer.ActivationFunction.CalculateDerivative(
-                    net)
-                deltas.append(out_delta_p)
-            deltas = np.array(deltas)
+            loss_name = self.loss_function.Name
+            activation_name = layer.ActivationFunction.Name
+
+            # Check if the condition for direct subtraction is met
+            use_direct_subtraction = (
+                    loss_name in {"BinaryCrossEntropyLoss", "CategoricalCrossEntropyLoss"}
+                    and activation_name == "SoftARGMax"
+            )
+
+            # Compute deltas using vectorized operations
+            if use_direct_subtraction: # Special case for SoftMax and CrossEntropy
+                deltas = layer.LayerOutput - target
+            else:
+                loss_derivative = self.loss_function.CalculateDeriv(layer.LayerOutput, target)
+                activation_derivative = layer.ActivationFunction.CalculateDerivative(layer.LayerNets)
+                deltas = loss_derivative * activation_derivative
 
         #Hidden Layer
         else:
             prev_delta = self.deltas
 
             weights = self.PreProcesWeights(layer)
-            # transpose weight metric to use a single unit's output weights
+            # Transpose the weight matrix to focus on individual unit outputs
+
             all_weight_T = weights.T
-
+            # If bias is used, exclude the last row
             if layer.UseBias:
-                # get all weight except the bias
-                unit_weight_T = all_weight_T[:-1]
-            else:
-                unit_weight_T = all_weight_T
+                all_weight_T = all_weight_T[:-1]
 
-            for weightFrom1Neuron_toAll, net_one_unit in zip(unit_weight_T, layer.LayerNets.T):
-                # compute the internal sum for a single unit
-                delta_sum = (prev_delta @ weightFrom1Neuron_toAll)
-                delta = delta_sum * layer.ActivationFunction.CalculateDerivative(net_one_unit)
-                deltas.append(delta)
+            # Compute the weighted sum of deltas from the previous layer
+            delta_sum = all_weight_T @ prev_delta.T
 
-            deltas = np.array(deltas).T
+            activation_derivative = layer.ActivationFunction.CalculateDerivative(layer.LayerNets.T)
+            deltas = (delta_sum * activation_derivative).T
+
+
 
         return deltas
 
     def CalculateGradient(self, layer: Layer):
-        layer_grad = []
 
-        for prev_o_one_pattern, deltas_one_pattern in zip(layer.LayerInput, self.deltas):
-            b = np.expand_dims(prev_o_one_pattern, axis=1)
-            out_delta_p = np.expand_dims(deltas_one_pattern, axis=0)
-            grad_from_one_unit = b @ out_delta_p
-            layer_grad.append(grad_from_one_unit.T)
-        layer_grad = np.mean(np.array(layer_grad), axis=0)
+        # Compute gradients using broadcasting
+        gradients = layer.LayerInput[:, :, None] * self.deltas[:, None, :]  # Shape: (batch_size, input_dim, output_dim)
 
-        return layer_grad
+        # Average gradients across the batch
+        layer_grad = np.mean(gradients, axis=0)
+
+        # equivalent to
+        # for prev_o_one_pattern, deltas_one_pattern in zip(layer.LayerInput, self.deltas):
+        #     b = np.expand_dims(prev_o_one_pattern, axis=1)
+        #     out_delta_p = np.expand_dims(deltas_one_pattern, axis=0)
+        #     grad_from_one_unit = b @ out_delta_p
+        #     layer_grad.append(grad_from_one_unit.T)
+        # layer_grad = np.mean(np.array(layer_grad), axis=0)
+
+        return layer_grad.T
 
     def UpdateWeights(self, layer: Layer):
         """

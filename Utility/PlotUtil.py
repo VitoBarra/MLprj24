@@ -15,7 +15,7 @@ def ShowOrSavePlot(path=None, filename=None):
         if not os.path.exists(path):
             os.makedirs(path)
         if filename is None or filename == '':
-            filename = 'model'
+            filename = 'img'
         plt.savefig(f"{path}/{filename}.png")
         plt.clf()
 
