@@ -4,8 +4,9 @@ from statistics import mean, variance
 
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.constants import metric_ton
 from Utility.PlotUtil import ShowOrSavePlot
+
+from scipy.constants import metric_ton
 
 
 
@@ -55,8 +56,6 @@ def PlotTableVarianceAndMean(results: dict) -> None:
 
     SaveResults(final_summary)
 
-import matplotlib.pyplot as plt
-import numpy as np
 
 def PlotMultipleModels(results: list[dict], metrics: list[str], path: str = None, filename: str = None) -> None:
     """
@@ -137,3 +136,66 @@ def SaveResults(results, path: str = "DataSet/Results/model_results.json") -> No
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(results, f, indent=4)
+
+
+def PlotMetrics(metricDic, baseline=None, baselineName="Baseline", title="Title",
+                xlabel="X-axis", ylabel="Y-axis", limitYRange=None, path=None, subplotAxes=None):
+    """
+    brief : Plots metrics with optional baseline, as either a standalone plot or a subplot.
+
+    :param metricDic: A dictionary where keys are labels and values are lists of metric values to plot.
+    :param baseline: (Optional) A constant baseline value to plot. Default is None.
+    :param baselineName: (Optional) The label for the baseline line. Default is "Baseline".
+    :param title: (Optional) The title of the plot or subplot. Default is "Title".
+    :param xlabel: (Optional) The label for the x-axis. Default is "X-axis".
+    :param ylabel: (Optional) The label for the y-axis. Default is "Y-axis".
+    :param limitYRange: (Optional) A tuple specifying the y-axis limits (min, max). Default is None.
+    :param path: (Optional) The path to save the plot if provided. Default is None.
+    :param subplotAxes: (Optional) A matplotlib Axes object to use for a subplot. If None, a new figure is created.
+    """
+    # If no subplot axes are provided, create a new figure
+    if subplotAxes is None:
+        plt.figure(figsize=(10, 6))
+        ax = plt.gca()  # Get the current axes
+    else:
+        ax = subplotAxes
+
+    # Define different line styles and markers for black-and-white readability
+    linestyles = ['-', '--', '-.', ':']
+    markers = ['o', 's', 'D', '^']
+
+    # Plot each loss function with different styles
+    labels = metricDic.keys()
+    for i, label in enumerate(labels):
+        ax.plot(
+            metricDic[label],
+            label=label,
+            linestyle=linestyles[i % len(linestyles)],  # Cycle through linestyles
+            marker=markers[i % len(markers)],  # Cycle through markers
+            markersize=5,
+            linewidth=1.5
+        )
+
+    # Plot the baseline
+    if baseline is not None:
+        ax.plot(
+            [baseline for _ in range(len(list(metricDic.values())[0]))],
+            label=baselineName,
+            color="magenta",
+            linestyle="--",
+            linewidth=1,
+        )
+
+    # Add title, labels, and legend
+    ax.set_title(title,fontsize=22)
+    ax.set_xlabel(xlabel,fontsize=18)
+    ax.set_ylabel(ylabel,fontsize=18)
+    if limitYRange is not None:
+        ax.set_ylim(*limitYRange)
+    ax.legend()
+    ax.legend(fontsize=18)
+    ax.grid(True)
+
+    # Save the plot if path is provided, only for standalone plots
+    if subplotAxes is None:
+        ShowOrSavePlot(path, title)

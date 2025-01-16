@@ -17,47 +17,41 @@ from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.DataSet.DataExamples import DataExamples
 from Model import MONKRESUTLPATH, MONKPLOTPATH, MONKMODELPATH
-from Model.ModelResults import PlotTableVarianceAndMean, PlotMultipleModels
+from Model.ModelResults import PlotTableVarianceAndMean, PlotMultipleModels, PlotMetrics
+from Model.TrainingFuction import ValidateSelectedModel
 from Utility.PlotUtil import *
 from dataset.ReadDatasetUtil import readMonk
 
 USE_CATEGORICAL_LABEL = False
 USE_ONEHOT_VARIABLE_DATA = False
 OPTIMIZER = None
-ACT_FUN = None
+OUT_ACT_FUN = None
 USE_KFOLD = False
 MONK_NUM= None
-BATCH_SIZE = None
 
 
 def HyperModel_Monk(hp :HyperBag ):
     model = ModelFeedForward()
-    if ACT_FUN == 1:
-        act_fn = TanH()
-    else:
-        act_fn = Sigmoid()
+
 
     model.AddLayer(Layer(17 if USE_ONEHOT_VARIABLE_DATA else 6, Linear(), hp["UseBiasIN"], "input"))
     for i in range(hp["hlayer"]):
-        if hp["drop_out"] is not None:
-            model.AddLayer(DropoutLayer(hp["unit"], act_fn, hp["drop_out"], hp["UseBias"], f"drop_out_h{i}"))
-        else:
-            model.AddLayer(Layer(hp["unit"], act_fn, hp["UseBias"], f"_h{i}"))
+            model.AddLayer(Layer(hp["unit"], hp["ActFun"], hp["UseBias"], f"_h{i}"))
 
 
     if USE_CATEGORICAL_LABEL:
         model.AddLayer(Layer(2, SoftARGMax(), False, "output_HotEncoding"))
         loss = CategoricalCrossEntropyLoss()
     else:
-        model.AddLayer(Layer(1, act_fn, False,"output"))
+        model.AddLayer(Layer(1, TanH() if OUT_ACT_FUN == 1 else Sigmoid(), False,"output"))
         loss = MSELoss()
 
     if OPTIMIZER == 1:
-        optimizer = BackPropagation(loss, hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+        optimizer = BackPropagation(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
     elif OPTIMIZER == 2:
-        optimizer = BackPropagationNesterovMomentum(loss, hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+        optimizer = BackPropagationNesterovMomentum(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
     else:
-        optimizer = Adam(loss,hp["eta"], hp["labda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
+        optimizer = Adam(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
 
     return model, optimizer
 
@@ -75,7 +69,7 @@ def ReadMonk(n: int, val_split: float = 0.15, seed: int = 0):
     monkDataset = DataSet.FromDataExample(designSet)
     monkDataset.Test = testSet
 
-    if ACT_FUN == 1:
+    if OUT_ACT_FUN == 1:
         monkDataset.ApplayTranformationOnLabel(np.vectorize(lambda x: -1 if x == 0 else 1 ))
         baseline_metric = Accuracy(Sign())
     else:
@@ -104,28 +98,36 @@ def ReadMonk(n: int, val_split: float = 0.15, seed: int = 0):
 def HyperBag_Monk():
     hp = HyperBag()
 
+    # Optimizer
+    hp.AddChosen("BatchSize",[-1,1,32,64,96,128])
     hp.AddRange("eta", 0.001, 0.2, 0.005)
     if MONK_NUM ==3:
         hp.AddRange("labda", 0.000, 0.01, 0.005)
     hp.AddRange("alpha", 0.5, 0.9, 0.05)
     hp.AddRange("decay", 0.0003, 0.005, 0.0003)
-    hp.AddChosen("UseBias",[True,False])
-    hp.AddChosen("UseBiasIN",[True,False])
 
-    # only adam
+    # only for adam
     if OPTIMIZER>2:
         hp.AddRange("beta", 0.9, 0.99, 0.01)
         hp.AddRange("epsilon", 1e-13, 1e-7, 1e-1)
 
-    #hp.AddRange("drop_out", 0.2, 0.6, 0.1)
 
+    # Architecture
+    hp.AddChosen("UseBiasIN",[True,False])
+    hp.AddChosen("UseBias",[True,False])
+    hp.AddChosen("ActFun",[TanH(),Sigmoid(),ReLU()])
     hp.AddRange("unit", 2, 8, 1)
     hp.AddRange("hlayer", 0, 3, 1)
+
+
+
+    #hp.AddRange("drop_out", 0.2, 0.6, 0.1)
+
     return hp
 
 
 
-def ModelSelection(monkDataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int, minibatchSize : int = 64) -> tuple[ModelFeedForward, HyperBag]:
+def ModelSelection(monkDataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -> tuple[ModelFeedForward, HyperBag]:
     if USE_KFOLD:
         ModelSelector:ModelSelection = BestSearchKFold(HyperBag_Monk(), RandomSearch(NumberOrTrial))
     else:
@@ -138,12 +140,11 @@ def ModelSelection(monkDataset:DataSet, BaselineMetric:Metric, NumberOrTrial: in
         HyperModel_Monk,
         monkDataset,
         800,
-        minibatchSize,
         watched_metric,
         [BaselineMetric],
         GlorotInitializer(),
         callBacks)
-     #best_model.PlotModel(f"MONK Model {MONK_NUM}")
+    #best_model.PlotModel(f"MONK Model {MONK_NUM}")
     return best_model, hpSel
 
 
@@ -172,7 +173,7 @@ def GeneratePlot(AccuracyMetric, MetricResults, monkDataset,extraname:str=""):
     metric_to_plot_Accuracy = {key: value[1:]*100 for key, value in MetricResults.items() if key.endswith("Accuracy")}
 
     fig, axes = plt.subplots(1, 2, figsize=(18, 6))
-    plot_metrics(
+    PlotMetrics(
         metricDic=metric_to_plot_loss,
         baseline=baseline_mse,
         baselineName=f"baseline {MSEmetric.Name}",
@@ -181,7 +182,7 @@ def GeneratePlot(AccuracyMetric, MetricResults, monkDataset,extraname:str=""):
         xlabel="Epochs",
         ylabel="",
         subplotAxes=axes[0])
-    plot_metrics(
+    PlotMetrics(
         metricDic=metric_to_plot_Accuracy,
         baseline=baseline_acc,
         baselineName=f"baseline {AccuracyMetric.Name}",
@@ -208,19 +209,12 @@ def GenerateTagName():
         tagName += "_onehot"
     else:
         tagName += "_numeric"
-    if ACT_FUN == 1:
+
+    if OUT_ACT_FUN == 1:
         tagName += "_tanh"
     else:
         tagName += "_sigmoid"
 
-    if BATCH_SIZE is None:
-        batchString = "batch"
-    elif BATCH_SIZE == 1:
-        batchString = "Online"
-    else:
-        batchString = f"b{BATCH_SIZE}"
-
-    tagName += f"_{batchString}"
     return tagName
 
 
@@ -228,16 +222,18 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
 
 
     mode = HyperBag()
-    mode.AddChosen("Optimizer",[1,2,3])
+
+    # Data Processing
     mode.AddChosen("OneHot",[True,False])
-    mode.AddChosen("ActFun",[1,2])
-    mode.AddChosen("BatchSize",[None,1,32,64,96,128])
+    mode.AddChosen("OutActFun",[1,2])
+    # Training
+    mode.AddChosen("Optimizer",[1,2])
 
 
-    global ACT_FUN
+
+    global OUT_ACT_FUN
     global OPTIMIZER
     global USE_ONEHOT_VARIABLE_DATA
-    global BATCH_SIZE
     global MONK_NUM
 
     gs = GridSearch()
@@ -254,8 +250,7 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
         for modes, _ in gs.Search(mode):
             USE_ADAM=modes["Adam"]
             USE_ONEHOT_VARIABLE_DATA=modes["OneHot"]
-            ACT_FUN=modes["ActFun"]
-            BATCH_SIZE = modes["BatchSize"]
+            OUT_ACT_FUN=modes["OutActFun"]
 
 
             tagName = GenerateTagName()
@@ -265,47 +260,30 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
             print(f"Run experiment with the following settings: {tagName}")
 
 
-            best_model, best_hpSel = ModelSelection(monkDataset, BaselineMetric_Accuracy, NumberOrTrial_search, BATCH_SIZE)
+            best_model, best_hpSel = ModelSelection(monkDataset, BaselineMetric_Accuracy, NumberOrTrial_search)
             best_hpSel:HyperBag
             best_model.SaveModel( f"{MONKMODELPATH}{MONK_NUM}", f"MONK{MONK_NUM}{tagName}.vjf")
 
             #best_model.SaveMetricsResults(f"Data/Results/Monk{MONK_NUM}{tagName}.mres")
 
-            GeneratePlot(BaselineMetric_Accuracy, best_model.MetricResults, monkDataset,tagName)
+             #GeneratePlot(BaselineMetric_Accuracy, best_model.MetricResults, monkDataset,tagName)
 
             print(f"Best hp : {best_hpSel}")
 
-            totalResult = {"metrics": [], "HP": best_hpSel.hpDic}
-            res = { key: [] for key, _ in best_model.MetricResults.items() if not key.startswith("val_") }
-
-            tempDataset:DataSet = DataSet()
-            tempDataset.Test = monkDataset.Test
-
-            random.seed(42)
-            seedList = [random.randint(0, 1000) for _ in range(NumberOrTrial_mean)]
-            for i,seed in zip(range(NumberOrTrial_mean),seedList):
-                training = DataExamples.Clone(mergedMonkDataset.Training)
-                training.Shuffle(seed)
-                tempDataset.Training = training
-                print(f"Training Model {i + 1}/{NumberOrTrial_mean}...")
-
-                model, optimizer = HyperModel_Monk(best_hpSel)
-                model.Build(GlorotInitializer(seed))
-                model.AddMetric(BaselineMetric_Accuracy)
-                callbacks = [EarlyStopping("loss", 25, 0.0001)]
-                model.Fit( optimizer,tempDataset, 300, BATCH_SIZE, callbacks)
-                totalResult["metrics"].append(model.MetricResults)
-
-                for key, value in model.MetricResults.items():
-                    res[key].append(value[-1])
-
-                print(f"training model {i + 1} / {NumberOrTrial_mean} " +  " | ".join(
-                    f"{key}:{value[-1]:.4f}" for key, value in res.items()))
-
-            totalResult["MetricStat"] = {key: [mean(value),variance(value)] for key, value in res.items()}
-            PlotMultipleModels(totalResult["metrics"],["test_loss", "loss", "test_Accuracy", "Accuracy"],f"{MONKPLOTPATH}{MONK_NUM}",f"mean_MONK{tagName}.png" )
+            MetricToCheck = [key for key, _ in best_model.MetricResults.items() if not key.startswith("val_")]
+            totalResult = ValidateSelectedModel(
+                HyperModel_Monk,best_hpSel,
+                NumberOrTrial_mean, MetricToCheck,
+                BaselineMetric_Accuracy
+                ,monkDataset.Test,mergedMonkDataset.Training,
+                None,
+                500,50,42 )
             SaveJson(f"{MONKRESUTLPATH}{MONK_NUM}",f"res{tagName}.json",totalResult)
-            print(res)
+
+            # PlotMultipleModels(totalResult["metrics"],["test_loss", "loss", "test_Accuracy", "Accuracy"],f"{MONKPLOTPATH}{MONK_NUM}",f"mean_MONK{tagName}.png" )
+
+
+
 
 
 
@@ -313,3 +291,4 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int) -> None:
 
 if __name__ == '__main__':
         TrainMonkModel(250,25)
+

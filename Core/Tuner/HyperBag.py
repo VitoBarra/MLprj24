@@ -34,7 +34,7 @@ class HyperBag:
         self.hpDic[hpName] = arrangeClosed(lower, upper, inc).tolist()
 
 
-    def AddChosen(self, hpName:str, chosen:list[float]) -> None:
+    def AddChosen(self, hpName:str, chosen:list[any]) -> None:
         if len(chosen) <1:
             raise ValueError("Chosen parameter must have at least length 1")
         if len(chosen) != len(set(chosen)):

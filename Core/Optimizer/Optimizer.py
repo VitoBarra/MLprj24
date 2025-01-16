@@ -4,12 +4,14 @@ from Core.LossFunction import *
 
 
 class Optimizer:
+    batchSize :int
+
     deltas: np.ndarray[float]
     updates: list[np.ndarray]
     momentum: bool
     regularization: bool
 
-    def __init__(self, loss_function: LossFunction, eta: float, lambda_: float | None = None,
+    def __init__(self, loss_function: LossFunction, batchSize:int,eta: float, lambda_: float | None = None,
                  alpha: float | None = None, decay_rate: float = 0.0):
         """
         Base class for optimization algorithms.
@@ -18,6 +20,7 @@ class Optimizer:
         :param eta: The learning rate.
         """
         self.loss_function = loss_function
+        self.batchSize = batchSize
         self.eta = eta
         self.initial_eta = eta
         self.lambda_ = lambda_

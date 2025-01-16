@@ -6,11 +6,10 @@ import numpy as np
 
 from . import MiniBatchGenerator as mb
 from . import Metric
-from .ActivationFunction import ActivationFunction
 from .Layer import Layer
 from .LossFunction import LossFunction
 from .Optimizer.Optimizer import Optimizer
-from .WeightInitializer import WeightInitializer, GlorotInitializer
+from .Inizializer.WeightInitializer import WeightInitializer, GlorotInitializer
 from .DataSet.DataSet import DataSet
 from Utility.FileUtil import CreateDir, convert_to_serializable
 from Utility.PlotUtil import plot_neural_network_with_transparency
@@ -52,7 +51,7 @@ Attributes:
         self.Metrics = []
         self.MetricResults = {}
 
-    def Fit(self, optimizer: Optimizer, data: DataSet, epoch: int, batchSize: int | None, callbacks:List = []) -> None:
+    def Fit(self, optimizer: Optimizer, data: DataSet, epoch: int, callbacks:List = []) -> None:
         """
         Trains the model using the provided input data.
 
@@ -67,8 +66,11 @@ Attributes:
             layer.TrainingMode()
 
         self.EarlyStop=False
-        if batchSize is None:
-            batchSize = data.Training.Data.shape[0]
+
+        if optimizer.batchSize is None or optimizer.batchSize <= 0:
+            batchSize = len(data.Training.Data)
+        else:
+            batchSize = optimizer.batchSize
 
         if callbacks is not None:
             for callback in callbacks:

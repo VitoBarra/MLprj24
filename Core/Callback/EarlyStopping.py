@@ -17,6 +17,9 @@ class EarlyStopping(CallBack):
         self.minimumImp = minimumImp
 
     def Reset(self):
+        """
+        Reset the no_improvement_count attribute.
+        """
         self.no_improvement_count = 0
 
     def Call(self, model: ModelFeedForward = None) -> None:

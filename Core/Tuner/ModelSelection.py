@@ -5,7 +5,7 @@ from ..Callback.CallBack import CallBack
 from ..Metric import Metric
 from ..Tuner.HpSearch import HyperParameterSearch
 from ..Tuner.HyperBag import HyperBag
-from ..WeightInitializer import GlorotInitializer
+from ..Inizializer.WeightInitializer import GlorotInitializer
 from ..DataSet.DataSet import DataSet
 
 
@@ -21,7 +21,7 @@ class ModelSelection:
         self.SearchObj = search
         self.SearchName = self.SearchObj.GetName()
         self.TrialNumber  = self.SearchObj.GetTrialNumber()
-    def GetBestModel(self, hyperModel_fn, Data:DataSet, epoch:int, miniBatchSize: int | None=None,
+    def GetBestModel(self, hyperModel_fn, Data:DataSet, epoch:int,
                      watchMetric ="val_loss", metric : list[Metric]= None, weightInizializer = GlorotInitializer(),
                      callBack: list[CallBack] = None ) -> (FeedForwardModel, dict[str, any]):
         pass
@@ -33,7 +33,7 @@ class BestSearch(ModelSelection):
         super().__init__(hp, search)
 
 
-    def GetBestModel(self, hyperModel_fn, Data:DataSet, epoch:int, miniBatchSize: int | None=None,
+    def GetBestModel(self, hyperModel_fn, Data:DataSet, epoch:int,
                      watchMetric ="val_loss", metric : list[Metric]= None, weightInizializer = GlorotInitializer(),
                      callBack: list[CallBack] = None ) -> (FeedForwardModel, dict[str, any]):
         best_model: FeedForwardModel = None
@@ -42,7 +42,7 @@ class BestSearch(ModelSelection):
         hyperParamWrapper = HyperBag()
 
 
-        for hpSel  , i in self.SearchObj.Search(self.hp):
+        for hpSel, i in self.SearchObj.Search(self.hp):
             hyperParamWrapper.Set(hpSel)
             print(f"{self.SearchName}: Iteration {i} / {self.TrialNumber} with param {hyperParamWrapper.GetHPString()}")
             hyperModel, optimizer= hyperModel_fn(hyperParamWrapper)
@@ -50,7 +50,7 @@ class BestSearch(ModelSelection):
             if metric is not None and len(metric) != 0:
                 hyperModel.AddMetrics(metric)
 
-            hyperModel.Fit(optimizer, Data, epoch, miniBatchSize, callBack)
+            hyperModel.Fit(optimizer, Data, epoch, callBack)
 
             last_watchMetric=hyperModel.MetricResults[watchMetric][-1]
             if  last_watchMetric < best_watchMetric:
@@ -69,7 +69,7 @@ class BestSearchKFold(ModelSelection):
         super().__init__(hp, search)
 
 
-    def GetBestModel(self, hyperModel_fn, allData:DataSet, epoch:int, miniBatchSize: int | None=None,
+    def GetBestModel(self, hyperModel_fn, allData:DataSet, epoch:int,
                      watchMetric ="val_loss", metrics : list[Metric]= None, weightInizializer = GlorotInitializer(),
                      callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
 
@@ -88,7 +88,7 @@ class BestSearchKFold(ModelSelection):
                 if metrics is not None and len(metrics) != 0:
                     hyperModel.AddMetrics(metrics)
 
-                hyperModel.Fit(optimizer, DataTemp, epoch, miniBatchSize, callBack)
+                hyperModel.Fit(optimizer, DataTemp, epoch, callBack)
                 fold_stat.append(hyperModel.MetricResults[watchMetric][-1])
 
 
