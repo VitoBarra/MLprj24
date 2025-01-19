@@ -6,7 +6,7 @@ from ..Callback.CallBack import CallBack
 from ..Metric import Metric
 from ..Tuner.HpSearch import HyperParameterSearch
 from ..Tuner.HyperBag import HyperBag
-from ..Inizializer.WeightInitializer import GlorotInitializer
+from ..Initializer.WeightInitializer import GlorotInitializer
 from ..DataSet.DataSet import DataSet
 
 
@@ -21,11 +21,11 @@ class ModelSelection:
         self.SearchName = self.SearchObj.GetName()
         self.TrialNumber  = self.SearchObj.GetTrialNumber()
     def GetBestModel(self, hyperModel_fn, hp:HyperBag,Data:DataSet, epoch:int,
-                     watchMetric ="val_loss", metric : list[Metric]= None, weightInizializer = GlorotInitializer(),
+                     watchMetric ="val_loss", metric : list[Metric]= None, weightInitializer = GlorotInitializer(),
                      callBack: list[CallBack] = None ) -> (FeedForwardModel, dict[str, any]):
         pass
     def GetBestModel_HyperModel(self, hyperModel:HyperModel, epoch:int,
-                                watchMetric ="val_loss", metrics : list[Metric]= None, weightInizializer = GlorotInitializer(),
+                                watchMetric ="val_loss", metrics : list[Metric]= None, weightInitializer = GlorotInitializer(),
                                 callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
         pass
 
@@ -36,7 +36,7 @@ class BestSearch(ModelSelection):
 
     def _train_and_evaluate(self, get_model_fn, get_optimizer_fn, get_data_fn,
                             hyper_param_source, epoch, watchMetric, metric,
-                            weightInizializer, callBack):
+                            weightInitializer, callBack):
         """
         Common logic for training and evaluating models during hyperparameter search.
         """
@@ -54,7 +54,7 @@ class BestSearch(ModelSelection):
             model = get_model_fn(hyperParamWrapper)
             optimizer = get_optimizer_fn(hyperParamWrapper)
 
-            model.Build(weightInizializer)
+            model.Build(weightInitializer)
             if metric is not None and len(metric) != 0:
                 model.AddMetrics(metric)
 
@@ -71,7 +71,7 @@ class BestSearch(ModelSelection):
 
     def GetBestModel(self, hyperModel_fn, hp: HyperBag, Data: DataSet, epoch: int,
                      watchMetric="val_loss", metric: list[Metric] = None,
-                     weightInizializer=GlorotInitializer(), callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
+                     weightInitializer=GlorotInitializer(), callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
         return self._train_and_evaluate(
             get_model_fn=lambda hp_wrapper: hyperModel_fn(hp_wrapper)[0],
             get_optimizer_fn=lambda hp_wrapper: hyperModel_fn(hp_wrapper)[1],
@@ -80,22 +80,22 @@ class BestSearch(ModelSelection):
             epoch=epoch,
             watchMetric=watchMetric,
             metric=metric,
-            weightInizializer=weightInizializer,
+            weightInitializer=weightInitializer,
             callBack=callBack
         )
 
     def GetBestModel_HyperModel(self, hyperModel: HyperModel, epoch: int,
                                 watchMetric="val_loss", metric: list[Metric] = None,
-                                weightInizializer=GlorotInitializer(), callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
+                                weightInitializer=GlorotInitializer(), callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
         return self._train_and_evaluate(
             get_model_fn=lambda hp_wrapper: hyperModel.GetModel(hp_wrapper),
             get_optimizer_fn=lambda hp_wrapper: hyperModel.GetOptimizer(hp_wrapper),
             get_data_fn=lambda hp_wrapper: hyperModel.GetDatasetVariant(hp_wrapper),
-            hyper_param_source=hyperModel.GetHyperParamethers(),
+            hyper_param_source=hyperModel.GetHyperParameters(),
             epoch=epoch,
             watchMetric=watchMetric,
             metric=metric,
-            weightInizializer=weightInizializer,
+            weightInitializer=weightInitializer,
             callBack=callBack
         )
 
@@ -106,7 +106,7 @@ class BestSearchKFold(ModelSelection):
 
     def _train_and_evaluate_kfold(self, get_model_fn, get_optimizer_fn, get_data_fn,
                                   hyper_param_source, epoch, watchMetric,
-                                  metrics, weightInizializer, callBack):
+                                  metrics, weightInitializer, callBack):
         """
         Common logic for training and evaluating models with K-Fold cross-validation.
         """
@@ -124,10 +124,10 @@ class BestSearchKFold(ModelSelection):
                 print(f"{self.SearchName}: Fold {j+1}, Iteration {i+1} / {self.TrialNumber} with param {hyperParamWrapper.GetHPString()}")
 
                 # Fetch model and optimizer
-                model = get_model_fn(hpSel)
-                optimizer = get_optimizer_fn(hpSel)
+                model = get_model_fn(hyperParamWrapper)
+                optimizer = get_optimizer_fn(hyperParamWrapper)
 
-                model.Build(weightInizializer)
+                model.Build(weightInitializer)
                 if metrics is not None and len(metrics) != 0:
                     model.AddMetrics(metrics)
 
@@ -142,11 +142,11 @@ class BestSearchKFold(ModelSelection):
         hyperParamWrapper.Set(best_hpSel)
         return hyperParamWrapper
 
-    def _final_training(self, best_model, optimizer, allData, epoch, metrics, weightInizializer):
+    def _final_training(self, best_model, optimizer, allData, epoch, metrics, weightInitializer):
         """
         Common logic for final training on the best hyperparameter configuration.
         """
-        best_model.Build(weightInizializer)
+        best_model.Build(weightInitializer)
         if metrics is not None and len(metrics) != 0:
             best_model.AddMetrics(metrics)
 
@@ -157,7 +157,7 @@ class BestSearchKFold(ModelSelection):
 
     def GetBestModel(self, hyperModel_fn, hp: HyperBag, allData: DataSet, epoch: int,
                      watchMetric="val_loss", metrics: list[Metric] = None,
-                     weightInizializer=GlorotInitializer(), callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
+                     weightInitializer=GlorotInitializer(), callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
         hp_sel = self._train_and_evaluate_kfold(
             get_model_fn=lambda hp_wrapper: hyperModel_fn(hp_wrapper)[0],
             get_optimizer_fn=lambda hp_wrapper: hyperModel_fn(hp_wrapper)[1],
@@ -166,7 +166,7 @@ class BestSearchKFold(ModelSelection):
             epoch=epoch,
             watchMetric=watchMetric,
             metrics=metrics,
-            weightInizializer=weightInizializer,
+            weightInitializer=weightInitializer,
             callBack=callBack
         )
 
@@ -177,23 +177,23 @@ class BestSearchKFold(ModelSelection):
             allData=allData,
             epoch=epoch,
             metrics=metrics,
-            weightInizializer=weightInizializer
+            weightInitializer=weightInitializer
         )
 
         return best_model, hp_sel
 
     def GetBestModel_HyperModel(self, hyperModel: HyperModel, epoch: int,
                                 watchMetric="val_loss", metrics: list[Metric] = None,
-                                weightInizializer=GlorotInitializer(), callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
+                                weightInitializer=GlorotInitializer(), callBack: list[CallBack] = None) -> (FeedForwardModel, dict[str, any]):
         hp_sel = self._train_and_evaluate_kfold(
             get_model_fn=lambda hp_wrapper: hyperModel.GetModel(hp_wrapper),
             get_optimizer_fn=lambda hp_wrapper: hyperModel.GetOptimizer(hp_wrapper),
             get_data_fn=lambda hp_wrapper: hyperModel.GetDatasetVariant(hp_wrapper),
-            hyper_param_source=hyperModel.GetHyperParamethers(),
+            hyper_param_source=hyperModel.GetHyperParameters(),
             epoch=epoch,
             watchMetric=watchMetric,
             metrics=metrics,
-            weightInizializer=weightInizializer,
+            weightInitializer=weightInitializer,
             callBack=callBack
         )
 
@@ -203,7 +203,7 @@ class BestSearchKFold(ModelSelection):
             allData= hyperModel.GetDatasetVariant(hp_sel),
             epoch=epoch,
             metrics=metrics,
-            weightInizializer=weightInizializer
+            weightInitializer=weightInitializer
         )
 
         return best_model, hp_sel

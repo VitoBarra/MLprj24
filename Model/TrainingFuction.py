@@ -5,9 +5,9 @@ from Core.DataSet.DataExamples import DataExamples
 from Core.DataSet.DataSet import DataSet
 from Core.Metric import Metric
 from Core.Tuner.HyperBag import HyperBag
-from Core.Inizializer.WeightInitializer import GlorotInitializer
+from Core.Initializer.WeightInitializer import GlorotInitializer
 
-from Core.Inizializer.SeedGenerator import SeedGenerator
+from Core.Initializer.SeedGenerator import SeedGenerator
 
 
 def ValidateSelectedModel(
@@ -23,6 +23,25 @@ def ValidateSelectedModel(
                           seed = 42,
 
                           ) -> dict :
+    """
+    Validates a model based on the hyperparameters and metrics provided.
+
+    Args:
+        HyperModel_fn (function): The function used to build the model with selected hyperparameters.
+        best_hpSel (HyperBag): The selected hyperparameters for the model.
+        NumberOrTrial (int): The number of trials to perform for model validation.
+        MetricsName (list): List of metric names to evaluate.
+        BaselineMetric (Metric): The baseline metric to evaluate model performance.
+        test (DataExamples): The test data to evaluate the model.
+        training (DataExamples): The training data used for model fitting.
+        ExperimentParam (dict, optional): Dictionary of additional experiment parameters (default is None).
+        epoch (int, optional): The number of epochs for training (default is 500).
+        patience (int, optional): The number of epochs with no improvement before stopping (default is 50).
+        seed (int, optional): The seed value for random number generation (default is 42).
+
+    Returns:
+        dict: A dictionary containing the results of the validation, including metrics, hyperparameters, and statistical analysis.
+    """
 
     totalResult = {"metrics": [], "HP": best_hpSel.hpDic}
 

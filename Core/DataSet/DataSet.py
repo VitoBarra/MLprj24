@@ -326,6 +326,12 @@ class DataSet(object):
 
 
     def _GenerateKFoldSplit(self,data: DataExamples , k : int = 5) -> list[tuple[DataExamples, DataExamples]] :
+        """
+        Generates k-fold cross-validation.
+        :param data: Dataset to be split.
+        :param k: number of folds
+        :return: a list of tuples (train_set, val_set).
+        """
         # Calculate fold sizes
         fold_size = len(data)    // k
         remainder = len(data)    % k
@@ -384,7 +390,12 @@ class DataSet(object):
         instance.Test = Test
         return instance
 
-    def ApplayTranformationOnLabel(self, param):
+    def ApplyTransformationOnLabel(self, param):
+        """
+        Applies the transformation on label.
+        :param param: Transformation parameter.
+        :return: The updated DataExamples object.
+        """
         self._Data.Label = param(self._Data.Label)
         if self.Training is not None:
             self.Training.Label = param(self.Training.Label)

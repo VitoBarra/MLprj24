@@ -1,6 +1,6 @@
 import numpy as np
 
-from Core.Inizializer import WeightInitializer
+from Core.Initializer import WeightInitializer
 from Core.ActivationFunction import ActivationFunction
 
 
@@ -41,6 +41,9 @@ class Layer:
 
         :param unit: The number of neurons in the layer.
         :param activationFunction: The activation function used for this layer.
+        :param useBias: Boolean indicating whether or not to use a bias term in the layer.
+        :param name: The name of the layer.
+        :param train: Boolean indicating whether the layer is in training mode or not.
         """
         self.Unit = unit
         self.name=name
@@ -65,8 +68,8 @@ class Layer:
 
         :param weightInitializer: The initialization method for the layer's weights.
         :return:
-            - True: If the weight initialization occurred successfully.
-            - False: If the weights were already initialized.
+            - True if the weight initialization occurred successfully.
+            - False if the weights were already initialized.
         """
         if self.WeightToNextLayer is not None:
             return False
@@ -101,11 +104,18 @@ class Layer:
         return self.LayerOutput
 
     def InferenceMode(self):
+        """Sets the layer to inference mode (optional, can be customized)."""
         pass
     def TrainingMode(self):
+        """Sets the layer to training mode (optional, can be customized)."""
         pass
 
     def SerializeLayer(self):
+        """
+        Serializes the layer to a dictionary format for saving.
+
+        :return: Dictionary representing the layer.
+        """
         return {
             "name":self.name,
             "unit":self.Unit,
@@ -116,6 +126,12 @@ class Layer:
         }
     @classmethod
     def DeserializeLayer(self, layerDic:dict):
+        """
+        Deserializes a dictionary to create a Layer object.
+
+        :param layerDic: Dictionary containing layer parameters.
+        :return: A Layer instance.
+        """
         layer  = Layer(
             layerDic["unit"],
             ActivationFunction.GetInstances(layerDic["activation"]),
@@ -151,6 +167,7 @@ class DropoutLayer(Layer):
         :param activationFunction: The activation function used for this layer.
         :param dropout_rate: The probability of deactivating a neuron during training (value between 0 and 1).
         :param name: Optional name for the layer (default: "dropout_layer").
+        :param train: Boolean indicating whether the layer is in training mode.
         """
         super().__init__(unit, activationFunction,  useBias,name, train)
         self.inferenceMode = False
@@ -168,13 +185,19 @@ class DropoutLayer(Layer):
         return success
 
     def Compute(self, inputs: np.ndarray) -> np.ndarray:
+        """
+        Computes the output of the layer based on the given inputs. During training, applies dropout.
+
+        :param inputs: The input data to the layer.
+        :return: The computed output of the layer with dropout applied if in training mode.
+        """
 
         if self.inferenceMode:
             self.WeightToNextLayer *= (1-self.dropout_rate)
 
         super().Compute(inputs)
 
-        if not self.inferenceMode:  # Durante il training applicable dropout
+        if not self.inferenceMode:  # Apply dropout only during training
             self.mask = np.random.binomial(1, 1 - self.dropout_rate, size=self.LayerOutput.shape)
             self.LayerOutput *= self.mask
 
@@ -183,14 +206,25 @@ class DropoutLayer(Layer):
 
 
     def InferenceMode(self):
+        """
+        Switches the layer to inference mode. This means no dropout will be applied.
+        """
         self.inferenceMode = True
-        self.mask = np.ones_like(self.LayerOutput)  # Tutto 1 per non disattivare nulla in inferenza
+        self.mask = np.ones_like(self.LayerOutput)  # Set mask to all ones no neurons are dropped
 
     def TrainingMode(self):
+        """
+        Switches the layer to training mode. This means dropout will be applied.
+        """
         self.inferenceMode = False  # In training
 
 
     def SerializeLayer(self):
+        """
+        Serializes the DropoutLayer to a dictionary format.
+
+        :return: Dictionary representing the layer's configuration.
+        """
         return {
             "name":self.name,
             "unit":self.Unit,
@@ -201,6 +235,12 @@ class DropoutLayer(Layer):
 
     @classmethod
     def DeserializeLayer(self, layerDic:dict):
+        """
+        Deserializes a DropoutLayer from a dictionary.
+
+        :param layerDic: Dictionary containing the layer's parameters.
+        :return: A DropoutLayer instance.
+        """
         layer  = DropoutLayer(
             layerDic["unit"],
             ActivationFunction.GetInstances(layerDic["activation"]),

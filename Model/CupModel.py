@@ -15,7 +15,7 @@ from Core.Optimizer.Adam import Adam
 from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
-from Core.Inizializer.WeightInitializer import GlorotInitializer
+from Core.Initializer.WeightInitializer import GlorotInitializer
 from dataset.ReadDatasetUtil import readCUP
 import random
 import gc
@@ -27,6 +27,12 @@ OPTIMIZER = 1
 
 
 def HyperModel_CAP(hp: HyperBag):
+    """
+    Builds a feedforward neural network model based on the provided hyperparameters.
+
+    :param hp: A HyperBag instance containing the hyperparameters.
+    :return: The constructed model and the selected optimizer.
+    """
     model = ModelFeedForward()
 
 
@@ -40,22 +46,27 @@ def HyperModel_CAP(hp: HyperBag):
 
 
     if OPTIMIZER == 1:
-        optimizer = BackPropagation(loss,hp["batchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+        optimizer = BackPropagation(loss,hp["batchSize"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
     elif OPTIMIZER == 2:
-        optimizer = BackPropagationNesterovMomentum(loss,hp["batchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+        optimizer = BackPropagationNesterovMomentum(loss,hp["batchSize"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
     else:
-        optimizer = Adam(loss,hp["batchSize"],hp["eta"], hp["labda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
+        optimizer = Adam(loss,hp["batchSize"],hp["eta"], hp["lambda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
 
     return model, optimizer
 
 
 def HyperBag_Cap():
+    """
+    Defines the hyperparameter search space for the model.
+
+    :return: A HyperBag instance containing the hyperparameter search space.
+    """
     hp = HyperBag()
     
     # Optimizer
     hp.AddChosen("batchSize",[-1,1,64,128,160])
     hp.AddRange("eta", 0.001, 0.1, 0.01)
-    hp.AddRange("labda", 0.001, 0.1, 0.001)
+    #hp.AddRange("lambda", 0.001, 0.1, 0.001)
     hp.AddRange("alpha", 0.1, 0.9, 0.1)
     hp.AddRange("decay", 0.001, 0.1, 0.001)
 
@@ -76,6 +87,14 @@ def HyperBag_Cap():
 
 
 def ReadCUP(val_split: float = 0.15, test_split: float = 0.5,seed:int = 10):
+    """
+    Reads the CUP dataset, shuffles it, and splits it into training, validation, and test sets.
+
+    :param val_split: Proportion of data to use for validation.
+    :param test_split: Proportion of data to use for testing.
+    :param seed: Random seed for shuffling.
+    :return: The dataset split and a metric for evaluation.
+    """
     file_path_cup = "dataset/CUP/ML-CUP24-TR.csv"
     all_data = readCUP(file_path_cup)
     all_data.Shuffle(seed)
@@ -90,6 +109,14 @@ def ReadCUP(val_split: float = 0.15, test_split: float = 0.5,seed:int = 10):
     return all_data, MEE()
 
 def ModelSelection(dataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -> tuple[ModelFeedForward, HyperBag]:
+    """
+    Selects the best model using either K-fold cross-validation or a standard search.
+
+    :param dataset: The dataset to train the model on.
+    :param BaselineMetric: The metric used for model evaluation.
+    :param NumberOrTrial: The number of trials to run.
+    :return: The best model and the selected hyperparameters.
+    """
 
     if USE_KFOLD:
         ModelSelector = BestSearchKFold(RandomSearch(NumberOrTrial))
@@ -113,12 +140,17 @@ def ModelSelection(dataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -
 
 
 def GenerateTagNameFromSettings(settings):
+    """
+    Generates a tag name based on the selected optimizer.
+
+    :return: A string tag that represents the chosen optimizer.
+    """
     tagName=""
 
     if settings["optimizer"] == 1:
-        tagName += "_backprop"
+        tagName += "_BackPropagation"
     elif settings["optimizer"] == 2:
-        tagName += "_nasterov"
+        tagName += "_Nesterov"
     else:
         tagName += "_adam"
 
@@ -126,6 +158,12 @@ def GenerateTagNameFromSettings(settings):
 
 
 def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
+    """
+    Trains the CUP model with the specified number of trials.
+
+    :param NumberOrTrial: Number of trials to run.
+    :param NumberOrTrial_mean: The mean number of trials for evaluation.
+    """
 
     #DataSet Preparation
     SplitCUPDataset, BaselineMetric_MEE = ReadCUP(0.15, 0.20)
@@ -172,11 +210,19 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
         totalResult["settings"] = settingDict
         SaveJson(f"{CUP_RESULTS_PATH}", f"res_CUP{tagName}.json", totalResult)
 
-        #PlotMultipleModels(totalResult["metrics"],"test_loss",f"{CUPPLOTPATH}",f"mean_CUP{tagName}.png" )
+        #PlotMultipleModels(totalResult["metrics"],"test_loss",f"{CUP_PLOT_PATH}",f"mean_CUP{tagName}.png" )
 
 
 
 def GeneratePlot_ForCUP(BaselineMetric_MEE, MetricResults, CupDataset, extraname:str= ""):
+    """
+    Generates plots to visualize the model's performance (loss and MEE).
+
+    :param BaselineMetric_MEE: The baseline metric for evaluation.
+    :param MetricResults: The model's metric results.
+    :param CupDataset: The dataset used for testing and evaluation.
+    :param extraname: Optional extra name to append to the plot file.
+    """
     BaselineMetric_MSE = MSE()
 
     lin_model = LinearRegression()
@@ -215,14 +261,66 @@ def GeneratePlot_ForCUP(BaselineMetric_MEE, MetricResults, CupDataset, extraname
     ShowOrSavePlot(f"{CUP_PLOT_PATH}", f"Loss(MSE)-MEE{extraname}")
     plt.close(fig)
 
+def GeneratePlotAverage_ForCUP(Results: list[dict], Metrics: list[str], path=f"{CUP_PLOT_PATH}", name: str = f"CUP_MEAN", tag: str = ""):
+    """
+    Generate plot for CUP using the plot for the mean of individual trials.
+
+    :param Results: List of dictionaries. Each dictionary represents an individual trial and contains metrics with respective values.
+    :param Metrics: List of metrics to plot.
+    :param path: The path where the plot will be saved.
+    :param name: The name of the file for the plot.
+    :param tag: Extra information for the file name.
+    """
+    # Organize data by metric name
+    loss_metrics = {metric: [] for metric in Metrics if metric.endswith("loss")}
+    mee_metrics = {metric: [] for metric in Metrics if metric.endswith("MEE")}
+
+    warm_up_epochs = 5
+    for trial in Results:
+        for metric in Metrics:
+            if metric.endswith("loss") and metric in trial:
+                loss_metrics[metric].append(trial[metric][warm_up_epochs:])
+            elif metric.endswith("MEE") and metric in trial:
+                mee_metrics[metric].append(trial[metric][warm_up_epochs:])
+
+    # Plot the metrics
+    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+
+    PlotAverage(
+        metricDict=loss_metrics,
+        limitYRange=None,
+        WarmUpEpochs=warm_up_epochs,
+        title=f"CUP Loss",
+        xlabel="Epochs",
+        ylabel="Loss",
+        subplotAxes=axes[0],
+    )
+
+    PlotAverage(
+        metricDict=mee_metrics,
+        limitYRange=None,
+        WarmUpEpochs=warm_up_epochs,
+        title=f"CUP MEE",
+        xlabel="Epochs",
+        ylabel="Accuracy",
+        subplotAxes=axes[1]
+    )
+
+    # Adjust layout and save the entire figure
+    fig.tight_layout()
+    ShowOrSavePlot(f"{path}", f"{name}{tag}")
+    plt.close(fig)
 
 if __name__ == '__main__':
-        TrainCUPModel(1000 ,50)
+        #TrainCUPModel(300,50)
 
         
         jsonFiles = GetAllFileInDir(f"{CUP_RESULTS_PATH}")
         for jsonFile in jsonFiles:
             data = readJson(jsonFile)
-            PlotAveragedResults(data["metrics"], ["test_loss", "loss", "test_MEE", "MEE"],
-                                path =f"{CUP_PLOT_PATH}",
-                                filename=f"mean_CUP{GenerateTagNameFromSettings(data['settings'])}.png")
+            GeneratePlotAverage_ForCUP(
+                Results=data['metrics'],
+                Metrics=["test_loss", "loss", "test_MEE", "MEE"],
+                path=f"{CUP_PLOT_PATH}",
+                tag=GenerateTagNameFromSettings(data['settings'])
+            )

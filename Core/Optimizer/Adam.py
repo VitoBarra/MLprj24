@@ -8,10 +8,16 @@ class Adam(Optimizer):
     def __init__(self, loss_function: LossFunction, batchSize:int, eta: float =0.001, lambda_: float | None = None,
                  alpha: float  | None = 0.9, beta: float | None = 0.99, epsilon: float = 1e-8, decay_rate: float = 0.0):
         """
-        Initializes the BackPropagation object with a specific loss function.
+        Initializes the Adam optimizer with the given parameters.
 
         :param loss_function: An instance of LossFunction used to compute the loss and its derivative.
-        :param eta: The learning rate.
+        :param batchSize: The size of the mini-batch for optimization.
+        :param eta: The learning rate. Default is 0.001.
+        :param lambda_: The regularization factor (L2 regularization). Default is None.
+        :param alpha: The exponential decay rate for the first moment estimates (momentum). Default is 0.9.
+        :param beta: The exponential decay rate for the second moment estimates (RMS). Default is 0.99.
+        :param epsilon: A small constant for numerical stability during division. Default is 1e-8.
+        :param decay_rate: The learning rate decay factor. Default is 0.0.
         """
         super().__init__(loss_function,batchSize, eta, lambda_, alpha, decay_rate)
 
@@ -20,10 +26,10 @@ class Adam(Optimizer):
 
     def Optimize(self, layer: Layer, target: np.ndarray):
         """
-        Computes the gradients of the weights for the given layer during backpropagation.
+        Performs weight optimization for a given layer during backpropagation.
 
-        :param layer: The layer for which to compute the gradients.
-        :param target: The target values for the given inputs.
+        :param layer: The layer for which to compute and apply weight updates.
+        :param target: The target values for the current training input.
         """
 
 
@@ -55,6 +61,13 @@ class Adam(Optimizer):
 
 
     def ApplyMomentum (self, layer: Layer, layer_grad: np.ndarray):
+        """
+        Applies momentum to the gradient.
+
+        :param layer: The current layer.
+        :param layer_grad: The gradient for the current layer.
+        :return: The velocity-adjusted gradient.
+        """
         # Calculate and apply the momentum
         if layer.LastLayer.Gradient is None:
             first_velocity = 0
@@ -65,6 +78,13 @@ class Adam(Optimizer):
         return velocity
 
     def ApplyRMS (self, layer: Layer, layer_grad: np.ndarray):
+        """
+        Applies RMS (Root Mean Square) scaling to the gradient.
+
+        :param layer: The current layer.
+        :param layer_grad: The gradient for the current layer.
+        :return: The RMS-scaled gradient.
+        """
         if layer.LastLayer.Acceleration is None:
             first_acceleration = 0
             acceleration = self.beta * first_acceleration + ((1 - self.beta) * np.square(layer_grad))
@@ -74,6 +94,12 @@ class Adam(Optimizer):
         return acceleration
 
     def BiasCorrection(self, layer: Layer):
+        """
+        Applies bias correction to the momentum and RMS values.
+
+        :param layer: The current layer.
+        :return: A tuple (vel_hat, acc_hat) of bias-corrected momentum and RMS.
+        """
         vel_hat = layer.LastLayer.Gradient / (1 - self.alpha ** self.iteration+1)
         acc_hat = layer.LastLayer.Acceleration / (1 - self.beta ** self.iteration+1)
         return vel_hat, acc_hat

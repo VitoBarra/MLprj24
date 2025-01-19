@@ -21,7 +21,7 @@ class HyperModel:
     def GetOptimizer(self, hp :HyperBag):
         pass
 
-    def GetHyperParamethers(self):
+    def GetHyperParameters(self):
         pass
 
 
