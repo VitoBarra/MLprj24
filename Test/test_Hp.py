@@ -5,7 +5,7 @@ import numpy as np
 class TestHyperBag(unittest.TestCase):
 
     def setUp(self):
-        """Setup a fresh instance of HyperBag for each test."""
+        """Set up a fresh instance of HyperBag for each test."""
         self.hyperbag = HyperBag()
 
     def test_add_range_valid(self):

@@ -4,6 +4,25 @@ from Core.LossFunction import *
 
 
 class Optimizer:
+    """
+    Base class for optimization algorithms in neural networks. This class provides the
+    foundation for implementing various optimization techniques like gradient descent,
+    momentum, and regularization.
+
+    Attributes:
+        loss_function (LossFunction): The loss function used to compute the loss and its derivative.
+        batchSize (int): The size of the mini-batch for gradient computation.
+        eta (float): The learning rate for the optimization process.
+        lambda_ (float | None): The regularization factor (L2 regularization). Default is None.
+        alpha (float | None): The momentum factor for gradient updates. Default is None.
+        decay_rate (float): The learning rate decay factor. Default is 0.0.
+        iteration (int): The current iteration in the optimization process.
+        deltas (np.ndarray): The list of deltas for each layer, used during backpropagation.
+        updates (list): The list of weight updates for each layer.
+        momentum (bool): A flag indicating whether momentum is used in the optimization process.
+        regularization (bool): A flag indicating whether regularization is applied during optimization.
+    """
+
     batchSize :int
 
     deltas: np.ndarray[float]
@@ -43,6 +62,13 @@ class Optimizer:
 
 
     def StartOptimize(self, model: FeedForwardModel, targets: np.ndarray):
+        """
+        Starts the optimization process by iterating through all layers in reverse order
+        and applying the optimization strategy.
+
+        :param model: The feedforward model containing the layers.
+        :param targets: The target values for the optimization.
+        """
         for layer in reversed(model.Layers):
             self.Optimize(layer, targets)
 
@@ -81,6 +107,13 @@ class Optimizer:
         self.updates.append(layer_grad)
 
     def CalculateDelta(self, layer: Layer, target: np.ndarray):
+        """
+        Computes the delta for a layer during backpropagation.
+
+        :param layer: The current layer for which to compute the delta.
+        :param target: The target values for the given inputs.
+        :return: A numpy array containing the deltas for each unit in the layer.
+        """
         deltas = []
 
         #Output Layer
@@ -106,7 +139,7 @@ class Optimizer:
         else:
             prev_delta = self.deltas
 
-            weights = self.PreProcesWeights(layer)
+            weights = self.PreProcessWeights(layer)
             # Transpose the weight matrix to focus on individual unit outputs
 
             all_weight_T = weights.T
@@ -125,9 +158,16 @@ class Optimizer:
         return deltas
 
     def CalculateGradient(self, layer: Layer):
+        """
+        Computes the gradient of the weights for a layer using the deltas.
+
+        :param layer: The layer for which to compute the gradients.
+        :return: The computed gradient of the weights for the layer.
+        """
 
         # Compute gradients using broadcasting
         gradients = layer.LayerInput[:, :, None] * self.deltas[:, None, :]  # Shape: (batch_size, input_dim, output_dim)
+
 
         # Average gradients across the batch
         layer_grad = np.mean(gradients, axis=0)
@@ -144,7 +184,7 @@ class Optimizer:
 
     def UpdateWeights(self, layer: Layer):
         """
-        Function to update the layer's weights.
+        Function to update the layer's weights by applying the computed gradients.
 
         :param layer: The layer to update.
         """
@@ -165,14 +205,11 @@ class Optimizer:
 
     def ApplyRegularization(self, layer: Layer, layer_grad: np.ndarray):
         """
-        Apply L2 regularization to the gradients of a layer's weights.
+        Applies L2 regularization to the gradients of the weights.
 
-        Arguments:
-            layer (Layer): The current layer for which regularization is applied.
-            layer_grad (np.ndarray): The gradient of the weights for the layer.
-
-        Returns:
-            np.ndarray: The updated gradient    with regularization applied.
+        :param layer: The current layer for which regularization is applied.
+        :param layer_grad: The gradient of the weights for the layer.
+        :return: The updated gradient after applying regularization.
         """
         if not self.regularization:
             return layer_grad
@@ -197,10 +234,23 @@ class Optimizer:
 
 
 
-    def PreProcesWeights(self, layer: Layer):
+    def PreProcessWeights(self, layer: Layer):
+        """
+        Preprocesses the weights for the layer before applying momentum.
+
+        :param layer: The current layer for which to preprocess the weights.
+        :return: The preprocessed weights.
+        """
         return layer.WeightToNextLayer
 
     def ApplyMomentum (self, layer: Layer, layer_grad: np.ndarray):
+        """
+        Applies momentum to the gradient during optimization.
+
+        :param layer: The current layer for which to apply momentum.
+        :param layer_grad: The computed gradient of the weights.
+        :return: The updated gradient with momentum applied.
+        """
         if layer.LastLayer.Gradient is None:
             return None
 

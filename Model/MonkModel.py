@@ -32,20 +32,20 @@ class HyperModel_MONK(HyperModel):
         super().__init__( originalDataset)
         self.k = None
         self.val_split = None
-        self.IntepretationMatric = None
+        self.InterpretationMetric = None
 
     def SetSlit(self,val_split, k):
         self.val_split = val_split
         self.k = k
 
-    def GetHyperParamethers(self) ->HyperBag:
+    def GetHyperParameters(self) ->HyperBag:
         hp = HyperBag()
 
         # Optimizer
         hp.AddChosen("BatchSize",[-1,1,32,64,96,128])
         hp.AddRange("eta", 0.001, 0.2, 0.005)
         if MONK_NUM ==3:
-            hp.AddRange("labda", 0.000, 0.01, 0.005)
+            hp.AddRange("lambda", 0.000, 0.01, 0.005)
         hp.AddRange("alpha", 0.5, 0.9, 0.05)
         hp.AddRange("decay", 0.0003, 0.005, 0.0003)
 
@@ -97,7 +97,7 @@ class HyperModel_MONK(HyperModel):
 
     def PreprocessOutput(self,hp, data_set : DataSet):
         if hp["outFun"].Name == "TanH": # TanH
-            data_set.ApplayTranformationOnLabel(np.vectorize(lambda x: -1 if x == 0 else 1 ))
+            data_set.ApplyTransformationOnLabel(np.vectorize(lambda x: -1 if x == 0 else 1 ))
             Interpretation_metric = Accuracy(Sign())
 
         elif hp["outFun"].Name == "Sigmoid": #asigmoid
@@ -108,7 +108,7 @@ class HyperModel_MONK(HyperModel):
             Interpretation_metric = Accuracy()
         else:
             raise ValueError("value unknown")
-        self.IntepretationMatric= Interpretation_metric
+        self.InterpretationMetric= Interpretation_metric
 
 
     def GetModel(self, hp :HyperBag):
@@ -132,11 +132,11 @@ class HyperModel_MONK(HyperModel):
 
 
         if OPTIMIZER == 1:
-            optimizer = BackPropagation(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+            optimizer = BackPropagation(loss,hp["BatchSize"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
         elif OPTIMIZER == 2:
-            optimizer = BackPropagationNesterovMomentum(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"],hp["decay"])
+            optimizer = BackPropagationNesterovMomentum(loss,hp["BatchSize"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
         else:
-            optimizer = Adam(loss,hp["BatchSize"], hp["eta"], hp["labda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
+            optimizer = Adam(loss,hp["BatchSize"], hp["eta"], hp["lambda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
 
         return  optimizer
 
@@ -190,7 +190,7 @@ def ModelSelection( hyperModel:HyperModel_MONK ,NumberOrTrial: int) -> tuple[Mod
 
 
 
-def GeneratePlot_ForMonk(AccuracyMetric, MetricResults, monkDataset, extraname:str= ""):
+def GeneratePlot_ForMonk(AccuracyMetric, MetricResults, monkDataset, extra_name:str= ""):
     MSEmetric = MSE()
 
     lin_model = LogisticRegression()
@@ -231,24 +231,86 @@ def GeneratePlot_ForMonk(AccuracyMetric, MetricResults, monkDataset, extraname:s
         subplotAxes=axes[1])
     # Adjust layout and save the entire figure
     fig.tight_layout()
-    ShowOrSavePlot(f"{MONK_PLOT_PATH}{MONK_NUM}", f"Loss(MSE)-Accuracy{extraname}")
+    ShowOrSavePlot(f"{MONK_PLOT_PATH}{MONK_NUM}", f"Loss(MSE)-Accuracy{extra_name}")
     plt.close(fig)
 
+def GeneratePlotAverage_ForMonk(Results: list[dict], Metrics: list[str], path=f"{MONK_PLOT_PATH}{MONK_NUM}", name: str = f"MONK{MONK_NUM}_MEAN", tag: str = ""):
+    """
+    Generate plot for MONK using the plot for the mean of individual trials.
+
+    :param Results: List of dictionaries. Each dictionary represents an individual trial and contains metrics with respective values.
+    :param Metrics: List of metrics to plot.
+    :param path: The path where the plot will be saved.
+    :param name: The name of the file for the plot.
+    :param tag: Extra information for the file name.
+    """
+    # Organize data by metric name
+    loss_metrics = {metric: [] for metric in Metrics if metric.endswith("loss")}
+    accuracy_metrics = {metric: [] for metric in Metrics if metric.endswith("Accuracy")}
+
+    warm_up_epochs = 5
+    for trial in Results:
+        for metric in Metrics:
+            if metric.endswith("loss") and metric in trial:
+                loss_metrics[metric].append(trial[metric][warm_up_epochs:])
+            elif metric.endswith("Accuracy") and metric in trial:
+                accuracy_metrics[metric].append(trial[metric][warm_up_epochs:])
+
+    # Plot the metrics
+    fig, axes = plt.subplots(1, 2, figsize=(18, 6))
+
+    PlotAverage(
+        metricDict=loss_metrics,
+        limitYRange=None,
+        WarmUpEpochs=warm_up_epochs,
+        title=f"MONK {MONK_NUM} Loss",
+        xlabel="Epochs",
+        ylabel="Loss",
+        subplotAxes=axes[0],
+    )
+
+    PlotAverage(
+        metricDict=accuracy_metrics,
+        limitYRange=None,
+        WarmUpEpochs=warm_up_epochs,
+        title=f"MONK {MONK_NUM} Accuracy",
+        xlabel="Epochs",
+        ylabel="Accuracy",
+        subplotAxes=axes[1]
+    )
+
+    # Adjust layout and save the entire figure
+    fig.tight_layout()
+    ShowOrSavePlot(f"{path}", f"{name}{tag}")
+    plt.close(fig)
+
+
 def GenerateTagNameFromSettings(settings:dict):
+    """
+    Generate a tag name based on the selected optimizer, data preprocessing, and activation function.
+
+    :return: A string tag name describing the model configuration.
+    """
     tagName = ""
 
     if settings["optimizer"] == 1:
-        tagName += "_backprop"
+        tagName += "_BackPropagation"
     elif settings["optimizer"] == 2:
-        tagName += "_nasterov"
+        tagName += "_NesterovMomentum"
     else:
-        tagName += "_adam"
+        tagName += "_ADAM"
 
     return tagName
 
 
 def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Test=None) -> None:
+    """
+    Train the MONK model using grid search and random search for hyperparameter optimization.
 
+    :param NumberOrTrial_search: Number of trials for hyperparameter search.
+    :param NumberOrTrial_mean: Number of trials to evaluate the model's performance.
+    :param monk_To_Test : It's which monk dataset will be tested.
+    """
     if monk_To_Test is None:
         monk_To_Test = [1, 2, 3]
 
@@ -284,7 +346,7 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Tes
             hyperModel.SetSlit(VAL_SPLIT ,KFOLD_NUM)
             monkDataset.SplitTV()
 
-            print(f"Trasining MONK {MONK_NUM}...")
+            print(f"Training MONK {MONK_NUM}...")
             print(f"Run experiment with the following settings: {tagName}")
 
 
@@ -301,7 +363,7 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Tes
             totalResult = ValidateSelectedModel(
                 hyperModel_fn,best_hpSel,
                 NumberOrTrial_mean, MetricToCheck,
-                hyperModel.IntepretationMatric
+                hyperModel.InterpretationMetric
                 ,monk_data.Test,monk_data.Training,
                 500,50,42 )
 
@@ -315,16 +377,21 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Tes
 
 
 if __name__ == '__main__':
-        monkNumList = [1,2,3]
-        TrainMonkModel(500,50, monkNumList)
+        monkNumList = [3]
+        TrainMonkModel(100,50, monkNumList)
 
         for monk_num in monkNumList:
             jsonFiles = GetAllFileInDir(f"{MONK_RESUTL_PATH}{monk_num}")
             for jsonFile in jsonFiles:
                 data = readJson(jsonFile)
-                PlotAveragedResults(data["metrics"], ["test_loss", "loss", "test_Accuracy", "Accuracy"],
-                                    path =f"{MONK_PLOT_PATH}{monk_num}",
-                                    filename=f"mean_MONK{GenerateTagNameFromSettings(data['settings'])}.png")
 
-            #GeneratePlot(BaselineMetric_Accuracy, best_model.MetricResults, monkDataset,tagName)
+                GeneratePlotAverage_ForMonk(
+                    Results=data["metrics"],
+                    Metrics=["test_loss", "loss", "test_Accuracy", "Accuracy"],
+                    path=f"{MONK_PLOT_PATH}{monk_num}",
+                    tag=GenerateTagNameFromSettings(data['settings'])
+                )
+
+
+            #GeneratePlot_ForMonk(BaselineMetric_Accuracy, best_model.MetricResults, monkDataset,tagName)
 

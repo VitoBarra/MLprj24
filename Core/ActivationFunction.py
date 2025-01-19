@@ -197,15 +197,15 @@ class Binary(ActivationFunction):
 
     This activation function outputs 0 or 1.
     """
-    def __init__(self, trashold: float = 0.0):
+    def __init__(self, threshold: float = 0.0):
 
         super().__init__()
         self.Name = "Binary"
-        self.Thrashold   = trashold
+        self.Threshold   = threshold
 
     def Calculate(self, z: float|np.array(float)) -> float|np.array(float):
 
-        f = np.vectorize(lambda x: 1 if x>self.Thrashold else 0)
+        f = np.vectorize(lambda x: 1 if x>self.Threshold else 0)
         return f(z)
 
     def CalculateDerivative(self, z: float|np.array(float)) -> float|np.array(float):
@@ -325,7 +325,7 @@ class SoftARGMax(ActivationFunction):
         # Create the Jacobian matrix (diagonal elements)
         jacobian = np.diag(softmax_output) - softmax_outer
 
-        #TODO: This do not work, ih has to be reducted to a 1D array some how
+        #TODO: This do not work, ih has to be reduced to a 1D array some how
         return jacobian
 
 

@@ -8,7 +8,7 @@ class Metric:
     Base class for error functions used in machine learning.
 
     This class provides an interface for calculating the error between predicted
-    and target values. Subclasses must override the `Error` method.
+    and target values. Subclasses must override the `ComputeMetric` method.
     """
 
     Name: str
@@ -21,13 +21,13 @@ class Metric:
 
     def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
         """
-        Computes the error between predicted values and target values.
+         Computes the error between predicted values and target values.
 
-        :param val: A numpy array of predicted values.
-        :param target: A numpy array of target (ground truth) values.
-        :return: The computed error as a numpy array.
-        :raises NotImplementedError: If the method is not overridden in a subclass.
-        """
+         :param val: A numpy array of predicted values.
+         :param target: A numpy array of target (ground truth) values.
+         :return: The computed error as a float.
+         :raises NotImplementedError: If the method is not overridden in a subclass.
+         """
         raise NotImplementedError("Must override Error method")
 
     def __Call__(self, val: np.ndarray, target: np.ndarray) -> float:
@@ -41,6 +41,7 @@ class MSE(Metric):
     MSE is a commonly used error function that calculates the average of the
     squared differences between predicted and actual values.
     """
+
     Name: str
 
     def __init__(self):
@@ -87,7 +88,7 @@ class RMSE(Metric):
 
 class MEE(Metric):
     """
-    Computes the Mean Euclidian Error (MEE) between predicted and target values.
+    Computes the Mean Euclidean Error (MEE) between predicted and target values.
 
     MEE measures the average magnitude of the errors without considering their direction.
     """
@@ -98,11 +99,11 @@ class MEE(Metric):
 
     def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
         """
-        Computes the Mean Euclidian Error.
+        Computes the Mean Euclidean Error.
 
         :param val: A numpy array of predicted values.
         :param target: A numpy array of target (ground truth) values.
-        :return: The Mean Euclidian Error as a float.
+        :return: The Mean Euclidean Error as a float.
         """
         if val.shape != target.shape:
             raise ValueError(f"The size of val and target must be the same but instead where {val.shape} and {target.shape}")
@@ -142,18 +143,31 @@ class MAE(Metric):
 
 class Accuracy(Metric):
     """
-        Computes the Accuracy between predicted and target values.
+    Computes the Accuracy between predicted and target values.
 
-        Accuracy measures the percentage of correctly classified samples.
-        """
+    Accuracy measures the percentage of correctly classified samples.
+    """
+
 
     def __init__(self, inter:ActivationFunction = None):
+        """
+        Initializes the Accuracy metric.
+
+        :param inter: Optional activation function to interpret model output (e.g., for probabilities).
+        """
         super().__init__()
         self.Name = "Accuracy"
         self.dataInterpretation = inter
 
 
     def ComputeMetric(self, val: np.ndarray, target: np.ndarray) -> float:
+        """
+        Computes the Accuracy of predictions.
+
+        :param val: A numpy array of predicted values.
+        :param target: A numpy array of target (ground truth) values.
+        :return: The Accuracy as a float between 0 and 1.
+        """
         # If predictions are probabilities, take the class with the highest probability
         if len(val.shape) > 1 and val.shape[1] > 1:
             val = np.argmax(val, axis=1)

@@ -149,19 +149,19 @@ class DataExamples(object):
         Data = DataExamples(self.Data[splitIndex:], self.Label[splitIndex:], self.Id[splitIndex:])
         return Data, dataSplit
 
-    def Standardize(self, standardizeLabel:bool, datastat: (float, float) = None, lablestat: (float, float) = None) -> ((float, float), (float, float)):
+    def Standardize(self, standardizeLabel:bool, datastat: (float, float) = None, labelstat: (float, float) = None) -> ((float, float), (float, float)):
         """
         Normalizes the data by subtracting the mean and dividing by the standard deviation.
 
-        :param standardizeLabel:  normalize the lables or not.
+        :param standardizeLabel:  normalize the labels or not.
         :param datastat: An optional precomputed mean for normalization. Defaults to the mean of the dataset.
-        :param lablestat: An optional precomputed standard deviation for normalization. Defaults to the std of the dataset.
+        :param labelstat: An optional precomputed standard deviation for normalization. Defaults to the std of the dataset.
         :return: A tuple (mean, std)
         """
 
         (meanD,stdD), self.Data = DataExamples._Standardization(self.Data, datastat)
         if standardizeLabel:
-            (meanL,stdL), self.Label = DataExamples._Standardization(self.Label, lablestat)
+            (meanL,stdL), self.Label = DataExamples._Standardization(self.Label, labelstat)
             self.DataStat = (meanD,stdD)
             self.LabelStat = (meanL,stdL)
             return (meanD,stdD), (meanL,stdL)
@@ -275,7 +275,6 @@ class DataExamples(object):
         """
         Prints the data to the console.
         :param name: The name of the dataset.
-        :return:
         """
         print(f"{name} data {len(self.Data)} :")
         for d, l, id in self:
