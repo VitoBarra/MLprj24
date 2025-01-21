@@ -6,7 +6,7 @@ from Core.Metric import *
 from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
 from Model import *
 from Model.ModelPlots import *
-from Model.TrainingFuction import ValidateSelectedModel
+from Model.TrainingFuction import AsesSelectedModel
 from Utility.PlotUtil import *
 from Core.LossFunction import MSELoss
 from Core.Tuner.ModelSelection import BestSearch, BestSearchKFold, ModelSelection
@@ -201,7 +201,7 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
 
 
         MetricToCheck = [key for key, _ in best_model.MetricResults.items() if not key.startswith("val_")]
-        totalResult = ValidateSelectedModel(
+        totalResult = AsesSelectedModel(
             HyperModel_CAP,best_hpSel,
             NumberOrTrial_mean, MetricToCheck,
             BaselineMetric_MEE,
@@ -312,10 +312,10 @@ def GeneratePlotAverage_ForCUP(Results: list[dict], Metrics: list[str], path=f"{
     plt.close(fig)
 
 if __name__ == '__main__':
-        #TrainCUPModel(300,50)
+        TrainCUPModel(1000,50)
 
-        
-        jsonFiles = GetAllFileInDir(f"{CUP_RESULTS_PATH}")
+        CreateDir(CUP_RESULTS_PATH)
+        jsonFiles = GetAllFileInDir(CUP_RESULTS_PATH)
         for jsonFile in jsonFiles:
             data = readJson(jsonFile)
             GeneratePlotAverage_ForCUP(

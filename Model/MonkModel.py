@@ -12,7 +12,7 @@ from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
 from Model import MONK_RESUTL_PATH, MONK_PLOT_PATH, MONK_MODEL_PATH
 from Model.ModelPlots import  *
-from Model.TrainingFuction import ValidateSelectedModel
+from Model.TrainingFuction import AsesSelectedModel
 from Utility.PlotUtil import *
 from dataset.ReadDatasetUtil import readMonk
 
@@ -360,7 +360,7 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Tes
 
             monk_data = hyperModel.GetDatasetVariant(best_hpSel)
             hyperModel_fn = lambda hp: (hyperModel.GetModel(hp), hyperModel.GetOptimizer(hp))
-            totalResult = ValidateSelectedModel(
+            totalResult = AsesSelectedModel(
                 hyperModel_fn,best_hpSel,
                 NumberOrTrial_mean, MetricToCheck,
                 hyperModel.InterpretationMetric
@@ -377,8 +377,8 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Tes
 
 
 if __name__ == '__main__':
-        monkNumList = [3]
-        TrainMonkModel(100,50, monkNumList)
+        monkNumList = [1,2,3]
+        TrainMonkModel(750,50, monkNumList)
 
         for monk_num in monkNumList:
             jsonFiles = GetAllFileInDir(f"{MONK_RESUTL_PATH}{monk_num}")
