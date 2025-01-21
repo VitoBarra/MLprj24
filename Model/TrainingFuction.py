@@ -10,18 +10,16 @@ from Core.Initializer.WeightInitializer import GlorotInitializer
 from Core.Initializer.SeedGenerator import SeedGenerator
 
 
-def ValidateSelectedModel(
+def AsesSelectedModel(
                           HyperModel_fn,
                           best_hpSel: HyperBag,
                           NumberOrTrial: int,
-                          MetricsName: list[str],
                           BaselineMetric:Metric,
                           test : DataExamples,
                           training: DataExamples ,
                           epoch: int = 500,
                           patience: int = 50,
                           seed = 42,
-
                           ) -> dict :
     """
     Validates a model based on the hyperparameters and metrics provided.
@@ -30,11 +28,9 @@ def ValidateSelectedModel(
         HyperModel_fn (function): The function used to build the model with selected hyperparameters.
         best_hpSel (HyperBag): The selected hyperparameters for the model.
         NumberOrTrial (int): The number of trials to perform for model validation.
-        MetricsName (list): List of metric names to evaluate.
         BaselineMetric (Metric): The baseline metric to evaluate model performance.
         test (DataExamples): The test data to evaluate the model.
         training (DataExamples): The training data used for model fitting.
-        ExperimentParam (dict, optional): Dictionary of additional experiment parameters (default is None).
         epoch (int, optional): The number of epochs for training (default is 500).
         patience (int, optional): The number of epochs with no improvement before stopping (default is 50).
         seed (int, optional): The seed value for random number generation (default is 42).
