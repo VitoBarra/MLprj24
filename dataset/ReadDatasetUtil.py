@@ -74,6 +74,33 @@ def readCUP(file_path:str) -> DataSet:
     ids = np.array(ids)
     return DataSet.FromData(data, labels, ids)
 
+def readCUPTest(file_path:str) -> DataSet:
+    data = []
+    labels = []
+    ids = []
+    with open(file_path, 'r') as file:
+        for _ in range(7):
+            next(file)
+        for line in file:
+            parts = line.strip().split(',')
+            if len(parts) != 13:
+                raise ValueError("we want 13 elements in this file.")
+
+            # ID (first value)
+            ids.append([int(parts[0])])
+
+            # data (middle value)
+            data.append(list(map(float, parts[1:13])))
+
+
+
+    # Converti le liste in array NumPy
+    data = np.array(data)
+    ids = np.array(ids)
+    return data
+
+
+
 def CreateFakeData(nData:int, xdim :int=1, ydim:int=1) -> DataSet:
     """
     Creates a synthetic dataset with random data and binary labels.
