@@ -16,14 +16,14 @@ from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.Initializer.WeightInitializer import GlorotInitializer
-from dataset.ReadDatasetUtil import readCUP
+from dataset.ReadDatasetUtil import readCUP, readCUPTest
 import random
-import gc
 from statistics import mean, variance
 
-
-USE_KFOLD = True
+USE_KFOLD = True  # Valore locale sovrascrive quello remoto
 OPTIMIZER = 1
+BATCH_SIZE = None  # Mantieni questa variabile dalle modifiche remote
+
 
 
 def HyperModel_CAP(hp: HyperBag):
@@ -312,15 +312,33 @@ def GeneratePlotAverage_ForCUP(Results: list[dict], Metrics: list[str], path=f"{
     plt.close(fig)
 
 if __name__ == '__main__':
-        TrainCUPModel(1000,50)
 
-        CreateDir(CUP_RESULTS_PATH)
-        jsonFiles = GetAllFileInDir(CUP_RESULTS_PATH)
-        for jsonFile in jsonFiles:
-            data = readJson(jsonFile)
-            GeneratePlotAverage_ForCUP(
-                Results=data['metrics'],
-                Metrics=["test_loss", "loss", "test_MEE", "MEE"],
-                path=f"{CUP_PLOT_PATH}",
-                tag=GenerateTagNameFromSettings(data['settings'])
-            )
+    """TrainCUPModel(1000,50)
+
+    CreateDir(CUP_RESULTS_PATH)
+    jsonFiles = GetAllFileInDir(CUP_RESULTS_PATH)
+    for jsonFile in jsonFiles:
+        data = readJson(jsonFile)
+        GeneratePlotAverage_ForCUP(
+            Results=data['metrics'],
+            Metrics=["test_loss", "loss", "test_MEE", "MEE"],
+            path=f"{CUP_PLOT_PATH}",
+            tag=GenerateTagNameFromSettings(data['settings'])
+        )"""
+    #TrainCUPModel(2 ,2)
+
+    file_path_cup = "dataset/CUP/ML-CUP24-TR.csv"
+    SplitCupDataset, BaselineMetric_MEE = ReadCUP(0.15, 0.20)
+    all_data = readCUP(file_path_cup)
+    best_model, best_hpSel = ModelSelection(SplitCupDataset, BaselineMetric_MEE, 250, 64)
+    best_model: ModelFeedForward
+    labels= all_data._Data.Label
+    test = readCUPTest("dataset/CUP/ML-CUP24-TS.csv")
+    result = best_model.Predict(test)
+    plot_multiple_3d(
+        labels,  # First dataset: actual labels
+        result,  # Second dataset: predictions
+        labels=["Training Labels", "Predictions"],  # Legend labels
+        colors=["blue", "red"],  # Colors for each dataset
+        markers=["o", "^"]  # Markers for each dataset
+    )
