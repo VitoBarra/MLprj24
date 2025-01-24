@@ -50,10 +50,14 @@ class ActivationFunction:
             "Linear":Linear(),
             "Sigmoid":Sigmoid(),
             "SoftARGMax":SoftARGMax(),
-            "Binary":Binary()
+            "Binary":Binary(),
+            "LeakyReLU": LeakyReLU(),
 
         }
-        return function.get(functionName, "Invalid option")
+        instances = function.get(functionName, "Invalid option")
+        if instances == "Invalid option":
+            raise Exception(functionName + " is not a valid activation function")
+        return instances
 
 class TanH(ActivationFunction):
     """

@@ -38,7 +38,7 @@ class DataSet(object):
         self.Splitted = False
 
     @classmethod
-    def FromData(cls, data: np.ndarray, label: np.ndarray, Id: np.ndarray):
+    def FromData(cls, data: np.ndarray, label: np.ndarray |None= None, Id : np.ndarray |None = None):
         """
         Initializes the DataSet with data and labels.
 
@@ -48,11 +48,10 @@ class DataSet(object):
         :return: DataSet object.
         """
 
-        if data is None or label is None:
-            raise ValueError("DataSet and label must be provided.")
+        if data is None:
+            raise ValueError("Data and must be not null.")
         dataset = DataSet()
-        dataset._Data = DataExamples(data, label, Id)
-        dataset.DataLength = len(dataset._Data)
+        dataset._Data = DataExamples.FromData(data, label, Id)
 
         return dataset
 
@@ -191,6 +190,26 @@ class DataSet(object):
         if self.Training is not None and self.Validation is not None:
             self.Training.Concatenate(self.Validation)
             self.Validation = None
+
+    def MergeAll(self):
+        """
+        Merges the training and validation sets.
+        """
+        allData = DataExamples()
+        if self.Training is not None:
+            allData.Concatenate(self.Training)
+            self.Training = None
+        if self.Validation is not None:
+            allData.Concatenate(self.Validation)
+            self.Validation = None
+        if self.Test is not None:
+            allData.Concatenate(self.Test)
+            self.Test= None
+
+        if self.Training is not None and self.Validation is not None:
+            self.Training.Concatenate(self.Validation)
+            self.Validation = None
+        self.Training = allData
 
 
 
@@ -342,7 +361,7 @@ class DataSet(object):
         for i in range(k):
             current_fold_size = fold_size + (1 if i < remainder else 0)
             end_index = start_index + current_fold_size
-            folds.append(DataExamples(
+            folds.append(DataExamples.FromData(
                 data.Data[start_index:end_index],
                 data.Label[start_index:end_index],
                 data.Id[start_index:end_index] if self._Data.Id is not None else None
@@ -364,7 +383,7 @@ class DataSet(object):
                     if fold.Id is not None:
                         train_set_ids.append(fold.Id)
 
-            train_set = DataExamples(
+            train_set = DataExamples.FromData(
                 np.concatenate(train_set_data, axis=0),
                 np.concatenate(train_set_label, axis=0),
                 np.concatenate(train_set_ids, axis=0) if train_set_ids else None

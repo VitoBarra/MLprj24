@@ -1,5 +1,5 @@
 import pickle
-
+import matplotlib
 import matplotlib.pyplot as plt
 import networkx as nx
 from .FileUtil import *
@@ -17,7 +17,7 @@ def ShowOrSavePlot(path=None, filename=None):
         if filename is None or filename == '':
             filename = 'img'
         plt.savefig(f"{path}/{filename}.png")
-        plt.clf()
+        plt.close()
 
 
 def SaveTrainingDataByName(data_path, problem_name, test_name, history, result):
@@ -267,7 +267,7 @@ def printAUC(fpr: list[float], tpr: list[float], auc: float) -> None:
     plt.show()
 
 
-def plot_multiple_3d(*arrays, labels=None, colors=None, markers=None, alpha=0.7):
+def plot_CAP_3d(*arrays, labels=None, colors=None, markers=None, alpha=0.7):
     """
         Visualize 3D points from one or more 3D arrays.
 
@@ -291,7 +291,6 @@ def plot_multiple_3d(*arrays, labels=None, colors=None, markers=None, alpha=0.7)
     if labels is None:
         labels = [f"Dataset {i + 1}" for i in range(len(arrays))]
     # Create the 3D figure
-    import matplotlib
     matplotlib.use("TkAgg")
     fig = plt.figure(figsize=(10, 7))
     ax = fig.add_subplot(111, projection='3d')

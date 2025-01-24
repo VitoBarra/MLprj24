@@ -9,11 +9,15 @@ from Utility.PlotUtil import ShowOrSavePlot
 from scipy.constants import metric_ton
 
 
-def PlotAverage(metricDict: dict[str, list[list]], xlabel="X-axis", ylabel="Y-axis", limitYRange=None, WarmUpEpochs:int = 0, subplotAxes=None, title="Title"):
+def PlotAverage(metricList: list[dict[str, list[float]]], title="Title", xlabel="X-axis", ylabel="Y-axis",
+                limitYRange=None,limitXRange=None, WarmUpEpochs: int = 0, baseline=None, baselineName=None, subplotAxes=None, NumbersOfMarker:int = 45):
     """
     Plot the average of multiple metrics along with individual trials for each metric.
 
-    :param metricDict: Dictionary where keys are metric names and values are lists of lists,
+    :param baselineName:
+    :param baseline:
+    :param limitXRange:
+    :param metricList: Dictionary where keys are metric names and values are lists of lists,
                        where each inner list represents the metric values for a trial.
     :param xlabel: Label for the x-axis.
     :param ylabel: Label for the y-axis.
@@ -29,26 +33,36 @@ def PlotAverage(metricDict: dict[str, list[list]], xlabel="X-axis", ylabel="Y-ax
         ax = subplotAxes
 
     # Define colors, different line styles, and markers for black-and-white readability
-    colors = ["blue", "red", "orange", "green", "purple", "brown"]
+    colors = ["blue", "orange", "red" , "green", "purple", "brown"]
     linestyles = ['-', '--', '-.', ':']
     markers = ['o', 'D', 's', '^', 'v', '*']
 
     # Track the global min and max of the averages for dynamic y-axis limits
     global_min = float('inf')
     global_max = float('-inf')
+    min_len = 0
 
-    for idx, (metric_name, metricList) in enumerate(metricDict.items()):
-        # Find the minimum length across all trials for this metric
-        min_length = min(len(trial) for trial in metricList)
+    metric_names = [key for key,_ in metricList[0].items()]
+    dataObj = {}
 
-        # Synchronize all trials to the same length
-        synced_trials = [trial[:min_length] for trial in metricList]
+    # Find the minimum length across all trials for this metric
+    for metric_name in metric_names:
+        metric_data= {}
+        if min_len == 0:
+            min_len=min([len(metricObj[metric_name]) for metricObj in metricList]) - WarmUpEpochs
+        metric_data["data_sync"] = [metricObj[metric_name][WarmUpEpochs:min_len+WarmUpEpochs] for metricObj in metricList]
+        metric_data["average_curve"] = np.mean(metric_data["data_sync"], axis=0)
+
+        dataObj[metric_name] = metric_data
 
 
+
+    for  idx,metric_name in enumerate(metric_names):
+
+        metric_data =dataObj[metric_name]
         # Plot individual trials for the current metric
-        for trial in synced_trials:
-            x_values = range(WarmUpEpochs, WarmUpEpochs + len(trial))
-            ax.plot(x_values,
+        for trial in metric_data["data_sync"]:
+            ax.plot(
                     trial,
                     alpha=0.1,
                     color=colors[idx % len(colors)],
@@ -57,37 +71,45 @@ def PlotAverage(metricDict: dict[str, list[list]], xlabel="X-axis", ylabel="Y-ax
                     linewidth=1)
 
         # Plot average for the current metric
-        if synced_trials:
-            mean_metric = np.mean(synced_trials, axis=0)
-            global_min = min(global_min, np.min(mean_metric))  # Update global min
-            global_max = max(global_max, np.max(mean_metric))  # Update global max
+        global_min = min(global_min, metric_data["average_curve"].min())  # Update global min
+        global_max = max(global_max, metric_data["average_curve"].max())  # Update global max
 
-            x_values = range(WarmUpEpochs, WarmUpEpochs + len(mean_metric))
 
-            # Define marker spacing dynamically based on x-axis range
-            marker_spacing = max(1, len(mean_metric) // 45) if len(mean_metric) > 50 else 1
-            marker_indices = [i for i in range(len(mean_metric)) if i % marker_spacing == 0]
+        # Define marker spacing dynamically based on x-axis range
+        marker_spacing = max(1, min_len // NumbersOfMarker) if min_len > 50 else 1
+        marker_indices = list(range(0, min_len, marker_spacing))
 
-            ax.plot(x_values,
-                    mean_metric,
-                    label=f"{metric_name} (mean)",
-                    color=colors[idx % len(colors)],
-                    linestyle=linestyles[idx % len(linestyles)],
-                    marker=markers[idx % len(markers)],
-                    markevery=marker_indices,
-                    markersize=5,
-                    linewidth=2)
+
+        ax.plot(metric_data["average_curve"],
+                label=f"{metric_name} (mean)",
+                color=colors[idx % len(colors)],
+                linestyle=linestyles[idx % len(linestyles)],
+                marker=markers[idx % len(markers)],
+                markevery=marker_indices,
+                markersize=5,
+                linewidth=2)
+
+
+    # Plot the baseline
+    if baseline is not None:
+        ax.plot(
+            [baseline for _ in range(min_len)],
+            label=baselineName,
+            color="green",
+            linestyle="--",
+            linewidth=3)
 
     # Adjust y-axis limits dynamically if not explicitly provided
     if limitYRange is None:
         padding = (global_max - global_min) * 0.1  # Add 10% padding
-        ax.set_ylim(global_min - padding, global_max + padding)
-    else:
-        ax.set_ylim(limitYRange)
+        limitYRange = (global_min - padding, global_max + padding)
 
+
+    if limitXRange is None:
+        limitXRange = (WarmUpEpochs, min_len)
 
     # Add title, labels, and legend
-    PlotStyle(ax=ax, title=title, xlabel=xlabel, ylabel=ylabel, limitYRange=limitYRange, WarmUpEpoch=WarmUpEpochs)
+    PlotStyle(ax=ax, title=title, xlabel=xlabel, ylabel=ylabel, limitYRange=limitYRange, limitXRange =limitXRange)
 
 
 
@@ -146,13 +168,13 @@ def PlotMetrics(metricDic, baseline=None, baselineName="Baseline", title="Title"
         ShowOrSavePlot(path, title)
 
 
-def PlotStyle (ax, title, xlabel, ylabel, limitYRange=None, WarmUpEpoch = None):
+def PlotStyle (ax, title, xlabel, ylabel, limitYRange=None,limitXRange = None):
     ax.set_title(title, fontsize=22)
     ax.set_xlabel(xlabel, fontsize=18)
     ax.set_ylabel(ylabel, fontsize=18)
     if limitYRange is not None:
-        ax.set_ylim(*limitYRange)
-    if WarmUpEpoch is not None:
-        ax.set_xlim(WarmUpEpoch, None)
+        ax.set_ylim(limitYRange)
+    if limitXRange is not None:
+        ax.set_xlim(limitXRange)
     ax.legend(fontsize=14)
     ax.grid(True)

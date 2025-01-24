@@ -147,19 +147,19 @@ class ModelFeedForward:
 
 
 
-    def SaveModel(self, directory: str, filename: str = "model.json") -> None:
+    def SaveModel(self, directory: str, filename: str = "model") -> None:
         """
         Saves the model's architecture and weights to a file.
 
         :param directory: The directory where the model file will be saved.
-        :param filename: The name of the file to save the model to. Defaults to 'model.json'.
+        :param filename: The name of the file to save the model to. Defaults to 'model'.
         :return: None
         """
         # Ensure the directory exists
         os.makedirs(directory, exist_ok=True)
 
         # Combine directory and filename to create the full file path
-        file_path = os.path.join(directory, filename)
+        file_path = os.path.join(directory, f"{filename}.vjf")
 
         # Serialize model data
         model_data = {"layers": [layer.SerializeLayer() for layer in self.Layers]}
@@ -170,16 +170,17 @@ class ModelFeedForward:
 
 
 
-    def LoadModel(self, path: str) -> None:
+    def LoadModel(self, path: str, name: str) -> None:
         """
         Loads the model's weights from a file.
+        :param name: the model name.
 
         :param path: The file path to load the model from.
         :return: None
         """
         self.Layers = []
-
-        with open(path, "r") as file:
+        totalPath = f"{path}/{name}.vjf"
+        with open(totalPath, "r") as file:
             model_data = json.load(file)
 
         for layerDic in model_data["layers"]:
