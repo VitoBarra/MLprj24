@@ -20,30 +20,40 @@ class DataExamples(object):
         Id (ndarray): The indices of the data samples.
         isCategorical (bool): Indicates if the labels are in categorical format.
     """
-    Label: ndarray
     Data: ndarray
+    Label: ndarray | None
     Id: ndarray | None
     isCategorical: bool
 
-    def __init__(self, data: np.ndarray, label: np.ndarray, Id: np.ndarray = None) -> None:
+    def __init__(self) -> None:
+        pass
+
+
+
+    @classmethod
+    def FromData(cls,data: np.ndarray, label: np.ndarray = None, Id: np.ndarray = None):
         """
         Initializes a DataExamples object with data and labels.
 
         :param data: A numpy array containing the input data.
         :param label: A numpy array containing the labels for the data.
+        :param Id:  A numpy array containing the ids for the data
         :raises ValueError: If the length of data and label do not match.
         """
-        self.LabelStat = None
-        self.DataStat = None
-        if data.shape[0] != label.shape[0]:
+        dataExample = cls()
+        dataExample.LabelStat = None
+        dataExample.DataStat = None
+        if label is not None and data.shape[0] != label.shape[0]:
             raise ValueError('DataSet and label must have the same length')
         if Id is not None and data.shape[0] != Id.shape[0]:
             raise ValueError('DataSet and id must have the same length')
 
-        self.Data = data
-        self.Label = label
-        self.Id = Id
-        self.isCategorical = False
+        dataExample.Data = data
+        dataExample.Label = label
+        dataExample.Id = Id
+        dataExample.isCategorical = False
+        return dataExample
+
     @classmethod
     def Clone(cls, dataExamples: 'DataExamples'):
         """
@@ -54,7 +64,7 @@ class DataExamples(object):
         """
         if dataExamples is None:
             return None
-        return DataExamples(dataExamples.Data, dataExamples.Label, dataExamples.Id)
+        return DataExamples.FromData(dataExamples.Data, dataExamples.Label, dataExamples.Id)
 
 
 
@@ -88,9 +98,10 @@ class DataExamples(object):
         """
         if self.isCategorical != dataExample.isCategorical:
             raise ValueError("Each of the dataLabel class must have the same type of label.")
-        self.Data = np.concatenate((self.Data, dataExample.Data), axis=0)
-        self.Label = np.concatenate((self.Label, dataExample.Label), axis=0)
-        self.Id = np.concatenate((self.Id, dataExample.Id), axis=0)
+
+        self.Data = np.concatenate((self.Data, dataExample.Data), axis=0) if self.Data is not None else dataExample.Data
+        self.Label = np.concatenate((self.Label, dataExample.Label), axis=0) if self.Label is not None else dataExample.Label
+        self.Id = np.concatenate((self.Id, dataExample.Id), axis=0) if self.Id is not None else dataExample.Id
 
     def Shuffle(self, seed: int = None) -> None:
         """
@@ -126,11 +137,11 @@ class DataExamples(object):
         dataLength = self.Data.shape[0]
         trainingBound = int(dataLength * (1 - validationPercent - testPercent))
         valBound = int(dataLength * validationPercent)
-        training = DataExamples(self.Data[:trainingBound], self.Label[:trainingBound], self.Id[:trainingBound])
-        validation = DataExamples(self.Data[trainingBound:trainingBound + valBound],
+        training = DataExamples.FromData(self.Data[:trainingBound], self.Label[:trainingBound], self.Id[:trainingBound])
+        validation = DataExamples.FromData(self.Data[trainingBound:trainingBound + valBound],
                                   self.Label[trainingBound:trainingBound + valBound],
                                   self.Id[trainingBound:trainingBound + valBound])
-        test = DataExamples(self.Data[trainingBound + valBound:], self.Label[trainingBound + valBound:],self.Id[trainingBound + valBound:])
+        test = DataExamples.FromData(self.Data[trainingBound + valBound:], self.Label[trainingBound + valBound:],self.Id[trainingBound + valBound:])
         return training, validation, test
 
     def SplitIn2(self, rate: float = 0.15) -> ('DataExamples','DataExamples'):
@@ -145,8 +156,8 @@ class DataExamples(object):
 
         dataLength = self.Data.shape[0]
         splitIndex = int(dataLength * rate)
-        dataSplit = DataExamples(self.Data[:splitIndex], self.Label[:splitIndex], self.Id[:splitIndex])
-        Data = DataExamples(self.Data[splitIndex:], self.Label[splitIndex:], self.Id[splitIndex:])
+        dataSplit = DataExamples.FromData(self.Data[:splitIndex], self.Label[:splitIndex], self.Id[:splitIndex])
+        Data = DataExamples.FromData(self.Data[splitIndex:], self.Label[splitIndex:], self.Id[splitIndex:])
         return Data, dataSplit
 
     def Standardize(self, standardizeLabel:bool, datastat: (float, float) = None, labelstat: (float, float) = None) -> ((float, float), (float, float)):

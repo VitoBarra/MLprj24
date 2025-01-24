@@ -35,8 +35,7 @@ def readMonk(file_path:str) -> DataExamples:
     labels = np.array(labels)
     labels = labels.reshape(labels.shape[0], 1)
     ids = np.array(ids)
-    de = DataExamples(data, labels, ids)
-    return de
+    return DataExamples.FromData(data, labels, ids)
 
 def readCUP(file_path:str) -> DataSet:
     """
@@ -76,7 +75,6 @@ def readCUP(file_path:str) -> DataSet:
 
 def readCUPTest(file_path:str) -> DataSet:
     data = []
-    labels = []
     ids = []
     with open(file_path, 'r') as file:
         for _ in range(7):
@@ -84,7 +82,7 @@ def readCUPTest(file_path:str) -> DataSet:
         for line in file:
             parts = line.strip().split(',')
             if len(parts) != 13:
-                raise ValueError("we want 13 elements in this file.")
+                raise ValueError(f"We expected 13 elements in this file, but it contains {len(parts)} elements. It's likely that the training set was read incorrectly.")
 
             # ID (first value)
             ids.append([int(parts[0])])
@@ -97,7 +95,7 @@ def readCUPTest(file_path:str) -> DataSet:
     # Converti le liste in array NumPy
     data = np.array(data)
     ids = np.array(ids)
-    return data
+    return DataSet.FromData(data,None,ids)
 
 
 

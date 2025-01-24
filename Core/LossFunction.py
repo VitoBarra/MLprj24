@@ -15,6 +15,9 @@ class LossFunction:
         self.Name = "invalid_LossFunction"
         pass
 
+    def __call__(self, prediction: np.ndarray, target: np.ndarray):
+        return self.CalculateLoss(prediction, target)
+
     def CalculateLoss(self, prediction: np.ndarray, target: np.ndarray) -> float:
         """
         Calculate the loss between prediction and target.

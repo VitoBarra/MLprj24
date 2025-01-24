@@ -4,29 +4,22 @@ from Core.FeedForwardModel import *
 from Core.ActivationFunction import *
 from Core.Metric import *
 from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
-from Model import *
 from Model.ModelPlots import *
 from Model.TrainingFuction import AsesSelectedModel
 from Utility.PlotUtil import *
 from Core.LossFunction import MSELoss
 from Core.Tuner.ModelSelection import BestSearch, BestSearchKFold, ModelSelection
-from Core.Tuner.HyperModel import HyperModel
 from Core.Optimizer.Adam import Adam
 from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
 from Core.Initializer.WeightInitializer import GlorotInitializer
 from dataset.ReadDatasetUtil import readCUP, readCUPTest
-import random
-from statistics import mean, variance
-
-USE_KFOLD = True  # Valore locale sovrascrive quello remoto
-OPTIMIZER = 1
-BATCH_SIZE = None  # Mantieni questa variabile dalle modifiche remote
+from . import *
 
 
 
-def HyperModel_CAP(hp: HyperBag):
+def HyperModel_CUP(hp: HyperBag):
     """
     Builds a feedforward neural network model based on the provided hyperparameters.
 
@@ -46,16 +39,16 @@ def HyperModel_CAP(hp: HyperBag):
 
 
     if OPTIMIZER == 1:
-        optimizer = BackPropagation(loss,hp["batchSize"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
+        optimizer = BackPropagation(loss,BATCH_SIZE, hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
     elif OPTIMIZER == 2:
-        optimizer = BackPropagationNesterovMomentum(loss,hp["batchSize"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
+        optimizer = BackPropagationNesterovMomentum(loss,BATCH_SIZE, hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
     else:
-        optimizer = Adam(loss,hp["batchSize"],hp["eta"], hp["lambda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
+        optimizer = Adam(loss,BATCH_SIZE,hp["eta"], hp["lambda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
 
     return model, optimizer
 
 
-def HyperBag_Cap():
+def HyperBag_CUP():
     """
     Defines the hyperparameter search space for the model.
 
@@ -64,13 +57,35 @@ def HyperBag_Cap():
     hp = HyperBag()
     
     # Optimizer
-    hp.AddChosen("batchSize",[-1,1,64,128,160])
-    hp.AddRange("eta", 0.001, 0.1, 0.01)
-    #hp.AddRange("lambda", 0.001, 0.1, 0.001)
-    hp.AddRange("alpha", 0.1, 0.9, 0.1)
-    hp.AddRange("decay", 0.001, 0.1, 0.001)
+    if BATCH_SIZE == 1:
+        hp.AddRange("eta", 0.0001, 0.005, 0.0005)
+        hp.AddRange("lambda", 1e-8, 1e-7, 1e-6)
+        hp.AddRange("alpha", 0.1, 0.9, 0.1)
+        hp.AddRange("decay", 0.001, 0.01, 0.01)
+    elif BATCH_SIZE == -1:
+        hp.AddRange("eta", 0.001, 0.1, 0.001)
+        hp.AddRange("lambda", 0.0001, 0.001, 0.001)
+        hp.AddRange("alpha", 0.1, 0.9, 0.1)
+        hp.AddRange("decay", 0.001, 0.01, 0.001)
+    elif BATCH_SIZE == 64:
+        hp.AddRange("eta", 0.001, 0.1, 0.001)
+        hp.AddRange("lambda", 0.0001, 0.001, 0.001)
+        hp.AddRange("alpha", 0.1, 0.9, 0.1)
+        hp.AddRange("decay", 0.001, 0.01, 0.001)
+    else: #BATCH_SIZE == 128
+        if OPTIMIZER == 3:
+            hp.AddRange("eta", 0.01, 0.05, 0.01)
+            hp.AddRange("lambda", 0.0001, 0.001, 0.01)
+            hp.AddRange("alpha", 0.1, 0.9, 0.1)
+            hp.AddRange("decay", 0.01, 0.1, 0.01)
+        else:
+            hp.AddRange("eta", 0.001, 0.1, 0.001)
+            hp.AddRange("lambda", 0.0001, 0.001, 0.001)
+            hp.AddRange("alpha", 0.1, 0.9, 0.1)
+            hp.AddRange("decay", 0.001, 0.01, 0.001)
 
-    ## Only Adam
+
+    # Only Adam
     if OPTIMIZER>2:
         hp.AddRange("beta", 0.95, 0.99, 0.01)
         hp.AddRange("epsilon", 1e-13, 1e-8, 1e-1)
@@ -95,20 +110,22 @@ def ReadCUP(val_split: float = 0.15, test_split: float = 0.5,seed:int = 10):
     :param seed: Random seed for shuffling.
     :return: The dataset split and a metric for evaluation.
     """
-    file_path_cup = "dataset/CUP/ML-CUP24-TR.csv"
-    all_data = readCUP(file_path_cup)
-    all_data.Shuffle(seed)
-    all_data.PrintData()
 
-    if not USE_KFOLD or MULTY:
-        all_data.Split(val_split, test_split)
+    data = readCUP(DATASET_PATH_CUP_TR)
+    data.Shuffle(seed)
+    data.PrintData()
+    dataUnsplit = DataSet.Clone(data)
+    if not USE_KFOLD:
+        data.Split(val_split, test_split)
         #all_data.Standardize(True)
     else:
-        all_data.SetUp_Kfold_TestHoldOut(5,test_split)
+        data.SetUp_Kfold_TestHoldOut(5,test_split)
 
-    return all_data, MEE()
+    dataUnsplit.Training = dataUnsplit._Data
 
-def ModelSelection(dataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -> tuple[ModelFeedForward, HyperBag]:
+    return data,dataUnsplit, MEE()
+
+def ModelSelection_Cup(dataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -> tuple[ModelFeedForward, HyperBag]:
     """
     Selects the best model using either K-fold cross-validation or a standard search.
 
@@ -124,17 +141,16 @@ def ModelSelection(dataset:DataSet, BaselineMetric:Metric, NumberOrTrial: int) -
         ModelSelector = BestSearch(RandomSearch(NumberOrTrial))
 
     watched_metric = "val_loss"
-    callback = [EarlyStopping(watched_metric, 10)]
+    callback = [EarlyStopping(watched_metric, 40)]
 
     best_model, best_hpSel = ModelSelector.GetBestModel(
-        HyperModel_CAP, HyperBag_Cap(),
+        HyperModel_CUP, HyperBag_CUP(),
         dataset,
         500,
         watched_metric,
         [BaselineMetric],
         GlorotInitializer(),
         callback)
-    #best_model.PlotModel("CUP Model")
     return best_model, best_hpSel
 
 
@@ -152,7 +168,17 @@ def GenerateTagNameFromSettings(settings):
     elif settings["optimizer"] == 2:
         tagName += "_Nesterov"
     else:
-        tagName += "_adam"
+        tagName += "_ADAM"
+
+    if settings["batch_size"] == 64:
+        tagName += "_BatchSize64"
+    elif settings["batch_size"] == 128:
+        tagName += "_BatchSize128"
+    elif settings["batch_size"] == 1:
+        tagName += "_Online"
+    else:
+        tagName += "_BatchSize-1"
+
 
     return tagName
 
@@ -166,51 +192,56 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
     """
 
     #DataSet Preparation
-    SplitCUPDataset, BaselineMetric_MEE = ReadCUP(0.15, 0.20)
+    SplitCUPDataset,CUPDataset, BaselineMetric_MEE = ReadCUP(0.15, 0.20)
     mergedCUPDataset = DataSet.Clone(SplitCUPDataset)
 
 
     if not USE_KFOLD:
         mergedCUPDataset.MergeTrainingAndValidation()
 
+
     #Experiment parameter
     mode = HyperBag()
     mode.AddChosen("Optimizer",[1,2,3])
+    mode.AddChosen("Batch_size", [-1,1,64,128])
 
     global OPTIMIZER
+    global BATCH_SIZE
 
 
     gs = GridSearch()
     for modes, _ in gs.Search(mode):
         OPTIMIZER = modes["Optimizer"]
+        BATCH_SIZE = modes["Batch_size"]
 
-        settingDict = {"optimizer": OPTIMIZER}
+        settingDict = {"optimizer": OPTIMIZER, "batch_size": BATCH_SIZE}
         tagName = GenerateTagNameFromSettings(settingDict)
 
         print(f"Run experiment with the following settings: {tagName}")
 
-        best_model, best_hpSel = ModelSelection(SplitCUPDataset, BaselineMetric_MEE, NumberOrTrial)
+        best_model, best_hpSel = ModelSelection_Cup(SplitCUPDataset, BaselineMetric_MEE, NumberOrTrial)
         best_model:ModelFeedForward
         print(f"Best hp : {best_hpSel}")
         #best_model.PlotModel("CUP Model")
 
-        #best_model.SaveMetricsResults(f"Data/Results/Cup{tagName}.mres")
-        best_model.SaveModel(f"{CUP_MODEL_PATH}",f"CUP{tagName}.vjf")
 
-        #GeneratePlot(BaselineMetric_MEE, best_model.MetricResults, SplitCUPDataset, tagName)
-
-
-        MetricToCheck = [key for key, _ in best_model.MetricResults.items() if not key.startswith("val_")]
         totalResult = AsesSelectedModel(
-            HyperModel_CAP,best_hpSel,
-            NumberOrTrial_mean, MetricToCheck,
+            HyperModel_CUP,best_hpSel,
+            NumberOrTrial_mean,
             BaselineMetric_MEE,
             SplitCUPDataset.Test,mergedCUPDataset.Training,
             500,50,42 )
         totalResult["settings"] = settingDict
         SaveJson(f"{CUP_RESULTS_PATH}", f"res_CUP{tagName}.json", totalResult)
 
-        #PlotMultipleModels(totalResult["metrics"],"test_loss",f"{CUP_PLOT_PATH}",f"mean_CUP{tagName}.png" )
+
+        final_model ,optimizer= HyperModel_CUP(best_hpSel)
+        final_model.Build(GlorotInitializer(42))
+        final_model.AddMetric(BaselineMetric_MEE)
+        final_model.Fit( optimizer,CUPDataset, 500)
+        final_model.SaveModel(f"{CUP_MODEL_PATH}",tagName)
+
+
 
 
 
@@ -261,7 +292,8 @@ def GeneratePlot_ForCUP(BaselineMetric_MEE, MetricResults, CupDataset, extraname
     ShowOrSavePlot(f"{CUP_PLOT_PATH}", f"Loss(MSE)-MEE{extraname}")
     plt.close(fig)
 
-def GeneratePlotAverage_ForCUP(Results: list[dict], Metrics: list[str], path=f"{CUP_PLOT_PATH}", name: str = f"CUP_MEAN", tag: str = ""):
+def GeneratePlotAverage_ForCUP(Results: list[dict],
+                               BaselineMetric_MEE, CupDataset, extra_name: str = ""):
     """
     Generate plot for CUP using the plot for the mean of individual trials.
 
@@ -269,73 +301,74 @@ def GeneratePlotAverage_ForCUP(Results: list[dict], Metrics: list[str], path=f"{
     :param Metrics: List of metrics to plot.
     :param path: The path where the plot will be saved.
     :param name: The name of the file for the plot.
-    :param tag: Extra information for the file name.
+    :param extra_name: Extra information for the file name.
     """
-    # Organize data by metric name
-    loss_metrics = {metric: [] for metric in Metrics if metric.endswith("loss")}
-    mee_metrics = {metric: [] for metric in Metrics if metric.endswith("MEE")}
+    BaselineMetric_MSE = MSE()
 
+    lin_model = LinearRegression()
+    lin_model.fit(CupDataset.Training.Data, CupDataset.Training.Label)
+
+    predictions = lin_model.predict(CupDataset.Test.Data)
+    baseline_MSE = BaselineMetric_MSE(predictions, CupDataset.Test.Label)
+    baseline_MEE = BaselineMetric_MEE(predictions, CupDataset.Test.Label)
+
+
+    # Organize data by metric name
     warm_up_epochs = 5
-    for trial in Results:
-        for metric in Metrics:
-            if metric.endswith("loss") and metric in trial:
-                loss_metrics[metric].append(trial[metric][warm_up_epochs:])
-            elif metric.endswith("MEE") and metric in trial:
-                mee_metrics[metric].append(trial[metric][warm_up_epochs:])
+    metric_to_plot_loss =[]
+    metric_to_plot_MEE = []
+    # Organize data by metric name
+    for trialsRes in Results:
+        metric_to_plot_loss.append({key: value for key, value in  trialsRes.items() if key.endswith("loss")})
+        metric_to_plot_MEE.append({key: value for key, value in trialsRes.items() if key.endswith(BaselineMetric_MEE.Name)})
 
     # Plot the metrics
     fig, axes = plt.subplots(1, 2, figsize=(18, 6))
 
-    PlotAverage(
-        metricDict=loss_metrics,
-        limitYRange=None,
-        WarmUpEpochs=warm_up_epochs,
-        title=f"CUP Loss",
-        xlabel="Epochs",
-        ylabel="Loss",
-        subplotAxes=axes[0],
-    )
+    PlotAverage(metricList=metric_to_plot_loss, title=f"CUP Loss (MSE)", xlabel="Epochs", ylabel="MSE",
+                limitYRange=None, WarmUpEpochs=warm_up_epochs, baseline=baseline_MSE,
+                baselineName=f"Baseline ({BaselineMetric_MSE.Name})", subplotAxes=axes[0])
 
-    PlotAverage(
-        metricDict=mee_metrics,
-        limitYRange=None,
-        WarmUpEpochs=warm_up_epochs,
-        title=f"CUP MEE",
-        xlabel="Epochs",
-        ylabel="Accuracy",
-        subplotAxes=axes[1]
-    )
+    PlotAverage(metricList=metric_to_plot_MEE, title=f"CUP MEE", xlabel="Epochs", ylabel="MEE", limitYRange=None,
+                WarmUpEpochs=warm_up_epochs, baseline=baseline_MEE,
+                baselineName=f"Baseline ({BaselineMetric_MSE.Name})", subplotAxes=axes[1])
 
     # Adjust layout and save the entire figure
     fig.tight_layout()
-    ShowOrSavePlot(f"{path}", f"{name}{tag}")
-    plt.close(fig)
+    ShowOrSavePlot(CUP_PLOT_PATH, f"CUP_MEAN{extra_name}")
 
-if __name__ == '__main__':
 
-    """TrainCUPModel(1000,50)
 
+def GenerateAllPlot_CUP():
     CreateDir(CUP_RESULTS_PATH)
+
+
+    SplitCupDataset, all_data,  BaselineMetric_MEE = ReadCUP(0.15, 0.20)
+
     jsonFiles = GetAllFileInDir(CUP_RESULTS_PATH)
     for jsonFile in jsonFiles:
         data = readJson(jsonFile)
         GeneratePlotAverage_ForCUP(
+            CupDataset = SplitCupDataset,
             Results=data['metrics'],
-            Metrics=["test_loss", "loss", "test_MEE", "MEE"],
-            path=f"{CUP_PLOT_PATH}",
-            tag=GenerateTagNameFromSettings(data['settings'])
-        )"""
-    #TrainCUPModel(2 ,2)
+            extra_name=GenerateTagNameFromSettings(data['settings']),
+            BaselineMetric_MEE=BaselineMetric_MEE,
 
-    file_path_cup = "dataset/CUP/ML-CUP24-TR.csv"
-    SplitCupDataset, BaselineMetric_MEE = ReadCUP(0.15, 0.20)
-    all_data = readCUP(file_path_cup)
-    best_model, best_hpSel = ModelSelection(SplitCupDataset, BaselineMetric_MEE, 250, 64)
+        )
+
+
     best_model: ModelFeedForward
+
+
+
+    best_model = ModelFeedForward()
+    best_model.LoadModel(CUP_MODEL_PATH,"_adam")
+
+
     labels= all_data._Data.Label
-    test = readCUPTest("dataset/CUP/ML-CUP24-TS.csv")
-    result = best_model.Predict(test)
-    plot_multiple_3d(
+    test = readCUPTest(DATASET_PATH_CUP_TS)
+    result = best_model.Predict(test._Data.Data)
+    plot_CAP_3d(
         labels,  # First dataset: actual labels
         result,  # Second dataset: predictions
         labels=["Training Labels", "Predictions"],  # Legend labels
