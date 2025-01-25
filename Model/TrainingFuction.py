@@ -17,6 +17,7 @@ def AsesSelectedModel(
                           BaselineMetric:Metric,
                           test : DataExamples,
                           training: DataExamples ,
+                          validation: DataExamples,
                           epoch: int = 500,
                           patience: int = 50,
                           seed = 42,
@@ -53,6 +54,7 @@ def AsesSelectedModel(
         training = DataExamples.Clone(training)
         training.Shuffle(seed)
         tempDataset.Training = training
+        tempDataset.Validation = validation
         print(f"Training Model {i + 1}/{NumberOrTrial}...")
 
         model, optimizer = HyperModel_fn(best_hpSel)

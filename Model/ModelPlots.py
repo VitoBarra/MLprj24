@@ -1,12 +1,14 @@
-import json
 import os
-from statistics import mean, variance
 
+import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
+
+from Core.DataSet.DataSet import DataSet
+from Core.Metric import Metric
 from Utility.PlotUtil import ShowOrSavePlot
 
-from scipy.constants import metric_ton
+
 
 
 def PlotAverage(metricList: list[dict[str, list[float]]], title="Title", xlabel="X-axis", ylabel="Y-axis",
@@ -33,7 +35,7 @@ def PlotAverage(metricList: list[dict[str, list[float]]], title="Title", xlabel=
         ax = subplotAxes
 
     # Define colors, different line styles, and markers for black-and-white readability
-    colors = ["blue", "orange", "red" , "green", "purple", "brown"]
+    colors = ["blue", "black", "red" , "orange", "green", "purple", "brown"]
     linestyles = ['-', '--', '-.', ':']
     markers = ['o', 'D', 's', '^', 'v', '*']
 
@@ -178,3 +180,77 @@ def PlotStyle (ax, title, xlabel, ylabel, limitYRange=None,limitXRange = None):
         ax.set_xlim(limitXRange)
     ax.legend(fontsize=14)
     ax.grid(True)
+
+
+def plot_CUP_3d(*arrays, title="3D graph", labels=None, colors=None, markers=None, alpha=0.7, path=None, values=None, cmap='viridis'):
+    """
+    Visualize 3D points from one or more 3D arrays.
+
+    :param title: The title of the plot.
+    :param arrays: A list of NumPy arrays with shape (n, 3), each representing a set of 3D points.
+    :param labels: A list of strings, one for each array, used for the legend (optional).
+    :param colors: A list of colors (e.g., 'blue', 'red', etc.) for each array (optional).
+    :param markers: A list of markers (e.g., 'o', '^', etc.) for each array (optional).
+    :param alpha: The transparency of the points (default: 0.7).
+    :param path: The path to save the plot (optional).
+    :param values: A list of arrays with values for colorizing the points (optional).
+    :param cmap: The colormap to use for colorizing the points (default: 'viridis').
+    :raises ValueError: If any of the arrays do not have exactly 3 columns.
+    """
+    # Check that all arrays have a valid shape
+    for i, array in enumerate(arrays):
+        if array.shape[1] != 3:
+            raise ValueError(f"Array {i + 1} does not have 3 columns. Each array must have exactly 3 dimensions.")
+
+    # Set default colors and markers if not provided
+    if colors is None:
+        colors = ['blue', 'red', 'green', 'orange', 'purple', 'cyan'] * len(arrays)
+    if markers is None:
+        markers = ['o', '^', 's', 'D', 'P', '*'] * len(arrays)
+    if labels is None:
+        labels = [f"Dataset {i + 1}" for i in range(len(arrays))]
+    # Create the 3D figure
+    if path is None and os.name == "posix":
+        matplotlib.use("TkAgg") #This could now work depending on os
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection='3d')
+
+
+    # Add each array to the plot
+    for i, array in enumerate(arrays):
+        x = array[:, 0]
+        y = array[:, 1]
+        z = array[:, 2]
+        if values is not None:
+            sc = ax.scatter(x, y, z, c=values, cmap=cmap, marker=markers[i], alpha=alpha, edgecolor='k', label=labels[i])
+            plt.colorbar(sc, ax=ax, label='Value')
+        else:
+            ax.scatter(x, y, z, c=colors[i], marker=markers[i], alpha=alpha, edgecolor='k', label=labels[i])
+
+
+    # Configure the axes
+    ax.set_title(title, fontsize=14)
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    # Add a legend
+    ax.legend(loc='upper right', fontsize=10)
+
+    # Show the plot
+    ShowOrSavePlot(path,title)
+
+
+def CupOutWithDistanceGradient(cup_all:DataSet, mee:Metric):
+    mean_distance = []
+    for data_point_label in cup_all.Data.Label:
+
+        # Specify the shape and the number to fill
+        shape = cup_all.Data.Label.shape
+        # Create the array
+        allbleClone = np.full(shape, data_point_label)
+        e =cup_all.Data.Label
+        destance = mee(allbleClone, e)
+        print(destance)
+        mean_distance.append(destance)
+    plot_CUP_3d(cup_all.Data.Label, values=mean_distance)

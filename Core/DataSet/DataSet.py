@@ -15,23 +15,25 @@ class DataSet(object):
        - Flatten series data for models requiring 2D inputs.
 
     Attributes:
-       _Data (DataExamples | None): The complete dataset before splitting.
+       Data (DataExamples | None): The complete dataset before splitting.
        Test (DataExamples | None): The test subset of the dataset.
        Validation (DataExamples | None): The validation subset of the dataset.
        Training (DataExamples | None): The training subset of the dataset.
        Kfolds list[tuple[DataExamples,DataExamples]] | None: The number of folds to split the dataset into.
     """
-    _Data: DataExamples | None
+    Data: DataExamples | None
     Test:       DataExamples | None
     Validation: DataExamples | None
     Training:   DataExamples | None
-    Kfolds: list[tuple[DataExamples,DataExamples]] | None
+    Kfolds: list[tuple[DataExamples,DataExamples,DataExamples]] | None # training, validation, test
+
+    StandardizationStat:((float,float),(float,float)) #(Mean, std)(Mean, std) # input data, lable
 
     Splitted: bool
 
     def __init__(self ):
         self.Kfolds = None
-        self._Data = None
+        self.Data = None
         self.Test = None
         self.Validation = None
         self.Training = None
@@ -51,7 +53,7 @@ class DataSet(object):
         if data is None:
             raise ValueError("Data and must be not null.")
         dataset = DataSet()
-        dataset._Data = DataExamples.FromData(data, label, Id)
+        dataset.Data = DataExamples.FromData(data, label, Id)
 
         return dataset
 
@@ -64,7 +66,7 @@ class DataSet(object):
         :return: A DataSet object.
         """
         dataset = DataSet()
-        dataset._Data = data
+        dataset.Data = data
 
         return dataset
 
@@ -83,7 +85,7 @@ class DataSet(object):
         alldata = DataExamples.Clone(Training)
         alldata.Concatenate(Validation)
         alldata.Concatenate(Test)
-        dataset._Data = alldata
+        dataset.Data = alldata
 
         dataset.Training = Training
         dataset.Validation = Validation
@@ -105,7 +107,7 @@ class DataSet(object):
 
         alldata = DataExamples.Clone(Training)
         alldata.Concatenate(Test)
-        dataset._Data = alldata
+        dataset.Data = alldata
 
         dataset.Training = Training
         dataset.Test = Test
@@ -120,14 +122,14 @@ class DataSet(object):
         :return: New DataSet object.
         """
         dataset_new = DataSet()
-        dataset_new._Data = DataExamples.Clone(dataset._Data)
+        dataset_new.Data = DataExamples.Clone(dataset.Data)
         dataset_new.Training = DataExamples.Clone(dataset.Training)
         dataset_new.Validation = DataExamples.Clone(dataset.Validation)
         dataset_new.Test = DataExamples.Clone(dataset.Test)
 
         return dataset_new
 
-    def Split(self, validationPercent: float = 0.15, testPercent: float = 0.1) -> (DataExamples, DataExamples, DataExamples):
+    def Split(self, validationPercent: float = 0.15, testPercent: float = 0.15) -> (DataExamples, DataExamples, DataExamples):
         """
         Splits the dataset into training, validation, and test sets.
 
@@ -136,7 +138,7 @@ class DataSet(object):
         :return: The current DataSet object with split data.
         """
 
-        self.Training, self.Validation, self.Test = self._Data.SplitDataset(validationPercent, testPercent)
+        self.Training, self.Validation, self.Test = self.Data.SplitDataset(validationPercent, testPercent)
         self.Splitted = True
         return self.Training, self.Validation, self.Test
 
@@ -147,26 +149,34 @@ class DataSet(object):
         :param validationPercent: The fraction of the dataset to be used for validation.
         :return: The current DataSet object with split data.
         """
-        self.Training, self.Validation, = self._Data.SplitIn2(validationPercent)
+        self.Training, self.Validation, = self.Data.SplitIn2(validationPercent)
         self.Splitted = True
         return self.Training, self.Validation
 
 
-    def Standardize(self, Labels :bool= False) -> 'DataSet':
+    def Standardize(self, standardizeLable :bool= False) -> 'DataSet':
         """
         Standardize the dataset by subtracting the mean and dividing by the standard deviation.
 
-        :param Labels: If true, labels will be normalized.
+        :param standardizeLable: If true, labels will be normalized.
 
         :return: The current DataSet object with normalized data.
         :raises ValueError: If normalization is attempted before splitting the dataset.
         """
-        if not self.Splitted:
-           raise ValueError('Standardize function must be called after splitDataset')
 
-        (statd,statl) = self.Training.Standardize(Labels)
-        self.Validation.Standardize(Labels, statd, statl)
-        self.Test.Standardize(Labels, statd, statl)
+        if self.Training is not None:
+            self.StandardizationStat = self.Training.Standardize(standardizeLable)
+            if self.Validation is not None:
+                self.Validation.Standardize(standardizeLable, self.StandardizationStat[0], self.StandardizationStat[1])
+            if self.Test is not None:
+                self.Test.Standardize(standardizeLable, self.StandardizationStat[0], self.StandardizationStat[1])
+
+        if self.Kfolds is not None:
+            for fold in self.Kfolds:
+                statD,statL,= fold[0].Standardize(standardizeLable)
+                fold[1].Standardize(standardizeLable, statD,statL)
+                fold[2].Standardize(standardizeLable, statD,statL)
+
         return self
 
     def UndoStandardization(self, label :bool= False):
@@ -174,8 +184,8 @@ class DataSet(object):
         Undoes the standardization.
         :param label: If true, labels will be unnormalized.
         """
-        if self._Data is not None:
-            self._Data.Undo_Standardization(label)
+        if self.Data is not None:
+            self.Data.Undo_Standardization(label)
         if self.Training is not None:
             self.Training.Undo_Standardization(label)
         if self.Validation is not None:
@@ -219,8 +229,8 @@ class DataSet(object):
 
         :return: The current DataSet object with categorical labels.
         """
-        if self._Data is not None:
-            self._Data.ToCategoricalLabel()
+        if self.Data is not None:
+            self.Data.ToCategoricalLabel()
         if self.Training is not None:
             self.Training.ToCategoricalLabel()
         if self.Validation is not None:
@@ -234,8 +244,8 @@ class DataSet(object):
         Converts data (input) to categorical (one-hot encoded) format for all splits.
         :return:
         """
-        if self._Data is not None:
-            self._Data.ToCategoricalData()
+        if self.Data is not None:
+            self.Data.ToCategoricalData()
         if self.Training is not None:
             self.Training.ToCategoricalData()
         if self.Validation is not None:
@@ -255,7 +265,7 @@ class DataSet(object):
         """
         if self.Splitted:
             raise ValueError('shuffle function must be called before splitDataset')
-        self._Data.Shuffle(seed)
+        self.Data.Shuffle(seed)
         return self
 
     def Unpack(self) -> (DataExamples,DataExamples,DataExamples):
@@ -286,7 +296,7 @@ class DataSet(object):
         """
 
         if not self.Splitted:
-            self._Data.PrintData("all")
+            self.Data.PrintData("all")
         else:
             if self.Training is not None:
                 self.Training.PrintData("Training")
@@ -302,8 +312,8 @@ class DataSet(object):
         """
         Flattens series data for all splits into 2D format where each sample is a vector.
         """
-        if self._Data is not None:
-            self._Data.FlattenSeriesData()
+        if self.Data is not None:
+            self.Data.FlattenSeriesData()
         if self.Training is not None:
             self.Training.FlattenSeriesData()
         if self.Validation is not None:
@@ -322,29 +332,29 @@ class DataSet(object):
         """
         if k < 2:
             raise ValueError("Number of folds must be at least 2.")
-        if len(self._Data) < k:
+        if len(self.Data) < k:
             raise ValueError("Number of folds cannot exceed the number of examples.")
 
         # Split into test set and remaining data
         if testRate>0:
-            data, test_set = self._Data.SplitIn2(testRate)
+            data, test_set = self.Data.SplitIn2(testRate)
             self.Test = test_set
         else:
-            data = self._Data
+            data = self.Data
 
         if self.Test is None:
             raise ValueError(f"Test set must be manually set or the testRate must be greater than 0 (it was {testRate} ) ")
 
 
-        self.Kfolds = self._GenerateKFoldSplit(data, k)
+        self.Kfolds = self._GenerateKFoldSplit(data, k,DataExamples.Clone(self.Test))
 
         Total_tr = DataExamples.Clone(self.Kfolds[0][0])
-        Total_tr.Concatenate(self.Kfolds[0][1])
+        self.Validation = DataExamples.Clone(self.Kfolds[0][1])
         self.Training = Total_tr
 
 
 
-    def _GenerateKFoldSplit(self,data: DataExamples , k : int = 5) -> list[tuple[DataExamples, DataExamples]] :
+    def _GenerateKFoldSplit(self,data: DataExamples , k : int = 5,test:DataExamples = None) -> list[tuple[DataExamples, DataExamples,DataExamples]] :
         """
         Generates k-fold cross-validation.
         :param data: Dataset to be split.
@@ -364,7 +374,7 @@ class DataSet(object):
             folds.append(DataExamples.FromData(
                 data.Data[start_index:end_index],
                 data.Label[start_index:end_index],
-                data.Id[start_index:end_index] if self._Data.Id is not None else None
+                data.Id[start_index:end_index] if self.Data.Id is not None else None
             ))
             start_index = end_index
 
@@ -388,7 +398,7 @@ class DataSet(object):
                 np.concatenate(train_set_label, axis=0),
                 np.concatenate(train_set_ids, axis=0) if train_set_ids else None
             )
-            foldsSplit.append((train_set, val_set))
+            foldsSplit.append((train_set, val_set,test))
         return foldsSplit
 
 
@@ -415,7 +425,7 @@ class DataSet(object):
         :param param: Transformation parameter.
         :return: The updated DataExamples object.
         """
-        self._Data.Label = param(self._Data.Label)
+        self.Data.Label = param(self.Data.Label)
         if self.Training is not None:
             self.Training.Label = param(self.Training.Label)
         if self.Validation is not None:

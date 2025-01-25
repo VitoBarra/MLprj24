@@ -1,4 +1,4 @@
-﻿import numpy as np
+import numpy as np
 
 from Core.ActivationFunction import Sign, Binary, ActivationFunction, Linear
 from Core.DataSet.DataSet import DataSet
@@ -33,7 +33,7 @@ class MONKHyperModel(HyperModel):
         # Optimizer
         hp.AddChosen("BatchSize",[-1,1,32,64,96,128])
         hp.AddRange("eta", 0.001, 0.2, 0.005)
-        if MONK_NUM ==3:
+        if MONK_NUM ==4:
             hp.AddRange("lambda", 0.000, 0.01, 0.005)
         hp.AddRange("alpha", 0.5, 0.9, 0.05)
         hp.AddRange("decay", 0.0003, 0.005, 0.0003)
