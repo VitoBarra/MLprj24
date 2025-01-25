@@ -20,13 +20,20 @@ class DataExamples(object):
         Id (ndarray): The indices of the data samples.
         isCategorical (bool): Indicates if the labels are in categorical format.
     """
-    Data: ndarray
+    Data: ndarray | None
     Label: ndarray | None
     Id: ndarray | None
     isCategorical: bool
+    LabelStat: (float,float)
+    DataStat: (float,float)
 
     def __init__(self) -> None:
-        pass
+        self.DataStat = None
+        self.Data = None
+        self.Label = None
+        self.Id = None
+        self.LabelStat = None
+        self.isCategorical = False
 
 
 
@@ -41,8 +48,6 @@ class DataExamples(object):
         :raises ValueError: If the length of data and label do not match.
         """
         dataExample = cls()
-        dataExample.LabelStat = None
-        dataExample.DataStat = None
         if label is not None and data.shape[0] != label.shape[0]:
             raise ValueError('DataSet and label must have the same length')
         if Id is not None and data.shape[0] != Id.shape[0]:
@@ -51,7 +56,6 @@ class DataExamples(object):
         dataExample.Data = data
         dataExample.Label = label
         dataExample.Id = Id
-        dataExample.isCategorical = False
         return dataExample
 
     @classmethod
@@ -170,13 +174,11 @@ class DataExamples(object):
         :return: A tuple (mean, std)
         """
 
-        (meanD,stdD), self.Data = DataExamples._Standardization(self.Data, datastat)
+        self.DataStat, self.Data = DataExamples.Standardization(self.Data, datastat)
         if standardizeLabel:
-            (meanL,stdL), self.Label = DataExamples._Standardization(self.Label, labelstat)
-            self.DataStat = (meanD,stdD)
-            self.LabelStat = (meanL,stdL)
-            return (meanD,stdD), (meanL,stdL)
-        return (meanD,stdD), None
+            self.LabelStat, self.Label = DataExamples.Standardization(self.Label, labelstat)
+
+        return self.DataStat, self.LabelStat
 
     def Undo_Standardization(self, normalizeLabels: bool) -> None:
         """
@@ -219,7 +221,7 @@ class DataExamples(object):
 
 
     @staticmethod
-    def _Standardization(data, stat) -> ((float, float), list[float]):
+    def Standardization(data, stat) -> ((float, float), list[float]):
         """
          Standardizes the given data by subtracting the mean and dividing by the standard deviation.
 
@@ -241,6 +243,7 @@ class DataExamples(object):
             mean = np.mean(data, axis=0)
         if std is None:
             std = np.std(data, axis=0)
+
         return (mean,std) , (data - mean) / std
 
     def ToCategoricalLabel(self) -> None:

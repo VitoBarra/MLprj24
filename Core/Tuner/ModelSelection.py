@@ -19,7 +19,7 @@ class ModelSelection:
     def __init__(self, search: HyperParameterSearch):
         self.SearchObj = search
         self.SearchName = self.SearchObj.GetName()
-        self.TrialNumber  = self.SearchObj.GetTrialNumber()
+
     def GetBestModel(self, hyperModel_fn, hp:HyperBag,Data:DataSet, epoch:int,
                      watchMetric ="val_loss", metric : list[Metric]= None, weightInitializer = GlorotInitializer(),
                      callBack: list[CallBack] = None ) -> (FeedForwardModel, dict[str, any]):
@@ -47,7 +47,7 @@ class BestSearch(ModelSelection):
 
         for hpSel, i in self.SearchObj.Search(hyper_param_source):
             hyperParamWrapper.Set(hpSel)
-            print(f"{self.SearchName}: Iteration {i} / {self.TrialNumber} with param {hyperParamWrapper.GetHPString()}")
+            print(f"{self.SearchName}: Iteration {i} / {self.SearchObj.GetTrialNumber()} with param {hyperParamWrapper.GetHPString()}")
 
             # Fetch model, optimizer, and data
             data = get_data_fn(hyperParamWrapper)
@@ -118,10 +118,10 @@ class BestSearchKFold(ModelSelection):
             fold_stat = []
             allData = get_data_fn(hpSel)
 
-            for j, (train, val) in enumerate(allData.Kfolds):
-                DataTemp = DataSet.FromDataExampleTVT(train, val, allData.Test)
+            for j, (train, val,test) in enumerate(allData.Kfolds):
+                DataTemp = DataSet.FromDataExampleTVT(train, val,test)
                 hyperParamWrapper.Set(hpSel)
-                print(f"{self.SearchName}: Fold {j+1}, Iteration {i+1} / {self.TrialNumber} with param {hyperParamWrapper.GetHPString()}")
+                print(f"{self.SearchName}: Fold {j+1}, Iteration {i+1} / {self.SearchObj.GetTrialNumber()} with param {hyperParamWrapper.GetHPString()}")
 
                 # Fetch model and optimizer
                 model = get_model_fn(hyperParamWrapper)

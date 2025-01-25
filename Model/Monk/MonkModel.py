@@ -19,7 +19,7 @@ from dataset.ReadDatasetUtil import readMonk
 
 
 def ReadMonk(n: int, seed: int = 0) -> DataSet:
-    if n <0 or n>3:
+    if n <0 or n>4:
         raise Exception("n must be between 0 and 3")
 
     designSet = readMonk(DATASET_PATH_MONK_TR)
@@ -74,12 +74,12 @@ def GeneratePlotAverage_ForMonk(Results: list[dict],
     BaselineMetric_Loss = CategoricalCrossEntropyLoss() if hpUsed["outFun"] == "SoftARGMax" else MSE()
 
     lin_model = LogisticRegression()
-    if  hpUsed["oneHotInput"]:
-        lin_model.fit(monkDataset.Training.Data, monkDataset.Training.Label.reshape(-1))
-        test_Label = monkDataset.Test.Label
-    else:
+    if  hpUsed["outFun"] == "SoftARGMax":
         lin_model.fit(monkDataset.Training.Data, monkDataset.Training.Label[:, 1])
         test_Label = monkDataset.Test.Label[:, 1]
+    else:
+        lin_model.fit(monkDataset.Training.Data, monkDataset.Training.Label.reshape(-1))
+        test_Label = monkDataset.Test.Label
 
     predictions = lin_model.predict(monkDataset.Test.Data)
 
@@ -130,7 +130,7 @@ def GenerateTagNameFromSettings(settings:dict):
     return tagName
 
 
-def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Test=None) -> None:
+def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Test=None , optimizer = None) -> None:
     """
     Train the MONK model using grid search and random search for hyperparameter optimization.
 
@@ -139,12 +139,14 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Tes
     :param monk_To_Test : It's which monk dataset will be tested.
     """
     if monk_To_Test is None:
-        monk_To_Test = [1, 2, 3]
+        monk_To_Test = [1, 2, 3,4]
+    if optimizer is None:
+        optimizer = [1,2,3]
 
     mode = HyperBag()
 
     # Training
-    mode.AddChosen("Optimizer",[1,2,3])
+    mode.AddChosen("Optimizer",optimizer)
 
     global OPTIMIZER
     global MONK_NUM
@@ -165,7 +167,7 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Tes
             hyperModel.SetSlit(VAL_SPLIT ,KFOLD_NUM)
 
             print(f"Training MONK {MONK_NUM}...")
-            print(f"Run experiment with the following settings: {tagName}")
+            print(f"Run MONK experiment with the following settings: {tagName}")
 
 
             best_model, best_hpSel = ModelSelection_MONK(hyperModel, NumberOrTrial_search)
@@ -203,7 +205,7 @@ def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Tes
 
 def GenerateAllPlot_MONK(monkNumList=None):
     if monkNumList is None:
-        monkNumList = [1, 2, 3]
+        monkNumList = [1, 2, 3, 4]
 
     CreateDir(MONK_RESUTL_PATH)
     global MONK_NUM
