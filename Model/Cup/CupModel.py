@@ -193,6 +193,8 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int, optimizer = None, 
     """
     Trains the CUP model with the specified number of trials.
 
+    :param minibatch_size: a list of Mini-batch sizes to run.
+    :param optimizer: a list of optimizers to run.
     :param NumberOrTrial: Number of trials to run.
     :param NumberOrTrial_mean: The mean number of trials for evaluation.
     """
@@ -301,13 +303,15 @@ def GeneratePlot_ForCUP(BaselineMetric_MEE, MetricResults, CupDataset, extraname
 def GeneratePlotAverage_ForCUP(Results: list[dict],
                                BaselineMetric_MEE, CupDataset, extra_name: str = ""):
     """
-    Generate plot for CUP using the plot for the mean of individual trials.
+    Generate and save a plot for the CUP dataset based on the mean of individual trials. This function creates
+    two subplots: one for the mean squared error (MSE) and another for the mean Euclidean error (MEE).
 
-    :param Results: List of dictionaries. Each dictionary represents an individual trial and contains metrics with respective values.
-    :param Metrics: List of metrics to plot.
-    :param path: The path where the plot will be saved.
-    :param name: The name of the file for the plot.
-    :param extra_name: Extra information for the file name.
+    :param Results: List of dictionaries. Each dictionary represents an individual trial and contains metrics
+                    (e.g., loss, MEE, etc.) with their respective values over multiple epochs.
+    :param BaselineMetric_MEE: A callable object representing the baseline metric calculation for MEE.
+    :param CupDataset: A dataset object that contains training and testing data and labels.
+    :param extra_name: Optional string that will be appended to the filename when saving the plot.
+                       Default is an empty string.
     """
     BaselineMetric_MSE = MSE()
 

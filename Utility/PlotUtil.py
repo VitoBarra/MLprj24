@@ -1,14 +1,19 @@
-import pickle
-import matplotlib
 import matplotlib.pyplot as plt
 import networkx as nx
 from .FileUtil import *
+import matplotlib.pyplot as plt
+import networkx as nx
 
-
-
+from .FileUtil import *
 
 
 def ShowOrSavePlot(path=None, filename=None):
+    """
+    Displays a plot or saves it to a specified path.
+
+    :param path: Directory path to save the plot. If None, the plot is displayed.
+    :param filename: Name of the file (without extension) to save the plot. Defaults to 'img' if not specified.
+    """
     if path is None or path == '':
         plt.show()
     else:
@@ -20,114 +25,13 @@ def ShowOrSavePlot(path=None, filename=None):
         plt.close()
 
 
-def SaveTrainingDataByName(data_path, problem_name, test_name, history, result):
-    dir = f"{data_path}/{problem_name}/{test_name}"
-    SaveTrainingData(dir, history.history, result)
-
-
-def SaveTrainingData(path, history, result):
-    os.makedirs(path, exist_ok=True)
-    with open(f"{path}/history.bin", "wb") as outfile:
-        pickle.dump(history, outfile)
-    with open(f"{path}/result.bin", "wb") as outfile:
-        pickle.dump(result, outfile)
-
-
-def ReadTrainingDataByName(data_path, problem_name, test_name):
-    dir = f"{data_path}/{problem_name}/{test_name}"
-    # Writing to sample.json
-    history, result = ReadTrainingData(dir)
-    return history, result
-
-
-def ReadTrainingData(path):
-    with open(f"{path}/history.bin", "rb") as inputfile:
-        history = pickle.load(inputfile)
-    with open(f"{path}/result.bin", "rb") as inputfile:
-        result = pickle.load(inputfile)
-    return history, result
-
-
-def PrityPlot(loss, mse=None, accuracy=None, baseline=None):
-    fig, ax = plt.subplots(figsize=(6, 5))
-
-    # Define font sizes
-    SIZE_DEFAULT = 14
-    SIZE_LARGE = 16
-    plt.rc("font", family="Roboto")  # controls default font
-    plt.rc("font", weight="normal")  # controls default font
-    plt.rc("font", size=SIZE_DEFAULT)  # controls default text sizes
-    plt.rc("axes", titlesize=SIZE_LARGE)  # fontsize of the axes title
-    plt.rc("axes", labelsize=SIZE_LARGE)  # fontsize of the x and y labels
-    plt.rc("xtick", labelsize=SIZE_DEFAULT)  # fontsize of the tick labels
-    plt.rc("ytick", labelsize=SIZE_DEFAULT)  # fontsize of the tick labels
-
-    # Plot the baseline
-    if baseline is not None:
-        ax.plot(
-            [loss[0], max(loss)],
-            [baseline, baseline],
-            label="Baseline",
-            color="lightgray",
-            linestyle="--",
-            linewidth=1,
-        )
-        # Plot the baseline text
-        ax.text(
-            loss[-1] * 1.01,
-            baseline,
-            "Baseline",
-            color="lightgray",
-            fontweight="bold",
-            horizontalalignment="left",
-            verticalalignment="center",
-        )
-
-    # Define a nice color palette:
-    colors = ["#2B2F42", "#8D99AE", "#EF233C"]
-    labels = ["mse"]
-
-    # Plot each of the main lines
-    for i, label in enumerate(labels):
-        # Line
-        ax.plot(loss, label=label, color=colors[i], linewidth=2)
-
-        # Text
-        ax.text(
-            loss["epoch"][-1] * 1.01,
-            loss["loss"][i][-1],
-            label,
-            color=colors[i],
-            fontweight="bold",
-            horizontalalignment="left",
-            verticalalignment="center",
-        )
-
-    # Hide the all but the bottom spines (axis lines)
-    ax.spines["right"].set_visible(False)
-    ax.spines["left"].set_visible(False)
-    ax.spines["top"].set_visible(False)
-
-    # Only show ticks on the left and bottom spines
-    ax.yaxis.set_ticks_position("left")
-    ax.xaxis.set_ticks_position("bottom")
-    ax.spines["bottom"].set_bounds(min(loss["epoch"]), max(loss["epoch"]))
-
-    ax.set_xlabel(r"epoch")
-    ax.set_ylabel("loss")
-    plt.savefig("great.png", dpi=300)
-
-
-
-
-
 
 def plot_neural_network_with_transparency(weights , plotName = "Neural Network Diagram"):
     """
-    Plots a neural network visualization using transparency for edge weights.
+    Plots a neural network diagram with edge transparency based on weight magnitudes.
 
-    Args:
-        weights: A list of 2D numpy arrays representing weight matrices between layers.
+    :param weights: List of 2D numpy arrays representing weight matrices between layers.
+    :param plotName: Title of the plot.
     """
     # Initialize graph
     G = nx.DiGraph()
@@ -217,16 +121,16 @@ def plot_neural_network_with_transparency(weights , plotName = "Neural Network D
 
 
 # Funzione per calcolare TP, FP, TN, FN a ogni soglia
-"""
-Uso:
-fpr, tpr, thresholds = calculate_roc(y_scores, y_true)
-auc = calculate_auc(fpr, tpr)
-"""
-def calculate_roc(y_scores: list[float], y_true:list[int]) -> tuple[list[float], list[float], list[float]]:
-    thresholds = sorted(set(y_scores), reverse=True)
-    tpr_list = []
-    fpr_list = []
+def calculate_roc(y_scores: list[float], y_true: list[int]) -> tuple[list[float], list[float], list[float]]:
+    """
+    Calculates the ROC curve.
 
+    :param y_scores: Predicted scores or probabilities.
+    :param y_true: True binary labels (0 or 1).
+    :return: A tuple (fpr_list, tpr_list, thresholds).
+    """
+    thresholds = sorted(set(y_scores), reverse=True)
+    tpr_list, fpr_list = [], []
     for threshold in thresholds:
         tp = fp = tn = fn = 0
         for score, true_label in zip(y_scores, y_true):
@@ -239,29 +143,40 @@ def calculate_roc(y_scores: list[float], y_true:list[int]) -> tuple[list[float],
                 tn += 1
             elif predicted == 0 and true_label == 1:
                 fn += 1
-
-        tpr = tp / (tp + fn) if (tp + fn) > 0 else 0  # Sensibilità
-        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0  # 1 - Specificità
+        tpr = tp / (tp + fn) if (tp + fn) > 0 else 0
+        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
         tpr_list.append(tpr)
         fpr_list.append(fpr)
-
     return fpr_list, tpr_list, thresholds
 
 
 # Funzione per calcolare l'AUC usando la formula del trapezio
 def calculate_auc(fpr: list[float], tpr: list[float]) -> float:
-    auc = 0.0
-    for i in range(1, len(fpr)):
-        auc += (fpr[i] - fpr[i - 1]) * (tpr[i] + tpr[i - 1]) / 2
-    return auc
+    """
+    Calculates the Area Under the Curve (AUC) using the trapezoidal rule.
+
+    :param fpr: List of false positive rates.
+    :param tpr: List of true positive rates.
+    :return: The calculated AUC.
+    """
+    return sum((fpr[i] - fpr[i - 1]) * (tpr[i] + tpr[i - 1]) / 2 for i in range(1, len(fpr)))
+
+
 
 def printAUC(fpr: list[float], tpr: list[float], auc: float) -> None:
+    """
+    Plots the ROC curve and displays the AUC.
+
+    :param fpr: List of false positive rates.
+    :param tpr: List of true positive rates.
+    :param auc: Calculated AUC value.
+    """
     plt.figure(figsize=(8, 6))
     plt.plot(fpr, tpr, marker='o', linestyle='-', color='b', label=f'AUC = {auc:.2f}')
-    plt.plot([0, 1], [0, 1], 'k--', label='Classificatore casuale')  # Linea random
+    plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier')
     plt.xlabel('False Positive Rate (FPR)')
     plt.ylabel('True Positive Rate (TPR)')
-    plt.title('ROC Curve (calcolata manualmente)')
+    plt.title('ROC Curve')
     plt.legend(loc='lower right')
     plt.grid()
     plt.show()
