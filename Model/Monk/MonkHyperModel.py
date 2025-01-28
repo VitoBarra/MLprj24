@@ -1,4 +1,4 @@
-import numpy as np
+﻿import numpy as np
 
 from Core.ActivationFunction import Sign, Binary, ActivationFunction, Linear
 from Core.DataSet.DataSet import DataSet
@@ -11,17 +11,19 @@ from Core.Optimizer.BackPropagation import BackPropagation
 from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
 from Core.Tuner.HyperBag import HyperBag
 from Core.Tuner.HyperModel import HyperModel
-from . import MONK_NUM, OPTIMIZER, USE_KFOLD
 
 
 class MONKHyperModel(HyperModel):
 
 
-    def __init__(self, originalDataset : DataSet):
+    def __init__(self, originalDataset : DataSet , settings:dict = None):
         super().__init__( originalDataset)
         self.k = None
         self.val_split = None
-        self.InterpretationMetric = None
+        self.settings = settings
+
+    def UpdateSettings(self,settings):
+        self.settings = settings
 
     def SetSlit(self,val_split, k):
         self.val_split = val_split
@@ -30,25 +32,42 @@ class MONKHyperModel(HyperModel):
     def GetHyperParameters(self) ->HyperBag:
         hp = HyperBag()
 
-        # Optimizer
-        hp.AddChosen("BatchSize",[-1,1,32,64,96,128])
-        hp.AddRange("eta", 0.001, 0.2, 0.005)
-        if MONK_NUM ==4:
-            hp.AddRange("lambda", 0.000, 0.01, 0.005)
-        hp.AddRange("alpha", 0.5, 0.9, 0.05)
-        hp.AddRange("decay", 0.0003, 0.005, 0.0003)
 
-        # only for adam
-        if OPTIMIZER>2:
-            hp.AddRange("beta", 0.97, 0.99, 0.01)
-            hp.AddRange("epsilon", 1e-13, 1e-10, 1e-1)
+        # Optimizer
+        if self.settings["Optimizer"]==3:
+            hp.AddRange("beta", 0.99, 0.99, 0.01) #Fixed to default
+            hp.AddRange("epsilon", 1e-8, 1e-8, 1e-8) #Fixed to default
+            hp.AddRange("alpha", 0.5, 0.9, 0.05)
+            if self.settings["Batch_size"] == -1:
+                hp.AddRange("eta", 0.001, 0.2, 0.005)
+                if self.settings["MONK"] == 4:
+                    hp.AddRange("lambda", 0.001, 0.001, 0.005)
+                hp.AddRange("decay", 0.0001, 0.0005, 0.0001)
+            elif self.settings["Batch_size"] == 1:
+                hp.AddRange("eta", 0.001, 0.2, 0.005)
+                if self.settings["MONK"] == 4:
+                    hp.AddRange("lambda", 0.001, 0.001, 0.005)
+                hp.AddRange("decay", 0.0001, 0.0005, 0.0001)
+            elif self.settings["Batch_size"] == 32:
+                hp.AddRange("eta", 0.001, 0.2, 0.005)
+                if self.settings["MONK"] == 4:
+                    hp.AddRange("lambda", 0.001, 0.001, 0.005)
+                hp.AddRange("decay", 0.0001, 0.0005, 0.0001)
+            elif self.settings["Batch_size"] == 64:
+                hp.AddRange("eta", 0.01, 0.2, 0.05)
+                if self.settings["MONK"] == 4:
+                    hp.AddRange("lambda", 0.001, 0.001, 0.005)
+                hp.AddRange("decay", 0.0001, 0.0005, 0.0001)
+            else:
+                raise ValueError(f" {self.settings['Batch_size']} is an invalid Batch size")
+
 
 
         # Architecture
         hp.AddChosen("UseBiasIN",[True,False])
         hp.AddChosen("UseBias",[True,False])
-        hp.AddRange("unit", 2, 8, 1)
-        hp.AddRange("hlayer", 0, 3, 1)
+        hp.AddRange("unit", 3, 12, 1)
+        hp.AddRange("hlayer", 0, 2, 1)
         hp.AddChosen("ActFun",["TanH","Sigmoid","ReLU","LeakyReLU"])
 
         # Data format
@@ -56,26 +75,28 @@ class MONKHyperModel(HyperModel):
         hp.AddChosen("outFun",["TanH","Sigmoid","SoftARGMax"])
 
 
-
-        #hp.AddRange("drop_out", 0.2, 0.6, 0.1)
-
         return hp
 
     def GetDatasetVariant(self, hp) ->DataSet:
-        data_set = DataSet.Clone(self.originalDataset)
-        if (hp["oneHotInput"],hp["outFun"]) not in self.DataSetsVariant:
+        if (hp["oneHotInput"],hp["outFun"])  not in self.DataSetsVariant:
+            data_set = DataSet.Clone(self.originalDataset)
             self.PreprocessInput(hp ,data_set)
-            self.PreprocessOutput(hp,data_set)
+            interp = self.PreprocessOutput(hp,data_set)
             self.SplitAllDataset(data_set)
-            self.DataSetsVariant[hp["oneHotInput"],hp["outFun"]] = data_set
+            self.DataSetsVariant[hp["oneHotInput"],hp["outFun"]] = (data_set,interp)
 
+        return self.DataSetsVariant[hp["oneHotInput"],hp["outFun"]][0]
 
-        return self.DataSetsVariant[hp["oneHotInput"],hp["outFun"]]
+    def GetInterpretationMetric(self, hp:HyperBag):
+        if self.DataSetsVariant[hp["oneHotInput"],hp["outFun"]] is None:
+            self.GetDatasetVariant(hp)
+
+        return self.DataSetsVariant[hp["oneHotInput"],hp["outFun"]][1]
 
     def SplitAllDataset(self,data_set):
 
-        if USE_KFOLD:
-            data_set.SetUp_Kfold_TestHoldOut(self.k)
+        if self.settings["kFold"]:
+            data_set.SetUp_Kfold_TestHoldOut(self.k,None,data_set.Test)
         else:
             data_set.SplitTV(self.val_split)
 
@@ -97,7 +118,7 @@ class MONKHyperModel(HyperModel):
             Interpretation_metric = Accuracy()
         else:
             raise ValueError("value unknown")
-        self.InterpretationMetric= Interpretation_metric
+        return Interpretation_metric
 
 
     def GetModel(self, hp :HyperBag):
@@ -123,12 +144,12 @@ class MONKHyperModel(HyperModel):
         loss = CategoricalCrossEntropyLoss() if hp["outFun"] == "SoftARGMax" else MSELoss()
 
 
-        if OPTIMIZER == 1:
-            optimizer = BackPropagation(loss,hp["BatchSize"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
-        elif OPTIMIZER == 2:
-            optimizer = BackPropagationNesterovMomentum(loss,hp["BatchSize"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
+        if self.settings["Optimizer"] == 1:
+            optimizer = BackPropagation(loss,self.settings["Batch_size"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
+        elif self.settings["Optimizer"] == 2:
+            optimizer = BackPropagationNesterovMomentum(loss,self.settings["Batch_size"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
         else:
-            optimizer = Adam(loss,hp["BatchSize"], hp["eta"], hp["lambda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
+            optimizer = Adam(loss,self.settings["Batch_size"], hp["eta"], hp["lambda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
 
         return  optimizer
 

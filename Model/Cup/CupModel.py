@@ -1,22 +1,25 @@
+import csv
+
 from sklearn.linear_model import LinearRegression
-from Core.Callback.EarlyStopping import EarlyStopping
-from Core.FeedForwardModel import *
+
 from Core.ActivationFunction import *
-from Core.Metric import *
-from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
-from Model.ModelPlots import *
-from Model.TrainingFuction import AsesSelectedModel
-from Utility.PlotUtil import *
+from Core.Callback.EarlyStopping import EarlyStopping
+from Core.DataSet.DataExamples import DataExamples
+from Core.FeedForwardModel import *
+from Core.Initializer.WeightInitializer import GlorotInitializer
 from Core.LossFunction import MSELoss
-from Core.Tuner.ModelSelection import BestSearch, BestSearchKFold, ModelSelection
+from Core.Metric import *
 from Core.Optimizer.Adam import Adam
 from Core.Optimizer.BackPropagation import BackPropagation
+from Core.Optimizer.BackPropagationNesterovMomentum import BackPropagationNesterovMomentum
 from Core.Tuner.HpSearch import RandomSearch, GridSearch
 from Core.Tuner.HyperBag import HyperBag
-from Core.Initializer.WeightInitializer import GlorotInitializer
+from Core.Tuner.ModelSelection import BestSearch, BestSearchKFold
+from Model.ModelPlots import *
+from Model.TrainingFuction import AssessmentSelectedModel
+from Utility.PlotUtil import *
 from dataset.ReadDatasetUtil import readCUP, readCUPTest
 from . import *
-
 
 
 def HyperModel_CUP(hp: HyperBag):
@@ -38,13 +41,12 @@ def HyperModel_CUP(hp: HyperBag):
     loss = MSELoss()
 
 
-    if OPTIMIZER == 1:
+    if OPTIMIZER_CUP == 1:
         optimizer = BackPropagation(loss,BATCH_SIZE, hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
-    elif OPTIMIZER == 2:
+    elif OPTIMIZER_CUP == 2:
         optimizer = BackPropagationNesterovMomentum(loss,BATCH_SIZE, hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
     else:
-        #optimizer = Adam(loss,BATCH_SIZE,hp["eta"], hp["lambda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
-        optimizer = Adam(loss, BATCH_SIZE, 0.03, 0.00079999, 0.9, 0.97, 1e-8, 0.005)
+        optimizer = Adam(loss,BATCH_SIZE,hp["eta"], hp["lambda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
 
     return model, optimizer
 
@@ -56,40 +58,47 @@ def HyperBag_CUP():
     :return: A HyperBag instance containing the hyperparameter search space.
     """
     hp = HyperBag()
-    if OPTIMIZER == 3:
+    if OPTIMIZER_CUP == 3:
         # Optimizer
-        hp.AddRange("beta", 0.95, 0.99, 0.02) # fixed to ADAM default 0.99
+        hp.AddRange("beta", 0.99 ,0.99, 0.01) # fixed to ADAM default 0.99
         hp.AddRange("epsilon", 1e-8, 1e-8, 1e-8) # fixed to ADAM default
-        hp.AddRange("alpha", 0.5, 0.9, 0.1) # fixed to ADAM default
+        hp.AddRange("alpha", 0.9, 0.9, 0.1) # fixed to ADAM default
         if BATCH_SIZE == 1:
             hp.AddRange("eta", 0.0001, 0.005, 0.0005)
             hp.AddRange("lambda", 0, 1e-7, 1e-8)
             hp.AddRange("decay", 0.001, 0.01, 0.001)
         elif BATCH_SIZE == -1:
-            hp.AddRange("eta", 0.03, 0.09, 0.002)
-            hp.AddRange("lambda", 0.0003, 0.003, 0.0001)
-            hp.AddRange("decay", 0.001, 0.2, 0.002)
+            hp.AddRange("eta", 0.02, 0.05, 0.005)
+            hp.AddRange("lambda", 0.0004, 0.0009, 0.0001)
+            hp.AddRange("decay", 0.001, 0.008, 0.001)
+            """hp.AddRange("eta", 0.03, 0.03, 0.01)
+            hp.AddRange("lambda", 0.0008, 0.0008, 0.0001)
+            hp.AddRange("decay", 0.005, 0.005, 0.001)"""
+
         elif BATCH_SIZE == 64:
             #hp.AddRange("eta", 0.03, 0.05, 0.005)
             #hp.AddRange("lambda", 0.0001, 0.0004, 0.0001)
             #hp.AddRange("decay", 0.005, 0.011, 0.002)
-            hp.AddRange("eta", 0.05, 0.1, 0.01)
+            hp.AddRange("eta", 0.005, 0.03, 0.001)
             hp.AddRange("lambda", 0.0003, 0.0008, 0.0001)
-            hp.AddRange("decay", 0.001, 0.011, 0.002)
+            hp.AddRange("decay", 0.0001, 0.0011, 0.0002)
+
         else: #BATCH_SIZE == 128
             # Optimizer
             hp.AddRange("eta", 0.03, 0.5, 0.001)
             hp.AddRange("lambda", 0.0003, 0.0008, 0.0001)
             hp.AddRange("decay", 0.0001, 0.0011, 0.0002)
-
+            """hp.AddRange("eta", 0.032, 0.032, 0.01)
+            hp.AddRange("lambda", 0.0003, 0.0003, 0.0001)
+            hp.AddRange("decay", 0.0007, 0.0007, 0.0001)"""
 
     #architecture
     # hp.AddRange("drop_out", 0.1, 0.5, 0.05)
-    hp.AddChosen("UseBiasIN",[True])
-    hp.AddChosen("UseBias",[False])
-    hp.AddRange("unit", 25, 25, 1)
-    hp.AddRange("hlayer", 1, 1, 1)
-    hp.AddChosen("actFun",[ReLU()])
+    hp.AddChosen("UseBiasIN",[True,False])
+    hp.AddChosen("UseBias",[True,False])
+    hp.AddRange("unit", 15, 30, 1)
+    hp.AddRange("hlayer", 1, 2, 1)
+    hp.AddChosen("actFun",[ReLU(), LeakyReLU()])
     return hp
 
 
@@ -108,7 +117,7 @@ def ReadCUP(val_split: float = VAL_SPLIT_CUP, test_split: float = TEST_SPLIT_CUP
     data.PrintData()
     dataUnsplit = DataSet.Clone(data)
 
-    if not USE_KFOLD:
+    if not USE_KFOLD_CUP:
         data.Split(val_split, test_split)
     else:
         data.SetUp_Kfold_TestHoldOut(KFOLD_NUM_CUP,test_split)
@@ -132,7 +141,7 @@ def ModelSelection_Cup(dataset:DataSet, BaselineMetric:Metric, NumberOrTrial: in
 
     #e = GridSearch()
     e = RandomSearch(NumberOrTrial)
-    if USE_KFOLD:
+    if USE_KFOLD_CUP:
         ModelSelector = BestSearchKFold(e)
     else:
         ModelSelector = BestSearch(e)
@@ -180,7 +189,7 @@ def GenerateTagNameFromSettings(settings):
     return tagName
 
 
-def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
+def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int, optimizer = None, minibatch_size= None):
     """
     Trains the CUP model with the specified number of trials.
 
@@ -191,25 +200,27 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
     #DataSet Preparation
     SplitCUPDataset,CUPDataset, BaselineMetric_MEE = ReadCUP(VAL_SPLIT_CUP, TEST_SPLIT_CUP,DATA_SHUFFLE_SEED_CUP)
 
-    #TODO : to change
-    #Experiment parameter
-    mode = HyperBag()
-    #mode.AddChosen("Optimizer",[1,2,3])
-    #mode.AddChosen("Batch_size", [-1,1,32,64,128])
-    mode.AddChosen("Optimizer",[3])
-    mode.AddChosen("Batch_size", [-1])
+    if minibatch_size is None:
+        minibatch_size = [-1, 1, 32, 64, 128]
+    if  optimizer is None:
+        optimizer = [1,2,3]
 
-    global OPTIMIZER
+    #Experiment parameter
+    SettingsList = HyperBag()
+    SettingsList.AddChosen("Optimizer",optimizer)
+    SettingsList.AddChosen("Batch_size", minibatch_size)
+
+    global OPTIMIZER_CUP
     global BATCH_SIZE
     global STANDARDIZE
 
 
     gs = GridSearch()
-    for modes, _ in gs.Search(mode):
-        OPTIMIZER = modes["Optimizer"]
-        BATCH_SIZE = modes["Batch_size"]
+    for settings, _ in gs.Search(SettingsList):
+        OPTIMIZER_CUP = settings["Optimizer"]
+        BATCH_SIZE = settings["Batch_size"]
 
-        settingDict = {"Optimizer": OPTIMIZER, "Batch_size": BATCH_SIZE}
+        settingDict = {"Optimizer": OPTIMIZER_CUP, "Batch_size": BATCH_SIZE, "kFold" : USE_KFOLD_CUP}
         tagName = GenerateTagNameFromSettings(settingDict)
 
         print(f"\nRun Cup experiments with the following settings: {tagName}\n")
@@ -217,14 +228,15 @@ def  TrainCUPModel(NumberOrTrial:int, NumberOrTrial_mean:int):
         best_model, best_hpSel = ModelSelection_Cup(SplitCUPDataset, BaselineMetric_MEE, NumberOrTrial)
         best_model:ModelFeedForward
         print(f"Best hp : {best_hpSel}")
-        #best_model.PlotModel("CUP Model")
-
-        totalResult = AsesSelectedModel(
+        cupData = DataExamples.Clone(SplitCUPDataset.Training)
+        cupData.Concatenate(SplitCUPDataset.Validation)
+        cupData.Concatenate(SplitCUPDataset.Test)
+        totalResult = AssessmentSelectedModel(
             HyperModel_CUP,best_hpSel,
             NumberOrTrial_mean,
             BaselineMetric_MEE,
-            SplitCUPDataset.Test,SplitCUPDataset.Training,SplitCUPDataset.Validation,
-            500,50,42 )
+            cupData,VAL_SPLIT_CUP,TEST_SPLIT_CUP,None,
+            500,150,42 )
         totalResult["settings"] = settingDict
         SaveJson(f"{CUP_RESULTS_PATH}", f"res_CUP{tagName}.json", totalResult)
 
@@ -337,6 +349,7 @@ def GenerateAllPlot_CUP():
     CreateDir(CUP_RESULTS_PATH)
 
 
+
     SplitCupDataset, all_data,  BaselineMetric_MEE = ReadCUP(VAL_SPLIT_CUP, TEST_SPLIT_CUP,DATA_SHUFFLE_SEED_CUP)
 
     jsonFiles = GetAllFileInDir(CUP_RESULTS_PATH)
@@ -358,11 +371,14 @@ def GenerateAllPlot_CUP():
         best_model.LoadModel(CUP_MODEL_PATH,model_name)
 
 
-        labels= all_data.Data.Label
+        labels = all_data.Data.Label
         test = readCUPTest(DATASET_PATH_CUP_TS)
         if STANDARDIZE:
             test.Data.Standardize(False,SplitCupDataset.StandardizationStat[0])
         result = best_model.Predict(test.Data.Data)
+
+        WriteToCSV(result, CUP_CSV_RESULTS_PATH,f"{model_name}.csv")
+
         plot_CUP_3d(
             labels,  # First dataset: actual labels
             result,  # Second dataset: predictions
@@ -372,3 +388,23 @@ def GenerateAllPlot_CUP():
             colors=["blue", "red"],  # Colors for each dataset
             markers=["o", "^"]  # Markers for each dataset
         )
+
+
+
+
+def WriteToCSV(data, path,fileName):
+    CreateDir(path)
+
+    # Open a CSV file to write
+    with open(f"{path}/{fileName}", mode='w', newline='') as file:
+        writer = csv.writer(file)
+
+
+        writer.writerow(['Vito Barra','Jessica Ferrari','Francesco Romeo'])
+        writer.writerow(['LMS team'])
+        writer.writerow(['ML-CUP24 V1'])
+        writer.writerow(['29/01/2025'])
+
+        # Write each row with an auto-incrementing ID
+        for idx, row in enumerate(data, start=1):
+            writer.writerow([idx] + list(row))

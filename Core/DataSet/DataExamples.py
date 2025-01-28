@@ -36,6 +36,19 @@ class DataExamples(object):
         self.isCategorical = False
 
 
+    def __getitem__(self, slice):
+        """
+        Returns a new DataExamples object with the sliced data.
+
+        :param slice: A slice object.
+        :return: A new DataExamples object.
+        """
+        dataExample = DataExamples()
+        dataExample.Data = self.Data[slice]
+        dataExample.Label = self.Label[slice]
+        dataExample.Id = self.Id[slice]
+        return dataExample
+
 
     @classmethod
     def FromData(cls,data: np.ndarray, label: np.ndarray = None, Id: np.ndarray = None):
@@ -59,7 +72,7 @@ class DataExamples(object):
         return dataExample
 
     @classmethod
-    def Clone(cls, dataExamples: 'DataExamples'):
+    def Clone(cls, dataExamples: 'DataExamples') -> 'DataExamples':
         """
         Clones a DataExamples object.
 

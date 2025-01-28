@@ -39,6 +39,8 @@ class DataSet(object):
         self.Training = None
         self.Splitted = False
 
+
+
     @classmethod
     def FromData(cls, data: np.ndarray, label: np.ndarray |None= None, Id : np.ndarray |None = None):
         """
@@ -321,7 +323,7 @@ class DataSet(object):
         if self.Test is not None:
             self.Test.FlattenSeriesData()
 
-    def SetUp_Kfold_TestHoldOut(self, k: int, testRate: float = 0.15) -> None :
+    def SetUp_Kfold_TestHoldOut(self, k: int, testRate: float = 0.15,testSet:DataExamples = None) -> None :
         """
         Perform k-fold cross-validation, returning a test set and an array of tuples (train_set, val_set).
 
@@ -335,8 +337,11 @@ class DataSet(object):
         if len(self.Data) < k:
             raise ValueError("Number of folds cannot exceed the number of examples.")
 
+        if testSet is not None:
+            self.Test = testSet
+            data= self.Data
         # Split into test set and remaining data
-        if testRate>0:
+        elif testRate>0:
             data, test_set = self.Data.SplitIn2(testRate)
             self.Test = test_set
         else:

@@ -1,6 +1,6 @@
 import os
+
 import numpy as np
-import json
 
 from Core.ActivationFunction import ActivationFunction
 
@@ -14,9 +14,9 @@ def GetDirectSubDir(path:str) -> list[os.DirEntry]:
 
 
 
-def CreateDir(path):
+def CreateDir(path,exist_ok =True):
     # Ensure the directory exists
-    os.makedirs(os.path.dirname(path), exist_ok=True)
+    os.makedirs(path, exist_ok=exist_ok)
 
 
 
