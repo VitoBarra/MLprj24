@@ -3,11 +3,10 @@ from statistics import mean, variance
 from Core.Callback.EarlyStopping import EarlyStopping
 from Core.DataSet.DataExamples import DataExamples
 from Core.DataSet.DataSet import DataSet
+from Core.Initializer.SeedGenerator import SeedGenerator
+from Core.Initializer.WeightInitializer import GlorotInitializer
 from Core.Metric import Metric
 from Core.Tuner.HyperBag import HyperBag
-from Core.Initializer.WeightInitializer import GlorotInitializer
-
-from Core.Initializer.SeedGenerator import SeedGenerator
 
 
 def AssessmentSelectedModel(
@@ -24,23 +23,23 @@ def AssessmentSelectedModel(
                           seed = 42,
                           ) -> dict :
     """
-    Validates a model based on the hyperparameters and metrics provided.
+    Assess the selected hypermodel using the specified hyperparameters through multiple trials.
 
-    Args:
-        :param HyperModel_fn (function): The function used to build the model with selected hyperparameters.
-        :param best_hpSel (HyperBag): The selected hyperparameters for the model.
-        :param NumberOrTrial (int): The number of trials to perform for model validation.
-        :param BaselineMetric (Metric): The baseline metric to evaluate model performance.
-        :param dataset (DataExamples): The test data to evaluate the model.
-        :param training (DataExamples): The training data used for model fitting.
-        :param epoch (int, optional): The number of epochs for training (default is 500).
-        :param patience (int, optional): The number of epochs with no improvement before stopping (default is 50).
-        :param seed (int, optional): The seed value for random number generation (default is 42).
+    :param HyperModel_fn: A callable that builds and returns the model and optimizer given hyperparameters.
+    :param best_hpSel: A HyperBag object containing the best hyperparameters for the model.
+    :param NumberOrTrial: The number of trials to perform for the assessment.
+    :param BaselineMetric: The metric to be used for model evaluation.
+    :param data: A DataExamples object representing the dataset.
+    :param validation_split: Fraction of the training data to be used for validation.
+    :param test_split: Fraction of the dataset to be used for testing (optional, mutually exclusive with keep_for_test).
+    :param keep_for_test: Number of samples to keep for testing (optional, mutually exclusive with test_split).
+    :param epoch: Number of epochs for training the model.
+    :param patience: Patience for early stopping based on validation loss.
+    :param seed: Random seed for reproducibility.
+    :return: A dictionary containing metrics, hyperparameters, and statistics for the assessment.
 
-    Returns:
-        dict: A dictionary containing the results of the validation, including metrics, hyperparameters, and statistical analysis.
+    :raises ValueError: If neither `test_split` nor `keep_for_test` is provided.
     """
-
     if test_split is None and keep_for_test is None:
         raise ValueError("Either test_split or keep_for_test must be provided.")
 

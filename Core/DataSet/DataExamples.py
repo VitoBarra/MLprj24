@@ -86,7 +86,11 @@ class DataExamples(object):
 
 
     def __iter__(self):
-        # Return the instance itself as an iterator
+        """
+        Return the instance itself as an iterator.
+
+        :return: The instance itself as an iterator
+        """
         self.current = 0
         return self
 

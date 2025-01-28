@@ -7,14 +7,22 @@ from Core.ActivationFunction import ActivationFunction
 
 def GetDirectSubDir(path:str) -> list[os.DirEntry]:
     """
-    :param path: the path of the directory
-    :return: ara array with only subdirectories of the parameter path
-    """
+   Returns a list of direct subdirectories in the given path.
+
+   :param path: The path to check for subdirectories.
+   :return: A list of os.DirEntry objects representing subdirectories.
+   """
     return [f for f in os.scandir(path) if f.is_dir()]
 
 
 
 def CreateDir(path,exist_ok =True):
+    """
+    Creates a directory at the specified path.
+
+    :param path: The directory path to create.
+    :param exist_ok: If True, does not raise an error if the directory already exists.
+    """
     # Ensure the directory exists
     os.makedirs(path, exist_ok=exist_ok)
 
@@ -23,11 +31,12 @@ def CreateDir(path,exist_ok =True):
 
 def GetAllFileInDir(path: str) -> list[os.DirEntry]:
     """
-    Returns a list of all files in a specified directory.
+    Returns a list of all files in the specified directory.
 
-    :param path: The path of the directory to scan.
+    :param path: The path to the directory.
     :return: A list of os.DirEntry objects representing files in the directory.
-    :raises Exception: If the path does not exist or is not a directory.
+    :raises NotADirectoryError: If the specified path is not a directory.
+    :raises Exception: If an error occurs while accessing the directory.
     """
     try:
         # Check if the path exists and is a directory
@@ -47,6 +56,13 @@ def GetAllFileInDir(path: str) -> list[os.DirEntry]:
 
 # Convert NumPy arrays to lists
 def convert_to_serializable(obj):
+   """
+   Converts non-serializable objects (like NumPy arrays) into serializable formats for JSON.
+
+   :param obj: The object to convert.
+   :return: A serializable representation of the object.
+   :raises TypeError: If the object type is not supported.
+   """
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     if isinstance(obj, ActivationFunction):
@@ -54,7 +70,13 @@ def convert_to_serializable(obj):
     raise TypeError(f"Type {type(obj)} not serializable")
 
 def SaveJson(direc, filename, data):
+    """
+    Saves data as a JSON file in the specified directory.
 
+    :param direc: The directory where the JSON file will be saved.
+    :param filename: The name of the JSON file.
+    :param data: The data to save in JSON format.
+    """
     if not os.path.exists(direc):
         os.makedirs(direc)
 
@@ -66,12 +88,12 @@ import json
 
 def readJson(path):
     """
-    Legge i dati da un file JSON e restituisce il contenuto come dizionario.
+   Reads and returns data from a JSON file.
 
-    :param path: Il percorso del file JSON da leggere.
-    :return: I dati letti dal file JSON come dizionario.
-    :raises Exception: Se il file non può essere letto o se il contenuto non è un JSON valido.
-    """
+   :param path: The path to the JSON file.
+   :return: The data read from the JSON file.
+   :raises Exception: If an error occurs while reading the file.
+   """
     try:
         with open(path, 'r') as file:
             data = json.load(file)

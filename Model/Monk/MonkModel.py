@@ -59,14 +59,7 @@ def ModelSelection_MONK( hyperModel:MONKHyperModel ,NumberOrTrial: int) -> tuple
 
 def GeneratePlotAverage_ForMonk(Results: list[dict],
                                 BaselineMetric_ACC, monkDataset, hpUsed, monk_number ,settings):
-    """
-    Generate plot for MONK using the plot for the mean of individual trials.
 
-    :param Results: List of dictionaries. Each dictionary represents an individual trial and contains metrics with respective values.
-    :param path: The path where the plot will be saved.
-    :param name: The name of the file for the plot.
-    :param tag: Extra information for the file name.
-    """
     BaselineMetric_Loss = CategoricalCrossEntropyLoss() if hpUsed["outFun"] == "SoftARGMax" else MSE()
 
     lin_model = LogisticRegression()
@@ -109,11 +102,7 @@ def GeneratePlotAverage_ForMonk(Results: list[dict],
 
 
 def GenerateTagNameFromSettings(settings:dict):
-    """
-    Generate a tag name based on the selected optimizer, data preprocessing, and activation function.
 
-    :return: A string tag name describing the model configuration.
-    """
     tagName = ""
 
     if settings["Optimizer"] == 1:
@@ -136,15 +125,6 @@ def GenerateTagNameFromSettings(settings:dict):
 
 
 def TrainMonkModel(NumberOrTrial_search:int, NumberOrTrial_mean:int, monk_To_Test=None, optimizer = None, minibatch_size =None) -> None:
-    """
-    Train the MONK model using grid search and random search for hyperparameter optimization.
-
-    :param minibatch_size:
-    :param optimizer:
-    :param NumberOrTrial_search: Number of trials for hyperparameter search.
-    :param NumberOrTrial_mean: Number of trials to evaluate the model's performance.
-    :param monk_To_Test : It's which monk dataset will be tested.
-    """
     if monk_To_Test is None:
         monk_To_Test = [1, 2, 3,4]
     if optimizer is None:

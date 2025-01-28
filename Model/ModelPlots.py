@@ -9,24 +9,23 @@ from Core.Metric import Metric
 from Utility.PlotUtil import ShowOrSavePlot
 
 
-
-
 def PlotAverage(metricList: list[dict[str, list[float]]], title="Title", xlabel="X-axis", ylabel="Y-axis",
-                limitYRange=None,limitXRange=None, WarmUpEpochs: int = 0, baseline=None, baselineName=None, subplotAxes=None, NumbersOfMarker:int = 45):
+                limitYRange=None,limitXRange=None, WarmUpEpochs: int = 0, baseline=None, baselineName=None, subplotAxes=None, NumbersOfMarker:int = 45)-> None:
     """
-    Plot the average of multiple metrics along with individual trials for each metric.
+    Plot the average and individual curves for metrics over multiple trials.
 
-    :param baselineName:
-    :param baseline:
-    :param limitXRange:
-    :param metricList: Dictionary where keys are metric names and values are lists of lists,
-                       where each inner list represents the metric values for a trial.
+
+    :param metricList: List of dictionaries, where each dictionary contains metrics from a trial.
+    :param title: Title of the plot.
     :param xlabel: Label for the x-axis.
     :param ylabel: Label for the y-axis.
-    :param limitYRange: (Optional) Tuple specifying the y-axis limits (min, max).
-    :param WarmUpEpochs: Initial limit for the x-axis.
-    :param subplotAxes: (Optional) A matplotlib Axes object to use for a subplot. If None, a new figure is created.
-    :param title: Title of the plot.
+    :param limitYRange: Tuple specifying the y-axis limits (min, max). Dynamically calculated if None.
+    :param limitXRange: Tuple specifying the x-axis limits (min, max). Dynamically calculated if None.
+    :param WarmUpEpochs: Number of warm-up epochs to exclude from the beginning.
+    :param baseline: A horizontal baseline value to display (e.g., a benchmark metric).
+    :param baselineName: Name of the baseline to include in the legend.
+    :param subplotAxes: Subplot axes to use for the plot. Creates a new figure if None.
+    :param NumbersOfMarker: Number of markers to display on each line.
     """
     if subplotAxes is None:
         plt.figure(figsize=(18, 6))
@@ -117,18 +116,19 @@ def PlotAverage(metricList: list[dict[str, list[float]]], title="Title", xlabel=
 
 def PlotMetrics(metricDic, baseline=None, baselineName="Baseline", title="Title", xlabel="X-axis", ylabel="Y-axis", limitYRange=None, path=None, subplotAxes=None):
     """
-     Plot metrics with optional baseline as a standalone plot or as part of a subplot.
+    Plots multiple metrics from a dictionary, optionally with a baseline.
 
-     :param metricDic: A dictionary where keys are labels and values are lists of metric values to plot.
-     :param baseline: (Optional) A constant baseline value to plot. Default is None.
-     :param baselineName: (Optional) The label for the baseline line. Default is "Baseline".
-     :param title: (Optional) The title of the plot or subplot. Default is "Title".
-     :param xlabel: (Optional) The label for the x-axis. Default is "X-axis".
-     :param ylabel: (Optional) The label for the y-axis. Default is "Y-axis".
-     :param limitYRange: (Optional) A tuple specifying the y-axis limits (min, max). Default is None.
-     :param path: (Optional) The path to save the plot if provided. Default is None.
-     :param subplotAxes: (Optional) A matplotlib Axes object to use for a subplot. If None, a new figure is created.
-     """
+    :param metricDic: Dictionary where keys are metric names (str) and values are lists of metric values over epochs.
+    :param baseline: A constant baseline value to be plotted as a reference (default: None).
+    :param baselineName: Label for the baseline in the legend (default: "Baseline").
+    :param title: Title of the plot (default: "Title").
+    :param xlabel: Label for the x-axis (default: "X-axis").
+    :param ylabel: Label for the y-axis (default: "Y-axis").
+    :param limitYRange: Tuple specifying the Y-axis range (min, max). If None, it is determined automatically (default: None).
+    :param path: Path to save the plot. If None, the plot is displayed instead (default: None).
+    :param subplotAxes: Matplotlib subplot axes to allow integration with multiple plots. If None, a new figure is created (default: None).
+
+    """
     # If no subplot axes are provided, create a new figure
     if subplotAxes is None:
         plt.figure(figsize=(10, 6))
