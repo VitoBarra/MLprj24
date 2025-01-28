@@ -1,6 +1,5 @@
 from Model.Cup.CupModel import TrainCUPModel, GenerateAllPlot_CUP
-from Model.Monk.MonkModel import GenerateAllPlot_MONK, TrainMonkModel
-
+from Model.Monk.MonkModel import TrainMonkModel, GenerateAllPlot_MONK
 
 def ExcMONK():
     #MONK
@@ -14,7 +13,7 @@ def ExcCUP():
     #CUP
     optimizer = [3]
     batch_size = [-1]
-    TrainCUPModel(2,5, optimizer, batch_size )
+    TrainCUPModel(1000,50, optimizer, batch_size )
     GenerateAllPlot_CUP()
 
 if __name__ == '__main__':

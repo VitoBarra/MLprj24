@@ -276,6 +276,7 @@ class Sigmoid(ActivationFunction):
         :param z: The input value(s).
         :return: The output of the Sigmoid function.
         """
+        z = np.clip(z, -500, 500)
         return 1 / (1 + np.exp(-z))
 
     def CalculateDerivative(self, z: float | np.ndarray) -> float | np.ndarray:

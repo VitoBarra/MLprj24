@@ -1,4 +1,4 @@
-﻿import numpy as np
+import numpy as np
 
 from Core.ActivationFunction import Sign, Binary, ActivationFunction, Linear
 from Core.DataSet.DataSet import DataSet
@@ -33,16 +33,16 @@ class MONKHyperModel(HyperModel):
         hp = HyperBag()
 
 
-        # Optimizer
+        #Optimizer
         if self.settings["Optimizer"]==3:
-            hp.AddRange("beta", 0.99, 0.99, 0.01) #Fixed to default
-            hp.AddRange("epsilon", 1e-8, 1e-8, 1e-8) #Fixed to default
+            hp.AddRange("beta", 0.97, 0.99, 0.01)
+            hp.AddRange("epsilon", 1e-9, 1e-8, 1e-9)
             hp.AddRange("alpha", 0.5, 0.9, 0.05)
             if self.settings["Batch_size"] == -1:
-                hp.AddRange("eta", 0.001, 0.2, 0.005)
+                hp.AddRange("eta", 0.2, 0.6, 0.01)
+                hp.AddRange("decay", 0.008, 0.04, 0.001)
                 if self.settings["MONK"] == 4:
-                    hp.AddRange("lambda", 0.001, 0.001, 0.005)
-                hp.AddRange("decay", 0.0001, 0.0005, 0.0001)
+                    hp.AddRange("lambda", 0.0001, 0.001, 0.0005)
             elif self.settings["Batch_size"] == 1:
                 hp.AddRange("eta", 0.001, 0.2, 0.005)
                 if self.settings["MONK"] == 4:
@@ -66,8 +66,8 @@ class MONKHyperModel(HyperModel):
         # Architecture
         hp.AddChosen("UseBiasIN",[True,False])
         hp.AddChosen("UseBias",[True,False])
-        hp.AddRange("unit", 3, 12, 1)
-        hp.AddRange("hlayer", 0, 2, 1)
+        hp.AddRange("unit", 1, 12, 1)
+        hp.AddRange("hlayer", 0, 4, 1)
         hp.AddChosen("ActFun",["TanH","Sigmoid","ReLU","LeakyReLU"])
 
         # Data format
@@ -148,8 +148,10 @@ class MONKHyperModel(HyperModel):
             optimizer = BackPropagation(loss,self.settings["Batch_size"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
         elif self.settings["Optimizer"] == 2:
             optimizer = BackPropagationNesterovMomentum(loss,self.settings["Batch_size"], hp["eta"], hp["lambda"], hp["alpha"],hp["decay"])
-        else:
+        elif self.settings["Optimizer"] == 3:
             optimizer = Adam(loss,self.settings["Batch_size"], hp["eta"], hp["lambda"], hp["alpha"], hp["beta"] , hp["epsilon"] ,hp["decay"])
+        else:
+            raise ValueError("Optimizer value Invalid")
 
         return  optimizer
 
