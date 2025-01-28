@@ -172,15 +172,18 @@ class Accuracy(Metric):
         if len(val.shape) > 1 and val.shape[1] > 1:
             val = np.argmax(val, axis=1)
 
+
         # If the target is in one-hot encoding, convert it to class labels
         if len(target.shape) > 1 and target.shape[1] > 1:
             target = np.argmax(target, axis=1)
+
 
         # Compare predictions with targets and compute the mean of correct predictions
         if self.dataInterpretation is None:
             out = val
         else:
             out = self.dataInterpretation(val)
+
 
         f = np.vectorize(lambda x,y: 1 if x == y else 0)
 
