@@ -404,9 +404,9 @@ def WriteToCSV(data, path,fileName):
         writer = csv.writer(file)
 
 
-        writer.writerow(['Vito Barra','Jessica Ferrari','Francesco Romeo'])
-        writer.writerow(['LMS team'])
-        writer.writerow(['ML-CUP24 V1'])
+        writer.writerow(['Vito Barra ','Jessica Ferrari ','Francesco Romeo'])
+        writer.writerow(['LMSTeam'])
+        writer.writerow(['ML-CUP24 v1'])
         writer.writerow(['29/01/2025'])
 
         # Write each row with an auto-incrementing ID
