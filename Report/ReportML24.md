@@ -358,6 +358,12 @@ The __Activation Function__: is a class to encapsulate an activation function an
   
   
   
+
+
+
+# Things to add 
+- [ ] Add [Batch normalization](http://kratzert.github.io/2016/02/12/understanding-the-gradient-flow-through-the-batch-normalization-layer.html)
+- [ ] Add true random search 
   
   
 # Bibliography  

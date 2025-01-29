@@ -63,11 +63,11 @@ def convert_to_serializable(obj):
    :return: A serializable representation of the object.
    :raises TypeError: If the object type is not supported.
    """
-    if isinstance(obj, np.ndarray):
+   if isinstance(obj, np.ndarray):
         return obj.tolist()
-    if isinstance(obj, ActivationFunction):
+   if isinstance(obj, ActivationFunction):
         return obj.Name
-    raise TypeError(f"Type {type(obj)} not serializable")
+   raise TypeError(f"Type {type(obj)} not serializable")
 
 def SaveJson(direc, filename, data):
     """
